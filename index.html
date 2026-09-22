@@ -1,2 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
 
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="assets/style.css"><title>Al Noor Loyalty</title></head><body><main class="page"><div class="container center"><img class="logo" src="assets/logo.svg"><p class="ey">LOYALTY PROGRAM</p><h1>Good Bread.<br>Brighter Days.</h1><div class="grid g3"><a class="card pad" href="customer-register.html"><h3>Customer</h3><p>Register and collect points.</p><span class="btn primary">Get Started</span></a><a class="card pad" href="staff-login.html"><h3>Staff</h3><p>Scan and add points.</p><span class="btn soft">Staff Login</span></a><a class="card pad" href="gm-login.html"><h3>General Manager</h3><p>Manage the program.</p><span class="btn brown">GM Login</span></a></div></div></main></body></html>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#063D2A"
+    >
+
+    <meta
+        name="description"
+        content="Al Noor Loyalty - Al Noor Modern Bakery"
+    >
+
+    <title>Al Noor Loyalty</title>
+
+    <style>
+
+        :root {
+            --green: #063D2A;
+            --green-light: #0B5138;
+            --cream: #F7F1E4;
+            --cream-dark: #EDE2CE;
+            --gold: #C9A34E;
+            --gold-light: #E4C978;
+            --black: #17221D;
+            --white: #FFFFFF;
+            --gray: #777A72;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+
+            background:
+                radial-gradient(
+                    circle at 15% 10%,
+                    rgba(201,163,78,.20),
+                    transparent 28%
+                ),
+                radial-gradient(
+                    circle at 90% 80%,
+                    rgba(6,61,42,.12),
+                    transparent 30%
+                ),
+                var(--cream);
+
+            color: var(--black);
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+        }
+
+        /* =========================
+           MAIN
+        ========================= */
+
+        .page {
+            min-height: 100vh;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 30px 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 720px;
+
+            text-align: center;
+        }
+
+        /* =========================
+           LOGO
+        ========================= */
+
+        .logo-area {
+            margin-bottom: 22px;
+        }
+
+        .logo-mark {
+            width: 120px;
+            height: 120px;
+
+            margin: 0 auto 12px;
+
+            position: relative;
+        }
+
+        .sun {
+            position: absolute;
+
+            width: 72px;
+            height: 72px;
+
+            top: 0;
+            left: 50%;
+
+            transform: translateX(-50%);
+
+            background:
+                radial-gradient(
+                    circle,
+                    var(--gold-light) 0%,
+                    var(--gold) 65%,
+                    transparent 67%
+                );
+
+            border-radius: 50%;
+        }
+
+        .sun::before,
+        .sun::after {
+            content: "";
+
+            position: absolute;
+
+            inset: -14px;
+
+            border-radius: 50%;
+
+            background:
+                repeating-conic-gradient(
+                    from 0deg,
+                    var(--gold) 0deg 5deg,
+                    transparent 5deg 15deg
+                );
+
+            -webkit-mask:
+                radial-gradient(
+                    circle,
+                    transparent 0 42px,
+                    #000 43px 52px,
+                    transparent 53px
+                );
+
+            mask:
+                radial-gradient(
+                    circle,
+                    transparent 0 42px,
+                    #000 43px 52px,
+                    transparent 53px
+                );
+        }
+
+        .leaf {
+            position: absolute;
+
+            bottom: 5px;
+            left: 50%;
+
+            transform:
+                translateX(-50%)
+                rotate(-2deg);
+
+            width: 65px;
+            height: 42px;
+
+            background: var(--green);
+
+            border-radius:
+                100% 0
+                100% 0;
+        }
+
+        .leaf::after {
+            content: "";
+
+            position: absolute;
+
+            width: 4px;
+            height: 55px;
+
+            background: var(--gold);
+
+            left: 31px;
+            top: -8px;
+
+            transform: rotate(30deg);
+
+            border-radius: 10px;
+        }
+
+        .brand {
+            color: var(--green);
+
+            font-family:
+                Georgia,
+                "Times New Roman",
+                serif;
+
+            font-size: 48px;
+
+            font-weight: 600;
+
+            letter-spacing: 3px;
+
+            line-height: 1;
+        }
+
+        .brand-sub {
+            margin-top: 6px;
+
+            color: var(--gold);
+
+            font-size: 11px;
+
+            letter-spacing: 6px;
+
+            font-weight: 700;
+        }
+
+        /* =========================
+           HEADLINE
+        ========================= */
+
+        .eyebrow {
+            color: var(--green);
+
+            font-size: 11px;
+
+            letter-spacing: 4px;
+
+            font-weight: 800;
+
+            text-transform: uppercase;
+
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            color: var(--green);
+
+            font-family:
+                Georgia,
+                "Times New Roman",
+                serif;
+
+            font-size:
+                clamp(34px, 8vw, 58px);
+
+            line-height: 1.05;
+
+            font-weight: 500;
+        }
+
+        .headline-gold {
+            color: var(--gold);
+        }
+
+        .description {
+            max-width: 530px;
+
+            margin: 20px auto 28px;
+
+            color: var(--gray);
+
+            font-size: 15px;
+
+            line-height: 1.7;
+        }
+
+        /* =========================
+           CUSTOMER BUTTON
+        ========================= */
+
+        .customer-button {
+            width: min(360px, 100%);
+
+            margin: auto;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            min-height: 54px;
+
+            border-radius: 14px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    var(--green-light),
+                    var(--green)
+                );
+
+            color: var(--white);
+
+            font-size: 15px;
+
+            font-weight: 800;
+
+            letter-spacing: .4px;
+
+            text-decoration: none;
+
+            box-shadow:
+                0 12px 30px
+                rgba(6,61,42,.20);
+
+            transition:
+                transform .2s ease,
+                box-shadow .2s ease;
+        }
+
+        .customer-button:hover {
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 16px 35px
+                rgba(6,61,42,.27);
+        }
+
+        /* =========================
+           FEATURES
+        ========================= */
+
+        .features {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 12px;
+
+            margin-top: 38px;
+        }
+
+        .feature {
+            padding: 18px 12px;
+
+            border:
+                1px solid
+                rgba(6,61,42,.12);
+
+            border-radius: 16px;
+
+            background:
+                rgba(255,255,255,.48);
+        }
+
+        .feature-icon {
+            font-size: 23px;
+
+            margin-bottom: 8px;
+        }
+
+        .feature-title {
+            color: var(--green);
+
+            font-size: 12px;
+
+            font-weight: 800;
+
+            margin-bottom: 4px;
+        }
+
+        .feature-text {
+            color: var(--gray);
+
+            font-size: 10px;
+
+            line-height: 1.4;
+        }
+
+        /* =========================
+           ADMIN ACCESS
+        ========================= */
+
+        .admin-area {
+            margin-top: 38px;
+
+            padding-top: 20px;
+
+            border-top:
+                1px solid
+                rgba(6,61,42,.12);
+        }
+
+        .admin-link {
+            color: var(--gray);
+
+            font-size: 11px;
+
+            text-decoration: none;
+        }
+
+        .admin-link:hover {
+            color: var(--green);
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+
+        .footer {
+            margin-top: 24px;
+
+            color: #9A968C;
+
+            font-size: 9px;
+
+            letter-spacing: 3px;
+
+            text-transform: uppercase;
+        }
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media (max-width: 600px) {
+
+            .page {
+                padding: 25px 16px;
+            }
+
+            .brand {
+                font-size: 40px;
+            }
+
+            .brand-sub {
+                font-size: 9px;
+                letter-spacing: 4px;
+            }
+
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .feature {
+                display: flex;
+
+                align-items: center;
+
+                text-align: left;
+
+                gap: 12px;
+            }
+
+            .feature-icon {
+                margin: 0;
+            }
+
+            .description {
+                font-size: 14px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <main class="page">
+
+        <div class="container">
+
+            <!-- =========================
+                 AL NOOR LOGO
+            ========================== -->
+
+            <div class="logo-area">
+
+                <div class="logo-mark">
+
+                    <div class="sun"></div>
+
+                    <div class="leaf"></div>
+
+                </div>
+
+                <div class="brand">
+                    AL NOOR
+                </div>
+
+                <div class="brand-sub">
+                    LOYALTY
+                </div>
+
+            </div>
+
+
+            <!-- =========================
+                 HEADLINE
+            ========================== -->
+
+            <div class="eyebrow">
+                AL NOOR MODERN BAKERY
+            </div>
+
+            <h1>
+
+                More Than Points
+
+                <br>
+
+                <span class="headline-gold">
+                    A Brighter Tomorrow
+                </span>
+
+            </h1>
+
+
+            <p class="description">
+
+                Welcome to Al Noor Loyalty.
+                Earn points, redeem rewards,
+                and enjoy exclusive benefits
+                every time you visit Al Noor.
+
+            </p>
+
+
+            <!-- =========================
+                 CUSTOMER ENTRY
+            ========================== -->
+
+            <a
+                href="customer-login.html"
+                class="customer-button"
+            >
+                Enter Al Noor Loyalty
+            </a>
+
+
+            <!-- =========================
+                 FEATURES
+            ========================== -->
+
+            <section class="features">
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        ⭐
+                    </div>
+
+                    <div>
+
+                        <div class="feature-title">
+                            EARN
+                        </div>
+
+                        <div class="feature-text">
+                            Collect points with every visit.
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        🎁
+                    </div>
+
+                    <div>
+
+                        <div class="feature-title">
+                            REDEEM
+                        </div>
+
+                        <div class="feature-text">
+                            Turn your points into rewards.
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="feature">
+
+                    <div class="feature-icon">
+                        ✨
+                    </div>
+
+                    <div>
+
+                        <div class="feature-title">
+                            ENJOY
+                        </div>
+
+                        <div class="feature-text">
+                            Discover your Al Noor benefits.
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =========================
+                 ADMIN
+            ========================== -->
+
+            <div class="admin-area">
+
+                <a
+                    href="admin-login.html"
+                    class="admin-link"
+                >
+                    Staff & Management Login
+                </a>
+
+            </div>
+
+
+            <!-- =========================
+                 FOOTER
+            ========================== -->
+
+            <div class="footer">
+
+                AL NOOR MODERN BAKERY
+
+                <br>
+
+                LOYALTY TODAY · A BRIGHTER TOMORROW
+
+            </div>
+
+        </div>
+
+    </main>
+
+</body>
+
+</html>
