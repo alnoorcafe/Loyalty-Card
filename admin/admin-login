@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#063D2A">
+<title>Admin Login</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="stylesheet" href="../assets/style.css">
+
+</head>
+<body>
+
+<main class="page"><div class="shell" style="max-width:520px">
+<section class="card" style="padding:28px;margin-top:7vh">
+<div class="brand"><div class="logo-mark"><div class="sun"></div><div class="leaf"></div><div class="stem"></div></div><div class="brand-name">AL NOOR</div><div class="brand-sub">ADMIN PORTAL</div></div>
+<div class="eyebrow" style="text-align:center;margin-top:20px">STAFF & MANAGEMENT</div>
+<h1 style="text-align:center;margin:7px 0">Secure Login</h1>
+<p class="muted" style="text-align:center;font-size:13px">This portal is separate from the customer experience.</p>
+<form id="adminForm" class="form" style="margin-top:22px">
+<div class="field"><label>Email</label><input id="email" type="email" required placeholder="staff@alnoor.com"></div>
+<div class="field"><label>Password</label><input id="password" type="password" required placeholder="Password"></div>
+<div class="field"><label>Demo Role</label><select id="role"><option value="staff">Staff</option><option value="gm">General Manager</option></select></div>
+<div id="msg"></div>
+<button class="btn btn-primary btn-full">Login</button>
+</form>
+<div style="text-align:center;margin-top:18px"><a style="font-size:11px;color:var(--muted)" href="../index.html">Back to Al Noor</a></div>
+</section></div></main>
+
+<script src="../assets/app.js"></script>
+
+<script>
+document.getElementById("adminForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const role=document.getElementById("role").value;
+ localStorage.setItem("alnoor_demo_session",role);
+ location.href=role==="gm"?"gm/gm-dashboard.html":"staff/staff-dashboard.html";
+});
+</script>
+
+</body>
+</html>
