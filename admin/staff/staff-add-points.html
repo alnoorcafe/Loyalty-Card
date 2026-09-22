@@ -5,30 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#073a2b">
 <link rel="manifest" href="../../manifest.webmanifest">
-<title>Add Points</title>
+<title>Add Visit</title>
 <link rel="stylesheet" href="../../assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body data-page="staff-add-points">
-
 <header class="topbar">
 <a class="brand" href="staff-scan.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a>
 <button class="icon" onclick="logout()" title="Sign out">↪</button>
 </header>
 <main class="container">
-<h1 class="title">Add Points</h1><p class="sub">Add points to the selected customer.</p>
+<h1 class="title">Add Visit</h1><p class="sub">Each customer visit earns exactly <b>1 point</b>.</p>
 <div class="card">
 <div class="row"><div id="avatar" class="avatar">AN</div><div class="grow"><strong data-name>Customer</strong><small>ID: <span data-id>—</span></small></div></div>
 <div class="stat" style="margin:18px 0"><i>★</i><div><strong data-points>0</strong><span>Current Points</span></div></div>
-<div class="field"><label>Points to Add</label><input id="pts" class="input" type="number" value="50" min="1"></div>
-<div class="actions">
-<button class="btn soft" onclick="document.getElementById('pts').value=25">25</button>
-<button class="btn soft" onclick="document.getElementById('pts').value=50">50</button>
-<button class="btn soft" onclick="document.getElementById('pts').value=100">100</button>
-<button class="btn soft" onclick="document.getElementById('pts').value=250">250</button>
-</div>
-<div class="field"><label>Note</label><input id="note" class="input" placeholder="Purchase at branch"></div>
-<button id="addPointsBtn" class="btn primary block">Add Points →</button>
+<div class="visit-rule"><div class="visit-rule-number">+1</div><div><strong>One visit = one point</strong><small>At 10 visits, a reward is unlocked automatically.</small></div></div>
+<button id="addPointsBtn" class="btn primary block" style="margin-top:18px">ADD 1 VISIT</button>
+<div class="note">The staff member cannot choose the number of points. Every successful visit adds only one point.</div>
 </div></main>
 <nav class="nav"><div class="navin"><a href="staff-scan.html" class="active"><b>⌗</b>Scan</a>
 <a href="staff-customer.html"><b>●</b>Customer</a>
