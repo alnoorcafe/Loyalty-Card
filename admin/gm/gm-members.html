@@ -1,20 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#063D2A">
-<title>Gm Members</title>
-<link rel="manifest" href="../manifest.webmanifest">
-<link rel="stylesheet" href="../assets/style.css">
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<link rel="manifest" href="../../manifest.webmanifest">
+<title>Members</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body>
-<main><header class="topbar"><div class="topbar-inner">
-<div class="topbrand">AL <span>NOOR</span></div>
-<nav class="nav"><a href="gm-dashboard.html">Dashboard</a><a href="gm-members.html">Members</a><a href="gm-locations.html">Locations</a><a href="gm-reports.html">Reports</a><a href="gm-rewards.html">Rewards</a><a href="gm-staff.html">Staff</a><a href="gm-settings.html">Settings</a></nav>
-</div></header><div class="content"><div class="eyebrow">MEMBERS</div><h1>Customer Members</h1><div class="card" style="padding:18px"><div class="field"><input placeholder="Search by name, member ID or phone"></div><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Member ID</th><th>Points</th><th>Birthday</th><th>Contact Consent</th></tr></thead><tbody><tr><td>Ahmed Mohamed</td><td>AN-123456</td><td>1,250</td><td>25 Sep</td><td>Yes</td></tr><tr><td>Sara Ali</td><td>AN-123457</td><td>980</td><td>29 Sep</td><td>Yes</td></tr><tr><td>Omar Khaled</td><td>AN-123458</td><td>760</td><td>—</td><td>No</td></tr></tbody></table></div></div></div></main>
-<script src="../assets/app.js"></script>
+<body data-page="gm-members">
 
+<header class="topbar">
+<a class="brand" href="gm-dashboard.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a>
+<button class="icon" onclick="logout()" title="Sign out">↪</button>
+</header>
+<main class="container">
+<h1 class="title">Members</h1><p class="sub">Live customer membership list.</p>
+<div class="card"><input id="search" class="input" placeholder="Search by name, ID or phone…"><div id="members" style="margin-top:10px"><div class="empty">Loading…</div></div></div>
+</main>
+<nav class="nav"><div class="navin"><a href="gm-dashboard.html" class="active"><b>▦</b>Dashboard</a>
+<a href="gm-members.html"><b>♙</b>Members</a>
+<a href="gm-locations.html"><b>⌖</b>Locations</a>
+<a href="gm-reports.html"><b>▥</b>Reports</a>
+<a href="gm-settings.html"><b>⚙</b>Settings</a></div></nav>
+<script src="../../assets/app.js"></script>
 </body>
 </html>
