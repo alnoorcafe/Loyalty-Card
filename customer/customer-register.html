@@ -147,6 +147,11 @@ h2{margin:0 0 7px;color:var(--green);font-size:36px;line-height:1.1}
     btn.disabled=true; return;
   }
 
+  if(typeof supabase==="undefined"){
+    show("Al Noor service could not load. Please refresh the page and try again.",true);
+    btn.disabled=true; return;
+  }
+
   const sb=supabase.createClient(url,key,{
     auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
   });
@@ -169,7 +174,9 @@ h2{margin:0 0 7px;color:var(--green);font-size:36px;line-height:1.1}
     show("Creating your secure Al Noor account…");
 
     try{
-      const redirectTo=new URL("../customer/customer-home.html",location.href).href;
+      // Use the exact Supabase Site URL for the magic-link callback.
+      // This avoids a redirect-allowlist mismatch on GitHub Pages.
+      const redirectTo=location.origin + "/Loyalty-Card/";
 
       const {error}=await sb.auth.signInWithOtp({
         email,
@@ -195,7 +202,7 @@ h2{margin:0 0 7px;color:var(--green);font-size:36px;line-height:1.1}
       btn.textContent="Check Your Email ✓";
     }catch(e){
       console.error(e);
-      show("Something went wrong. Please try again.",true);
+      show(e?.message || "Connection failed. Please refresh and try again.",true);
       btn.disabled=false;btn.textContent="Create Account →";
     }
   });
