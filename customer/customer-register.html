@@ -1,55 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#063D2A">
-<title>Create Customer Account</title>
-<link rel="manifest" href="../manifest.webmanifest">
-<link rel="stylesheet" href="../assets/style.css">
-
-</head>
-<body>
-
-<main class="page"><div class="shell" style="max-width:560px">
-<section class="card" style="padding:28px;margin-top:3vh">
-<div class="brand"><div class="logo-mark"><div class="sun"></div><div class="leaf"></div><div class="stem"></div></div><div class="brand-name">AL NOOR</div><div class="brand-sub">LOYALTY</div></div>
-<div class="eyebrow" style="text-align:center;margin-top:20px">JOIN AL NOOR LOYALTY</div>
-<h1 style="text-align:center;margin:7px 0">Create Account</h1>
-<p class="muted" style="text-align:center;font-size:13px">No password, Face ID, or Passkey. Your email will be used for secure login.</p>
-<form class="form" id="registerForm" style="margin-top:22px">
-<div class="field"><label>Full Name *</label><input id="name" required placeholder="Your full name"></div>
-<div class="field"><label>Mobile Number *</label><input id="phone" type="tel" required placeholder="05XXXXXXXX"></div>
-<div class="field"><label>Email Address *</label><input id="email" type="email" required placeholder="example@email.com"></div>
-<div class="field"><label>Date of Birth <span class="muted">(Optional)</span></label><input id="dob" type="date"></div>
-<div class="notice info">🎂 If you provide your birthday, Al Noor can remember your special day.</div>
-<label class="row" style="align-items:flex-start;font-size:11px;color:var(--muted)"><input id="consent" type="checkbox" style="margin-top:2px"> I agree that Al Noor may contact me around my birthday with a birthday greeting.</label>
-<div id="msg"></div>
-<button class="btn btn-primary btn-full" type="submit">Create My Loyalty Account</button>
-</form>
-<div style="text-align:center;margin-top:18px;font-size:12px;color:var(--muted)">Already registered? <a style="color:var(--green);font-weight:800" href="customer-login.html">Login</a></div>
-</section></div></main>
-
-<script src="../assets/app.js"></script>
-
-<script>
-document.getElementById("registerForm").addEventListener("submit",e=>{
- e.preventDefault();
- const c={
-   name:document.getElementById("name").value.trim(),
-   phone:document.getElementById("phone").value.trim(),
-   email:document.getElementById("email").value.trim(),
-   dob:document.getElementById("dob").value,
-   birthdayConsent:document.getElementById("consent").checked
- };
- localStorage.setItem("alnoor_demo_customer",JSON.stringify(c));
- localStorage.setItem("alnoor_demo_session","customer");
- const m=document.getElementById("msg");
- m.className="notice success";
- m.textContent="Demo account created. Supabase connection will be added later.";
- setTimeout(()=>location.href="customer-home.html",700);
-});
-</script>
-
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f1e5"><title>Al Noor Loyalty — Create Account</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script></head>
+<body class="customer-page" data-page="customer-register"><main class="customer-auth"><section class="customer-auth-card">
+<div class="customer-auth-brand"><div class="mark">☀️</div><h1>AL NOOR</h1><small>LOYALTY</small></div>
+<h2>Create Account</h2><p class="sub">Create your Al Noor Loyalty account and receive your personal QR code.</p>
+<div class="auth-field"><label for="name">Full Name</label><input id="name" autocomplete="name" placeholder="Full name"></div>
+<div class="auth-field"><label for="phone">Mobile Number</label><input id="phone" type="tel" autocomplete="tel" placeholder="+971 5x xxx xxxx"></div>
+<div class="auth-field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
+<div class="auth-field"><label for="password">Password</label><input id="password" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
+<div class="auth-field"><label for="confirm">Confirm Password</label><input id="confirm" type="password" autocomplete="new-password" placeholder="Repeat password"></div>
+<button id="registerBtn" class="auth-primary">Create My Loyalty Account&nbsp; →</button><div id="msg" class="auth-msg"></div>
+<a class="auth-back" href="customer-login.html">Already have an account? Sign in</a>
+</section></main><script src="../assets/config.js"></script>
+<script src="../assets/app.js"></script></body></html>

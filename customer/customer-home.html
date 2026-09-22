@@ -1,48 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#063D2A">
-<title>Customer Home</title>
-<link rel="manifest" href="../manifest.webmanifest">
-<link rel="stylesheet" href="../assets/style.css">
-
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f1e5"><link rel="manifest" href="../manifest.webmanifest">
+<title>Al Noor Loyalty</title><link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body>
+<body class="customer-page" data-page="customer-home">
+<header class="customer-top">
+  <a class="customer-brand" href="customer-home.html"><span class="customer-brand-mark">☀️</span><span class="customer-brand-word">AL NOOR<small>LOYALTY</small></span></a>
+  <button class="customer-account" onclick="location.href='customer-profile.html'" aria-label="Profile">♙</button>
+</header>
+<main class="customer-shell">
+  <section class="customer-welcome">
+    <div class="customer-kicker">AL NOOR LOYALTY MEMBER</div>
+    <h1>Welcome back,<br><span data-name>Customer</span> 👋</h1>
+    <p>Good food. Brighter days.</p>
+  </section>
 
-<main>
-<header class="topbar"><div class="topbar-inner">
-<div class="topbrand">AL <span>NOOR</span></div>
-<nav class="nav"><a href="customer-home.html">Home</a><a href="customer-card.html">My Card</a><a href="customer-rewards.html">Rewards</a><a href="customer-transactions.html">Transactions</a><a href="customer-profile.html">Profile</a></nav>
-</div></header>
-<div class="content">
-<section class="card hero">
-<div class="eyebrow">CUSTOMER HOME</div>
-<h1>Hello, <span id="name">Customer</span></h1>
-<p class="muted">Your Al Noor Loyalty account at a glance.</p>
-<div class="grid grid-3" style="margin-top:20px">
-<div class="stat"><div class="label">Your Points</div><div class="value" id="points">1,250</div></div>
-<div class="stat"><div class="label">Member ID</div><div class="value" style="font-size:18px">AN-123456</div></div>
-<div class="stat"><div class="label">Rewards</div><div class="value">3</div></div>
-</div>
-</section>
-<div class="section-title"><h2>More Rewards</h2></div>
-<div class="grid grid-3">
-<div class="card stat"><div style="font-size:30px">☕</div><h3>Free Coffee</h3><p class="muted">500 points</p><a class="btn btn-primary" href="customer-rewards.html">View Rewards</a></div>
-<div class="card stat"><div style="font-size:30px">🥪</div><h3>Free Sandwich</h3><p class="muted">750 points</p><a class="btn btn-primary" href="customer-rewards.html">View Rewards</a></div>
-<div class="card stat"><div style="font-size:30px">🍰</div><h3>Free Dessert</h3><p class="muted">1,000 points</p><a class="btn btn-primary" href="customer-rewards.html">View Rewards</a></div>
-</div>
-</div>
+  <section class="loyalty-card">
+    <div class="loyalty-card-head"><span class="loyalty-label">♛ AL NOOR LOYALTY MEMBER</span><span class="family-pill">AL NOOR FAMILY</span></div>
+    <div class="loyalty-name" data-name>Customer</div>
+    <div class="loyalty-id">Customer ID: <b data-id>—</b></div>
+    <div id="homeQr" class="customer-qr"></div>
+    <div class="qr-hint">Show this QR code at the counter</div>
+  </section>
+
+  <section class="home-points">
+    <div class="home-points-icon">★</div><div><strong><span data-points>0</span> Points</strong><span>Your current loyalty balance</span></div>
+  </section>
+
+  <!-- THIS AREA IS RESERVED FOR GM-MANAGED ADS & OFFERS -->
+  <div class="section-head"><h2>Offers & News</h2><a href="customer-rewards.html">View rewards →</a></div>
+  <section class="offer-slider" aria-label="Offers and promotions">
+    <article class="offer green"><span class="offer-tag">AL NOOR LOYALTY</span><span class="offer-badge">NEW</span><div><h3>Member Offers</h3><p>Special offers and bakery news will appear here for Loyalty members.</p></div><span class="offer-mark"></span></article>
+    <article class="offer cream"><span class="offer-tag">TODAY AT AL NOOR</span><span class="offer-badge">OFFER</span><div><h3>Fresh. Daily. For You.</h3><p>This space is ready for your next promotion, product launch or seasonal campaign.</p></div><span class="offer-mark"></span></article>
+    <article class="offer olive"><span class="offer-tag">COMING SOON</span><span class="offer-badge">AL NOOR</span><div><h3>More to Discover</h3><p>Future offers can be managed from the GM portal without changing this customer app.</p></div><span class="offer-mark"></span></article>
+  </section>
+  <div class="offer-dots"><i></i><i></i><i></i></div>
+
+  <section class="home-note"><div class="note-icon">✓</div><div><strong>Your loyalty is simple.</strong><p>Show your QR at the counter and the staff can add your points to your account.</p></div></section>
 </main>
-
+<nav class="customer-nav"><div class="customer-nav-inner"><a class="active" href="customer-home.html"><b class="nav-icon">⌂</b><span>Home</span></a><a class="" href="customer-rewards.html"><b class="nav-icon">♢</b><span>Rewards</span></a><a class="center-logo" href="customer-card.html">AL<br>NOOR<small>LOYALTY</small></a><a href="customer-locations.html"><b class="nav-icon">⌖</b><span>Locations</span></a><a href="customer-menu.html"><b class="nav-icon">☰</b><span>Menu</span></a></div></nav>
+<script src="../assets/config.js"></script>
 <script src="../assets/app.js"></script>
-
 <script>
-const c=AlNoor.demo.customer||{};
-document.getElementById("name").textContent=(c.name||"Customer").split(" ")[0];
-document.getElementById("points").textContent=AlNoor.getPoints().toLocaleString();
+const oldHome=window.loadCustomerHome;
 </script>
-
-</body>
-</html>
+<script>
+document.addEventListener('DOMContentLoaded', async ()=>{
+  setTimeout(()=>{
+    const el=document.getElementById('homeQr');
+    const id=document.querySelector('[data-id]')?.textContent;
+    if(el && id && id!=='—' && typeof QRCode!=='undefined'){
+      el.innerHTML='';
+      const token=window.__alnoorProfileToken;
+      if(token) new QRCode(el,{text:String(token),width:245,height:245,colorDark:'#111',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});
+    }
+  },800);
+});
+</script>
+</body></html>
