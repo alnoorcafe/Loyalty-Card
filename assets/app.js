@@ -1,6 +1,6 @@
 
-const SUPABASE_URL = window.AL_NOOR_CONFIG?.SUPABASE_URL || "https://hlzmbmngsbvnlaaoau.supabase.co";
-const SUPABASE_KEY = window.AL_NOOR_CONFIG?.SUPABASE_PUBLISHABLE_KEY || "";
+const SUPABASE_URL = "https://fgarlyoqobopudfkifbp.supabase.co";
+const SUPABASE_KEY = "sb_publishable_hmDY0Nch_M_WPIMRXW26-HA_eaLaVZcY";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -18,17 +18,6 @@ const KEYS = {
 };
 
 const $ = (id) => document.getElementById(id);
-
-function rootPath() {
-  const p = location.pathname;
-  if (p.includes("/admin/staff/")) return "../../";
-  if (p.includes("/admin/gm/")) return "../../";
-  if (p.includes("/admin/")) return "../";
-  if (p.includes("/customer/")) return "../";
-  return "./";
-}
-
-function go(path) { location.href = rootPath() + path; }
 
 function esc(value) {
   return String(value ?? "").replace(/[&<>"']/g, m => ({
@@ -85,9 +74,9 @@ async function getStaffProfile() {
 async function guardRole(allowedRoles) {
   const session = await getSession();
   if (!session) {
-    go(allowedRoles.includes("customer")
-      ? "customer/customer-login.html"
-      : allowedRoles.includes("gm") ? "admin/gm/gm-login.html" : "admin/staff/staff-login.html");
+    location.href = allowedRoles.includes("customer")
+      ? "customer-login.html"
+      : allowedRoles.includes("gm") ? "gm-login.html" : "staff-login.html";
     return null;
   }
 
@@ -96,7 +85,7 @@ async function guardRole(allowedRoles) {
   if (!profile || !allowedRoles.includes(profile.role)) {
     toast("You do not have access to this portal.", false);
     await sb.auth.signOut();
-    go("index.html");
+    location.href = "index.html";
     return null;
   }
 
@@ -104,9 +93,9 @@ async function guardRole(allowedRoles) {
 }
 
 function routeForRole(role) {
-  if (role === "gm") return "admin/gm/gm-dashboard.html";
-  if (role === "staff") return "admin/staff/staff-scan.html";
-  return "customer/customer-home.html";
+  if (role === "gm") return "gm-dashboard.html";
+  if (role === "staff") return "staff-dashboard.html";
+  return "customer-home.html";
 }
 
 async function login(role) {
@@ -139,7 +128,7 @@ async function login(role) {
       throw new Error(`This account is not registered as ${role}.`);
     }
 
-    go(routeForRole(profile.role));
+    location.href = routeForRole(profile.role);
   } catch (e) {
     if (msg) msg.textContent = e.message || "Login failed.";
   }
@@ -193,14 +182,14 @@ async function registerCustomer() {
   }
 
   msg.textContent = "Account created. Opening your loyalty card…";
-  setTimeout(() => go("customer/customer-home.html"), 500);
+  setTimeout(() => location.href = "customer-home.html", 500);
 }
 
 async function logout() {
   await sb.auth.signOut();
   localStorage.removeItem(KEYS.customerToken);
   localStorage.removeItem(KEYS.staffCustomer);
-  go("index.html");
+  location.href = "index.html";
 }
 
 async function loadCustomerHome() {
@@ -210,13 +199,6 @@ async function loadCustomerHome() {
   document.querySelectorAll("[data-name]").forEach(e => e.textContent = profile.full_name || "Customer");
   document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
   document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
-  window.__alnoorProfileToken = profile.loyalty_token || null;
-
-  const homeQr = $("homeQr");
-  if (homeQr && typeof QRCode !== "undefined" && profile.loyalty_token) {
-    homeQr.innerHTML = "";
-    new QRCode(homeQr, { text: String(profile.loyalty_token), width: 245, height: 245, colorDark: "#111111", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
-  }
 
   const avatar = $("avatar");
   if (avatar) avatar.textContent = initials(profile.full_name);
@@ -351,7 +333,7 @@ async function loadStaffCustomer() {
 
   const customer = getStaffCustomer();
   if (!customer) {
-    go("admin/staff/staff-scan.html");
+    location.href = "staff-scan.html";
     return;
   }
 
@@ -364,7 +346,7 @@ async function loadAddPoints() {
 
   const customer = getStaffCustomer();
   if (!customer) {
-    go("admin/staff/staff-scan.html");
+    location.href = "staff-scan.html";
     return;
   }
 
@@ -400,7 +382,7 @@ async function loadAddPoints() {
       saveStaffCustomer(customer);
       renderStaffCustomer(customer);
       toast(`${points} points added successfully.`);
-      setTimeout(() => go("admin/staff/staff-customer.html"), 500);
+      setTimeout(() => location.href = "staff-customer.html", 500);
     } catch (e) {
       toast(e.message || "Could not add points.", false);
     } finally {
@@ -416,7 +398,7 @@ async function loadStaffRedeem() {
 
   const customer = getStaffCustomer();
   if (!customer) {
-    go("admin/staff/staff-scan.html");
+    location.href = "staff-scan.html";
     return;
   }
 
@@ -471,7 +453,7 @@ async function redeemReward(rewardId, cost) {
     saveStaffCustomer(customer);
 
     toast(`Reward redeemed. Coupon: ${result?.coupon_code || "created"}`);
-    setTimeout(() => go("admin/staff/staff-customer.html"), 700);
+    setTimeout(() => location.href = "staff-customer.html", 700);
   } catch (e) {
     toast(e.message || "Could not redeem reward.", false);
   }
@@ -539,7 +521,7 @@ async function startScanner() {
     try {
       const c = await lookupCustomerToken(input.value);
       result.innerHTML = `<div class="alert ok">Customer found: <b>${esc(c.full_name)}</b></div>`;
-      setTimeout(() => go("admin/staff/staff-customer.html"), 400);
+      setTimeout(() => location.href = "staff-customer.html", 400);
     } catch (e) {
       result.innerHTML = `<div class="alert">${esc(e.message)}</div>`;
     }
@@ -558,7 +540,7 @@ async function startScanner() {
     try {
       const c = await lookupCustomerToken(decodedText);
       result.innerHTML = `<div class="alert ok">Customer found: <b>${esc(c.full_name)}</b></div>`;
-      setTimeout(() => go("admin/staff/staff-customer.html"), 400);
+      setTimeout(() => location.href = "staff-customer.html", 400);
     } catch (e) {
       result.innerHTML = `<div class="alert">${esc(e.message)}</div>`;
     }
