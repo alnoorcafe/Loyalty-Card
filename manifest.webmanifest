@@ -1,15 +1,10 @@
 {
-  "id": "/Loyalty-Card/",
-  "name": "Al Noor Loyalty",
-  "short_name": "Al Noor",
-  "start_url": "/Loyalty-Card/",
-  "scope": "/Loyalty-Card/",
-  "display": "standalone",
-  "background_color": "#f5f1e8",
-  "theme_color": "#073a2b",
-  "description": "Al Noor Loyalty customer, staff and GM portals.",
-  "icons": [
-    {"src":"/Loyalty-Card/assets/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
-    {"src":"/Loyalty-Card/assets/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
-  ]
+  "name":"Al Noor Loyalty",
+  "short_name":"Al Noor",
+  "start_url":"/Loyalty-Card/index.html",
+  "scope":"/Loyalty-Card/",
+  "display":"standalone",
+  "background_color":"#f5f1e8",
+  "theme_color":"#073a2b",
+  "description":"Al Noor Loyalty customer, staff and GM portals."
 }
