@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#063D2A">
+<title>Create Customer Account</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="stylesheet" href="../assets/style.css">
+
+</head>
+<body>
+
+<main class="page"><div class="shell" style="max-width:560px">
+<section class="card" style="padding:28px;margin-top:3vh">
+<div class="brand"><div class="logo-mark"><div class="sun"></div><div class="leaf"></div><div class="stem"></div></div><div class="brand-name">AL NOOR</div><div class="brand-sub">LOYALTY</div></div>
+<div class="eyebrow" style="text-align:center;margin-top:20px">JOIN AL NOOR LOYALTY</div>
+<h1 style="text-align:center;margin:7px 0">Create Account</h1>
+<p class="muted" style="text-align:center;font-size:13px">No password, Face ID, or Passkey. Your email will be used for secure login.</p>
+<form class="form" id="registerForm" style="margin-top:22px">
+<div class="field"><label>Full Name *</label><input id="name" required placeholder="Your full name"></div>
+<div class="field"><label>Mobile Number *</label><input id="phone" type="tel" required placeholder="05XXXXXXXX"></div>
+<div class="field"><label>Email Address *</label><input id="email" type="email" required placeholder="example@email.com"></div>
+<div class="field"><label>Date of Birth <span class="muted">(Optional)</span></label><input id="dob" type="date"></div>
+<div class="notice info">🎂 If you provide your birthday, Al Noor can remember your special day.</div>
+<label class="row" style="align-items:flex-start;font-size:11px;color:var(--muted)"><input id="consent" type="checkbox" style="margin-top:2px"> I agree that Al Noor may contact me around my birthday with a birthday greeting.</label>
+<div id="msg"></div>
+<button class="btn btn-primary btn-full" type="submit">Create My Loyalty Account</button>
+</form>
+<div style="text-align:center;margin-top:18px;font-size:12px;color:var(--muted)">Already registered? <a style="color:var(--green);font-weight:800" href="customer-login.html">Login</a></div>
+</section></div></main>
+
+<script src="../assets/app.js"></script>
+
+<script>
+document.getElementById("registerForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ const c={
+   name:document.getElementById("name").value.trim(),
+   phone:document.getElementById("phone").value.trim(),
+   email:document.getElementById("email").value.trim(),
+   dob:document.getElementById("dob").value,
+   birthdayConsent:document.getElementById("consent").checked
+ };
+ localStorage.setItem("alnoor_demo_customer",JSON.stringify(c));
+ localStorage.setItem("alnoor_demo_session","customer");
+ const m=document.getElementById("msg");
+ m.className="notice success";
+ m.textContent="Demo account created. Supabase connection will be added later.";
+ setTimeout(()=>location.href="customer-home.html",700);
+});
+</script>
+
+</body>
+</html>

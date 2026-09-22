@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#063D2A">
+<title>Customer Profile</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="stylesheet" href="../assets/style.css">
+
+</head>
+<body>
+
+<main>
+<header class="topbar"><div class="topbar-inner">
+<div class="topbrand">AL <span>NOOR</span></div>
+<nav class="nav"><a href="customer-home.html">Home</a><a href="customer-card.html">My Card</a><a href="customer-rewards.html">Rewards</a><a href="customer-profile.html">Profile</a></nav>
+</div></header>
+<div class="content">
+<section class="card" style="padding:25px;max-width:700px">
+<div class="eyebrow">MY PROFILE</div><h1 style="margin:5px 0 20px">Your Details</h1>
+<div class="list">
+<div class="list-item"><span>Full Name</span><strong id="name">Ahmed Mohamed</strong></div>
+<div class="list-item"><span>Mobile</span><strong id="phone">05XXXXXXXX</strong></div>
+<div class="list-item"><span>Email</span><strong id="email">customer@email.com</strong></div>
+<div class="list-item"><span>Date of Birth</span><strong id="dob">Not provided</strong></div>
+<div class="list-item"><span>Birthday Contact</span><strong id="consent">Not selected</strong></div>
+</div>
+</section>
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+
+<script>
+const c=AlNoor.demo.customer||{};
+document.getElementById("name").textContent=c.name||"Ahmed Mohamed";
+document.getElementById("phone").textContent=c.phone||"05XXXXXXXX";
+document.getElementById("email").textContent=c.email||"customer@email.com";
+document.getElementById("dob").textContent=c.dob||"Not provided";
+document.getElementById("consent").textContent=c.birthdayConsent?"Yes":"Not selected";
+</script>
+
+</body>
+</html>

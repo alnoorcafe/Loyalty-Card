@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#063D2A">
+<title>Customer Rewards</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="stylesheet" href="../assets/style.css">
+
+</head>
+<body>
+
+<main>
+<header class="topbar"><div class="topbar-inner">
+<div class="topbrand">AL <span>NOOR</span></div>
+<nav class="nav"><a href="customer-home.html">Home</a><a href="customer-card.html">My Card</a><a href="customer-rewards.html">Rewards</a><a href="customer-profile.html">Profile</a></nav>
+</div></header>
+<div class="content">
+<div class="eyebrow">REWARDS</div><h1 style="margin:5px 0 8px">More to Enjoy</h1><p class="muted">Your current points: <strong id="points">1,250</strong></p>
+<div class="grid grid-3" style="margin-top:20px">
+<div class="card stat"><div style="font-size:35px">☕</div><h3>Free Coffee</h3><p class="muted">500 points</p><button class="btn btn-primary" onclick="redeem(500,'Free Coffee')">Redeem</button></div>
+<div class="card stat"><div style="font-size:35px">🥪</div><h3>Free Sandwich</h3><p class="muted">750 points</p><button class="btn btn-primary" onclick="redeem(750,'Free Sandwich')">Redeem</button></div>
+<div class="card stat"><div style="font-size:35px">🍰</div><h3>Free Dessert</h3><p class="muted">1,000 points</p><button class="btn btn-primary" onclick="redeem(1000,'Free Dessert')">Redeem</button></div>
+</div>
+<div id="msg" style="margin-top:16px"></div>
+</div>
+</main>
+
+<script src="../assets/app.js"></script>
+
+<script>
+function refresh(){document.getElementById("points").textContent=AlNoor.getPoints().toLocaleString()}
+function redeem(cost,name){
+ const p=AlNoor.getPoints();
+ const m=document.getElementById("msg");
+ if(p<cost){m.className="notice error";m.textContent="Not enough points for "+name+".";return}
+ AlNoor.setPoints(p-cost);refresh();m.className="notice success";m.textContent=name+" redeemed in demo mode.";
+}
+refresh();
+</script>
+
+</body>
+</html>
