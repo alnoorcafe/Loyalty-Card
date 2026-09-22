@@ -4,24 +4,129 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#073a2b">
-<link rel="manifest" href="manifest.webmanifest">
-<title>Customer Login</title>
-<link rel="stylesheet" href="assets/style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+<title>Al Noor Loyalty — Customer Login</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+<script src="../assets/config.js"></script>
 </head>
+
 <body data-page="customer-login">
+<div class="auth">
+  <div class="authbox">
 
-<div class="auth"><div class="authbox">
-<div class="logo"><div class="sun">☀</div><h1>AL NOOR</h1><small>LOYALTY</small></div>
-<h2>Welcome Back</h2><p class="sub">Sign in to your Al Noor Loyalty account.</p>
-<div class="field"><label>Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com"></div>
-<div class="field"><label>Password</label><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Your password"></div>
-<button id="loginBtn" class="btn primary block">Sign In →</button>
-<div id="msg" class="note"></div>
-<div class="center" style="margin-top:16px"><a href="customer-register.html" class="btn soft block">Create Loyalty Account</a></div>
-<div class="center" style="margin-top:14px"><a href="index.html" class="sub">← Back</a></div>
-</div></div>
+    <div class="logo">
+      <div class="sun">☀</div>
+      <h1>AL NOOR</h1>
+      <small>LOYALTY</small>
+    </div>
 
-<script src="assets/app.js"></script>
+    <h2>Welcome Back</h2>
+    <p class="sub">Sign in to your Al Noor Loyalty account.</p>
+
+    <div class="field">
+      <label>Email</label>
+      <input
+        id="email"
+        class="input"
+        type="email"
+        autocomplete="email"
+        placeholder="you@example.com"
+      >
+    </div>
+
+    <button id="loginBtn" class="btn primary block" type="button">
+      Send Magic Link →
+    </button>
+
+    <div id="msg" class="note"></div>
+<div class="center" style="margin-top:12px">
+      <a href="../index.html" class="sub">← Back</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function () {
+  const cfg = window.AL_NOOR_CONFIG || {};
+  const SUPABASE_URL = cfg.SUPABASE_URL;
+  const SUPABASE_KEY = cfg.SUPABASE_PUBLISHABLE_KEY;
+
+  const msg = document.getElementById("msg");
+  const btn = document.getElementById("loginBtn");
+  const emailInput = document.getElementById("email");
+
+  function setMsg(text, isError) {
+    msg.textContent = text || "";
+    msg.style.color = isError ? "#a33b2f" : "";
+  }
+
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    setMsg("Al Noor connection is not configured. Please check assets/config.js.", true);
+    btn.disabled = true;
+    return;
+  }
+
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
+  });
+
+  btn.addEventListener("click", async function () {
+    const email = emailInput.value.trim().toLowerCase();
+
+    if (!email) {
+      setMsg("Please enter your email address.", true);
+      emailInput.focus();
+      return;
+    }
+
+    if (!email.includes("@")) {
+      setMsg("Please enter a valid email address.", true);
+      emailInput.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+    setMsg("Sending your secure sign-in link…");
+
+    try {
+      const redirectTo =
+        location.origin + "/Loyalty-Card/customer/customer-home.html";
+
+      const { error } = await sb.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: redirectTo,
+          shouldCreateUser: false
+        }
+      });
+
+      if (error) {
+        setMsg(error.message || "We could not send the sign-in link.", true);
+        btn.disabled = false;
+        btn.textContent = "Send Magic Link →";
+        return;
+      }
+
+      setMsg("Check your email. We sent you a secure Al Noor sign-in link.");
+      btn.textContent = "Link Sent ✓";
+    } catch (err) {
+      console.error(err);
+      setMsg("Something went wrong. Please try again.", true);
+      btn.disabled = false;
+      btn.textContent = "Send Magic Link →";
+    }
+  });
+
+  emailInput.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !btn.disabled) btn.click();
+  });
+})();
+</script>
 </body>
 </html>
