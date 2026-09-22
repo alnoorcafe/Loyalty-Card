@@ -1,20 +1,36 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#063D2A">
-<title>Staff Customer</title>
-<link rel="manifest" href="../manifest.webmanifest">
-<link rel="stylesheet" href="../assets/style.css">
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<link rel="manifest" href="../../manifest.webmanifest">
+<title>Customer Found</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body>
-<main><header class="topbar"><div class="topbar-inner">
-<div class="topbrand">AL <span>NOOR</span></div>
-<nav class="nav"><a href="staff-dashboard.html">Dashboard</a><a href="staff-scan.html">Scan</a><a href="staff-history.html">History</a><a href="staff-profile.html">Profile</a></nav>
-</div></header><div class="content"><div class="eyebrow">CUSTOMER FOUND</div><h1>Ahmed Mohamed</h1><div class="grid grid-3"><div class="card stat"><div class="label">Member ID</div><div class="value" style="font-size:20px">AN-123456</div></div><div class="card stat"><div class="label">Current Points</div><div class="value">1,250</div></div><div class="card stat"><div class="label">Status</div><div class="value" style="font-size:20px">Active</div></div></div><div class="mobile-stack" style="margin-top:18px"><a class="btn btn-primary" href="staff-add-points.html">Add Points</a><a class="btn btn-soft" href="staff-redeem.html">Redeem</a><a class="btn btn-soft" href="staff-history.html">History</a></div></div></main>
-<script src="../assets/app.js"></script>
+<body data-page="staff-customer">
 
+<header class="topbar">
+<a class="brand" href="staff-scan.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a>
+<button class="icon" onclick="logout()" title="Sign out">↪</button>
+</header>
+<main class="container">
+<h1 class="title">Customer Found</h1><p class="sub">Review the customer before taking an action.</p>
+<div class="card">
+<div class="row"><div id="avatar" class="avatar">AN</div><div class="grow"><strong data-name>Customer</strong><small>Member ID: <span data-id>—</span></small></div><span id="customerStatus" class="badge">Active</span></div>
+<div class="stat" style="margin:20px 0"><i>★</i><div><strong data-points>0</strong><span>Current Points</span></div></div>
+<div class="grid g2">
+<a class="btn primary" href="staff-add-points.html">Add Points</a>
+<a class="btn gold" href="staff-redeem.html">Redeem Reward</a>
+<a class="btn soft" href="staff-history.html">View History</a>
+<a class="btn soft" href="staff-scan.html">Scan Next Customer</a>
+</div>
+</div></main>
+<nav class="nav"><div class="navin"><a href="staff-scan.html" class="active"><b>⌗</b>Scan</a>
+<a href="staff-customer.html"><b>●</b>Customer</a>
+<a href="staff-history.html"><b>↺</b>History</a>
+<a href="staff-profile.html"><b>●</b>Profile</a></div></nav>
+<script src="../../assets/app.js"></script>
 </body>
 </html>

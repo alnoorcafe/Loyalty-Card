@@ -1,20 +1,28 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<meta name="theme-color" content="#063D2A">
-<title>Staff History</title>
-<link rel="manifest" href="../manifest.webmanifest">
-<link rel="stylesheet" href="../assets/style.css">
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<link rel="manifest" href="../../manifest.webmanifest">
+<title>Customer History</title>
+<link rel="stylesheet" href="../../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
 </head>
-<body>
-<main><header class="topbar"><div class="topbar-inner">
-<div class="topbrand">AL <span>NOOR</span></div>
-<nav class="nav"><a href="staff-dashboard.html">Dashboard</a><a href="staff-scan.html">Scan</a><a href="staff-history.html">History</a><a href="staff-profile.html">Profile</a></nav>
-</div></header><div class="content"><div class="eyebrow">STAFF HISTORY</div><h1>Transactions</h1><div class="table-wrap"><table><thead><tr><th>Customer</th><th>Action</th><th>Points</th><th>Date</th></tr></thead><tbody><tr><td>Ahmed Mohamed</td><td>Purchase</td><td>+50</td><td>Today</td></tr><tr><td>Sara Ali</td><td>Purchase</td><td>+100</td><td>Yesterday</td></tr><tr><td>Omar Khaled</td><td>Reward</td><td>-500</td><td>Yesterday</td></tr></tbody></table></div></div></main>
-<script src="../assets/app.js"></script>
+<body data-page="staff-history">
 
+<header class="topbar">
+<a class="brand" href="staff-scan.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a>
+<button class="icon" onclick="logout()" title="Sign out">↪</button>
+</header>
+<main class="container">
+<h1 class="title">Transaction History</h1><p class="sub">History for <b data-name>selected customer</b>.</p>
+<div id="history" class="card"><div class="empty">Loading…</div></div>
+</main>
+<nav class="nav"><div class="navin"><a href="staff-scan.html" class="active"><b>⌗</b>Scan</a>
+<a href="staff-customer.html"><b>●</b>Customer</a>
+<a href="staff-history.html"><b>↺</b>History</a>
+<a href="staff-profile.html"><b>●</b>Profile</a></div></nav>
+<script src="../../assets/app.js"></script>
 </body>
 </html>
