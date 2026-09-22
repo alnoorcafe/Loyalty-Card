@@ -4,122 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#073a2b">
-<title>Al Noor Loyalty</title>
+<link rel="manifest" href="manifest.webmanifest">
+<title>AL NOOR Loyalty</title>
 <link rel="stylesheet" href="assets/style.css">
-
 <style>
-/* INDEX BOTTOM NAVIGATION */
-body{
-  padding-bottom:88px !important;
-}
-.index-nav{
-  position:fixed;
-  left:0;
-  right:0;
-  bottom:0;
-  z-index:9999;
-  background:#073a2b;
-  border-top:1px solid rgba(255,255,255,.14);
-  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
-}
-.index-nav-inner{
-  max-width:620px;
-  margin:auto;
-  display:grid;
-  grid-template-columns:repeat(4,1fr);
-  gap:6px;
-}
-.index-nav a{
-  min-height:58px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:4px;
-  color:#d8cfbd;
-  text-decoration:none;
-  border-radius:14px;
-  font-size:11px;
-  font-weight:700;
-}
-.index-nav a:hover,
-.index-nav a.active{
-  background:#174c3c;
-  color:#fff;
-}
-.index-nav .nav-icon{
-  font-size:22px;
-  line-height:1;
-}
-.index-nav .start{
-  background:#c6a15b;
-  color:#fff;
-}
-.index-nav .start:hover{
-  background:#b18b49;
-  color:#fff;
-}
+.entry{min-height:100svh;display:flex;align-items:center;justify-content:center;padding:24px 16px;background:radial-gradient(circle at top,#fffdf8 0,#f7f1e5 48%,#edf0e7 100%)}
+.entry-card{width:min(100%,560px);background:rgba(255,253,248,.96);border:1px solid #dfd4bd;border-radius:32px;padding:32px 22px 24px;text-align:center;box-shadow:0 20px 60px rgba(20,55,42,.12)}
+.brand-mark{width:78px;height:78px;border:1.5px solid #c6a15b;border-radius:50%;display:grid;place-items:center;margin:0 auto 13px;color:#c6a15b;font-size:37px;background:#fffdf8}
+.brand-title{font:800 43px Georgia,serif;letter-spacing:2px;color:#0b4a36;margin:0}.brand-sub{display:block;color:#c6a15b;font:700 10px Arial,sans-serif;letter-spacing:6px;margin-top:5px}
+.entry h1{font:800 30px Georgia,serif;color:#0b4a36;margin:30px 0 8px}.entry p{color:#72776f;line-height:1.55;margin:0 auto 24px;max-width:430px}
+.entry-grid{display:grid;gap:13px}.entry-btn{display:flex;align-items:center;justify-content:space-between;text-decoration:none;border-radius:19px;padding:18px 19px;border:1px solid #ded8ca;text-align:left}.entry-btn strong{display:block;font:800 19px Georgia,serif;color:#0b4a36}.entry-btn span{display:block;font-size:11px;color:#777b75;margin-top:4px}.entry-btn b{font-size:25px;color:#c6a15b}.entry-btn.customer{background:#0b4a36}.entry-btn.customer strong,.entry-btn.customer span,.entry-btn.customer b{color:#fff}.entry-btn.admin{background:#fffdf8}.entry-note{margin-top:19px;font-size:10px;letter-spacing:2px;color:#b08b4b}
 </style>
 </head>
-
 <body>
-
-<main class="container">
-  <div class="auth" style="min-height:calc(100vh - 110px);padding-top:20px">
-    <div class="authbox center">
-
-      <div class="logo">
-        <div class="sun">☀</div>
-        <h1>AL NOOR</h1>
-        <small>LOYALTY</small>
-      </div>
-
-      <h2>Welcome to Al Noor Loyalty</h2>
-      <p class="sub">More Than Points • A Brighter Tomorrow</p>
-
-      <p class="sub" style="margin-top:20px">
-        Choose the section you want to open.
-      </p>
-
-      <a class="btn primary block" href="customer/customer-login.html">
-        CUSTOMER
-      </a>
-
-      <a class="btn soft block" href="admin/admin-login.html" style="margin-top:10px">
-        STAFF & MANAGEMENT
-      </a>
-
-    </div>
-  </div>
-</main>
-
-<!-- BOTTOM BAR -->
-<nav class="index-nav" aria-label="Al Noor Loyalty navigation">
-  <div class="index-nav-inner">
-
-    <a href="index.html" class="active">
-      <span class="nav-icon">⌂</span>
-      <span>Home</span>
-    </a>
-
-    <a href="customer/customer-login.html">
-      <span class="nav-icon">▣</span>
-      <span>Customer</span>
-    </a>
-
-    <a href="customer/customer-register.html" class="start">
-      <span class="nav-icon">＋</span>
-      <span>Start</span>
-    </a>
-
-    <a href="admin/admin-login.html">
-      <span class="nav-icon">♙</span>
-      <span>Staff / GM</span>
-    </a>
-
-  </div>
-</nav>
-
-<script src="assets/app.js"></script>
+<main class="entry"><section class="entry-card">
+<div class="brand-mark">☀</div><h2 class="brand-title">AL NOOR</h2><span class="brand-sub">LOYALTY</span>
+<h1>More Than Points<br>A Brighter Tomorrow</h1>
+<p>Welcome to Al Noor Loyalty. Choose your area to continue.</p>
+<div class="entry-grid">
+<a class="entry-btn customer" href="customer/customer-login.html"><div><strong>Customer</strong><span>Card • Points • Rewards • Locations</span></div><b>→</b></a>
+<a class="entry-btn admin" href="admin/admin-login.html"><div><strong>Staff &amp; Management</strong><span>Staff Portal • GM Portal</span></div><b>→</b></a>
+</div>
+<div class="entry-note">AL NOOR • MODERN BAKERY &amp; CAFÉ</div>
+</section></main>
 </body>
 </html>

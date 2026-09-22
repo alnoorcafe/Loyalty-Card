@@ -1,1 +1,9 @@
-{"name":"Al Noor Loyalty","short_name":"Al Noor","start_url":"/index.html","display":"standalone","background_color":"#F7F1E4","theme_color":"#063D2A","description":"Al Noor Modern Bakery Loyalty Program","icons":[]}
+{
+  "name":"Al Noor Loyalty",
+  "short_name":"Al Noor",
+  "start_url":"./index.html",
+  "display":"standalone",
+  "background_color":"#f5f1e8",
+  "theme_color":"#073a2b",
+  "description":"Al Noor Loyalty customer, staff and GM portals."
+}
