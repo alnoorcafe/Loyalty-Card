@@ -1,1 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="theme-color" content="#063D2A">
+<title>Staff Add Points</title>
+<link rel="manifest" href="../manifest.webmanifest">
+<link rel="stylesheet" href="../assets/style.css">
 
+</head>
+<body>
+<main><header class="topbar"><div class="topbar-inner">
+<div class="topbrand">AL <span>NOOR</span></div>
+<nav class="nav"><a href="staff-dashboard.html">Dashboard</a><a href="staff-scan.html">Scan</a><a href="staff-history.html">History</a><a href="staff-profile.html">Profile</a></nav>
+</div></header><div class="content"><div class="eyebrow">ADD POINTS</div><h1>Add Points</h1><section class="card" style="padding:25px;max-width:650px"><div class="list-item"><span>Customer</span><strong>Ahmed Mohamed · 1,250 pts</strong></div><form id="pointsForm" class="form" style="margin-top:18px"><div class="field"><label>Points</label><input id="amount" type="number" min="1" value="50" required></div><div class="field"><label>Note (Optional)</label><input id="note" placeholder="Purchase at branch"></div><button class="btn btn-primary">Add Points</button><div id="msg"></div></form></section></div></main>
+<script src="../assets/app.js"></script>
+<script>
+document.getElementById("pointsForm").addEventListener("submit",e=>{e.preventDefault();const m=document.getElementById("msg");m.className="notice success";m.textContent="Demo: points added successfully. Supabase will be connected later.";});
+</script>
+</body>
+</html>
