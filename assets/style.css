@@ -104,3 +104,6 @@ h2{color:var(--green);margin-bottom:8px}
  .authbox{padding:24px}
  .title{font-size:26px}
 }
+
+.toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);z-index:99;max-width:90%;padding:12px 16px;border-radius:13px;font-size:12px;font-weight:800;box-shadow:0 12px 30px #0002;text-align:center}.toast-ok{background:#0b4a36;color:#fff}.toast-bad{background:#b94a48;color:#fff}.listrow{padding:13px 0;border-bottom:1px solid var(--line)}.listrow:last-child{border-bottom:0}.checkbox-row{display:flex;gap:10px;align-items:flex-start;margin:14px 0;color:var(--muted);font-size:12px;line-height:1.45}.checkbox-row input{margin-top:3px;accent-color:var(--green)}.small-note{font-size:11px;color:var(--muted);line-height:1.5}
+@media(max-width:650px){.auth{padding:14px}.authbox{border-radius:24px;padding:22px 18px}.logo{margin-bottom:18px}.logo .sun{width:48px;height:48px;font-size:25px}.input{min-height:48px}.btn{min-height:48px}.authbox .field{margin:13px 0}.qrbox{width:min(280px,100%)}.topbar{height:64px}.container{padding:18px 14px}}
