@@ -1,372 +1,70 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#4b2d1c">
-  <title>Al Noor Loyalty</title>
-  <style>
-    :root{
-      --cream:#fbf7ef;
-      --cream2:#f4eadb;
-      --brown:#4b2d1c;
-      --brown2:#6a432a;
-      --gold:#a97822;
-      --text:#33261e;
-      --white:#fffdf9;
-    }
-
-    *{box-sizing:border-box}
-    html{scroll-behavior:smooth}
-
-    body{
-      margin:0;
-      min-height:100vh;
-      font-family: Georgia, "Times New Roman", serif;
-      color:var(--text);
-      background:var(--cream);
-    }
-
-    .page{
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      overflow:hidden;
-    }
-
-    .hero{
-      width:100%;
-      min-height:100vh;
-      position:relative;
-      display:flex;
-      flex-direction:column;
-      align-items:center;
-      justify-content:flex-start;
-      text-align:center;
-      padding:34px 22px 42px;
-      background:
-        linear-gradient(
-          to bottom,
-          rgba(255,253,249,.18) 0%,
-          rgba(251,247,239,.80) 48%,
-          rgba(251,247,239,1) 77%
-        ),
-        url("assets/welcome-bg.png") center top / cover no-repeat;
-    }
-
-    .language{
-      position:absolute;
-      top:22px;
-      right:20px;
-      border:0;
-      background:rgba(255,253,249,.92);
-      color:var(--brown);
-      border-radius:30px;
-      padding:10px 15px;
-      font-size:14px;
-      font-weight:700;
-      box-shadow:0 6px 20px rgba(75,45,28,.12);
-    }
-
-    .brand{
-      margin-top:24px;
-      max-width:360px;
-    }
-
-    .brand-mark{
-      font-size:58px;
-      line-height:.8;
-      color:var(--gold);
-      margin-bottom:4px;
-    }
-
-    .brand-name{
-      font-size:42px;
-      letter-spacing:2px;
-      font-weight:600;
-      color:var(--brown);
-    }
-
-    .brand-sub{
-      margin-top:2px;
-      font-size:13px;
-      letter-spacing:5px;
-      color:var(--brown);
-    }
-
-    .brand-line{
-      width:64px;
-      height:1px;
-      background:var(--gold);
-      margin:18px auto 10px;
-    }
-
-    .tagline{
-      font-size:17px;
-      font-style:italic;
-      color:var(--brown2);
-    }
-
-    .welcome{
-      margin-top:150px;
-      max-width:680px;
-    }
-
-    .welcome h1{
-      margin:0;
-      font-size:clamp(42px,10vw,72px);
-      line-height:1.03;
-      color:var(--brown);
-      font-weight:600;
-    }
-
-    .welcome p{
-      margin:24px auto 0;
-      max-width:600px;
-      font-family:Arial, Helvetica, sans-serif;
-      font-size:18px;
-      line-height:1.65;
-      color:#4a4540;
-    }
-
-    .start{
-      display:inline-flex;
-      align-items:center;
-      justify-content:center;
-      gap:16px;
-      margin-top:28px;
-      min-width:270px;
-      padding:17px 28px;
-      border-radius:40px;
-      background:var(--brown);
-      color:white;
-      text-decoration:none;
-      font-size:23px;
-      font-weight:700;
-      box-shadow:0 12px 28px rgba(75,45,28,.22);
-      transition:.2s ease;
-    }
-
-    .start:hover{
-      transform:translateY(-2px);
-      background:#382115;
-    }
-
-    .features{
-      width:100%;
-      max-width:850px;
-      display:grid;
-      grid-template-columns:repeat(3,1fr);
-      gap:24px;
-      margin-top:46px;
-    }
-
-    .feature{
-      text-align:center;
-    }
-
-    .icon{
-      width:72px;
-      height:72px;
-      margin:0 auto 13px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      border-radius:50%;
-      background:rgba(244,234,219,.92);
-      color:var(--gold);
-      font-size:34px;
-    }
-
-    .feature h3{
-      margin:0;
-      font-size:21px;
-      color:var(--brown);
-    }
-
-    .feature p{
-      margin:7px 0 0;
-      font-family:Arial, Helvetica, sans-serif;
-      font-size:14px;
-      line-height:1.45;
-      color:#5a544e;
-    }
-
-    .entry{
-      width:100%;
-      max-width:680px;
-      margin:55px auto 0;
-      padding:28px 20px;
-      border-radius:28px;
-      background:rgba(255,253,249,.96);
-      box-shadow:0 15px 40px rgba(75,45,28,.12);
-    }
-
-    .entry h2{
-      margin:0;
-      color:var(--brown);
-      font-size:30px;
-    }
-
-    .entry p{
-      margin:9px 0 22px;
-      font-family:Arial, Helvetica, sans-serif;
-      color:#625b54;
-    }
-
-    .entry-buttons{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:14px;
-    }
-
-    .entry-btn{
-      display:block;
-      padding:15px 14px;
-      border-radius:18px;
-      text-decoration:none;
-      font-family:Arial, Helvetica, sans-serif;
-      font-weight:700;
-    }
-
-    .customer{
-      background:var(--brown);
-      color:white;
-    }
-
-    .staff{
-      background:var(--cream2);
-      color:var(--brown);
-      border:1px solid rgba(75,45,28,.16);
-    }
-
-    .footer{
-      margin-top:48px;
-      padding-bottom:8px;
-      color:var(--gold);
-      letter-spacing:4px;
-      font-size:13px;
-    }
-
-    .footer small{
-      display:block;
-      margin-top:10px;
-      color:#6a625a;
-      letter-spacing:3px;
-      font-size:10px;
-    }
-
-    @media(max-width:600px){
-      .hero{padding-left:16px;padding-right:16px}
-      .brand-name{font-size:35px}
-      .brand-sub{font-size:10px;letter-spacing:4px}
-      .welcome{margin-top:130px}
-      .welcome p{font-size:16px}
-      .features{gap:8px}
-      .icon{width:60px;height:60px;font-size:28px}
-      .feature h3{font-size:18px}
-      .feature p{font-size:12px}
-      .entry-buttons{grid-template-columns:1fr}
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<title>Al Noor Loyalty</title>
+<link rel="stylesheet" href="assets/style.css">
 </head>
 
-<body>
-  <main class="page">
-    <section class="hero">
-      <button class="language" type="button" onclick="toggleLanguage()" aria-label="Language">
-        🌐 <span id="langText">EN</span>⌄
-      </button>
+<body style="padding-bottom:90px">
 
-      <div class="brand">
-        <div class="brand-mark">◈</div>
-        <div class="brand-name">AL NOOR</div>
-        <div class="brand-sub">MODERN BAKERY</div>
-        <div class="brand-line"></div>
-        <div class="tagline">Freshly Baked · Always Better</div>
+<main class="container">
+  <div class="auth" style="min-height:calc(100vh - 110px);padding:20px 0;background:transparent">
+    <div class="authbox center">
+
+      <div class="logo">
+        <div class="sun">☀</div>
+        <h1>AL NOOR</h1>
+        <small>LOYALTY</small>
       </div>
 
-      <div class="welcome">
-        <h1 id="title">Welcome to<br>Al Noor Loyalty</h1>
-        <p id="message">
-          Thank you for being part of our journey.<br>
-          Earn points, enjoy exclusive rewards,<br>
-          and discover more of what you love.
-        </p>
+      <h2>Welcome to Al Noor Loyalty</h2>
+      <p class="sub">More Than Points • A Brighter Tomorrow</p>
 
-        <a class="start" href="#entry">
-          <span id="startText">Get Started</span>
-          <span>→</span>
-        </a>
+      <div class="card" style="margin-top:22px;text-align:left">
+        <h3>Choose your portal</h3>
+        <p class="sub">Use the menu below to open the customer, staff, or management pages.</p>
       </div>
 
-      <div class="features">
-        <div class="feature">
-          <div class="icon">★</div>
-          <h3 id="earnTitle">Earn</h3>
-          <p id="earnText">Collect points<br>with every visit</p>
-        </div>
-
-        <div class="feature">
-          <div class="icon">🎁</div>
-          <h3 id="redeemTitle">Redeem</h3>
-          <p id="redeemText">Enjoy delicious<br>rewards</p>
-        </div>
-
-        <div class="feature">
-          <div class="icon">☺</div>
-          <h3 id="enjoyTitle">Enjoy</h3>
-          <p id="enjoyText">More good moments<br>together</p>
-        </div>
+      <div class="grid" style="margin-top:16px">
+        <a class="btn primary block" href="customer-login.html">Customer</a>
+        <a class="btn soft block" href="staff-login.html">Staff</a>
+        <a class="btn gold block" href="gm-login.html">GM / Management</a>
       </div>
 
-      <section class="entry" id="entry">
-        <h2 id="entryTitle">Choose your access</h2>
-        <p id="entryText">Welcome to Al Noor Loyalty.</p>
+    </div>
+  </div>
+</main>
 
-        <div class="entry-buttons">
-          <a class="entry-btn customer" href="customer/customer-login.html">
-            👤 Customer
-          </a>
-          <a class="entry-btn staff" href="admin/admin-login.html">
-            👨‍💼 Staff & Management
-          </a>
-        </div>
-      </section>
+<!-- BOTTOM NAVIGATION -->
+<nav class="nav" aria-label="Main navigation">
+  <div class="navin">
 
-      <footer class="footer">
-        AL NOOR MODERN BAKERY
-        <small>MORE THAN BAKERY, A BRIGHTER TOMORROW</small>
-      </footer>
-    </section>
-  </main>
+    <a href="index.html" class="active">
+      <b>⌂</b>
+      <span>Home</span>
+    </a>
 
-  <script>
-    let arabic = false;
+    <a href="customer-login.html">
+      <b>▣</b>
+      <span>Customer</span>
+    </a>
 
-    function toggleLanguage(){
-      arabic = !arabic;
-      document.documentElement.lang = arabic ? "ar" : "en";
-      document.body.dir = arabic ? "rtl" : "ltr";
+    <a href="staff-login.html">
+      <b>♙</b>
+      <span>Staff</span>
+    </a>
 
-      document.getElementById("langText").textContent = arabic ? "AR" : "EN";
-      document.getElementById("title").innerHTML = arabic
-        ? "مرحباً بك في<br>Al Noor Loyalty"
-        : "Welcome to<br>Al Noor Loyalty";
-      document.getElementById("message").innerHTML = arabic
-        ? "شكراً لكونك جزءاً من رحلتنا.<br>اجمع النقاط واستمتع بالمكافآت<br>واكتشف المزيد مما تحبه."
-        : "Thank you for being part of our journey.<br>Earn points, enjoy exclusive rewards,<br>and discover more of what you love.";
-      document.getElementById("startText").textContent = arabic ? "ابدأ الآن" : "Get Started";
-      document.getElementById("earnTitle").textContent = arabic ? "اجمع" : "Earn";
-      document.getElementById("redeemTitle").textContent = arabic ? "استبدل" : "Redeem";
-      document.getElementById("enjoyTitle").textContent = arabic ? "استمتع" : "Enjoy";
-      document.getElementById("earnText").innerHTML = arabic ? "اجمع النقاط<br>مع كل زيارة" : "Collect points<br>with every visit";
-      document.getElementById("redeemText").innerHTML = arabic ? "استمتع<br>بالمكافآت" : "Enjoy delicious<br>rewards";
-      document.getElementById("enjoyText").innerHTML = arabic ? "لحظات أجمل<br>معاً" : "More good moments<br>together";
-      document.getElementById("entryTitle").textContent = arabic ? "اختر طريقة الدخول" : "Choose your access";
-      document.getElementById("entryText").textContent = arabic ? "أهلاً بك في ولاء النور." : "Welcome to Al Noor Loyalty";
-    }
-  </script>
+    <a href="gm-login.html">
+      <b>⚙</b>
+      <span>Management</span>
+    </a>
+
+  </div>
+</nav>
+
+<script src="assets/app.js"></script>
 </body>
 </html>
