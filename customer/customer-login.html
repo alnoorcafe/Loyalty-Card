@@ -1,11 +1,246 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f1e5"><title>Al Noor Loyalty — Sign In</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script></head>
-<body class="customer-page" data-page="customer-login"><main class="customer-auth"><section class="customer-auth-card">
-<div class="customer-auth-brand"><div class="mark">☀️</div><h1>AL NOOR</h1><small>LOYALTY</small></div>
-<h2>Welcome Back</h2><p class="sub">Sign in to your Al Noor Loyalty account.</p>
-<div class="auth-field"><label for="email">Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com"></div>
-<div class="auth-field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" placeholder="Your password"></div>
-<button id="loginBtn" class="auth-primary">Sign In&nbsp; →</button><div id="msg" class="auth-msg"></div>
-<a href="customer-register.html"><button class="auth-secondary" type="button">Create Loyalty Account</button></a>
-<a class="auth-back" href="../index.html">← Back</a>
-</section></main><script src="../assets/config.js"></script>
-<script src="../assets/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073b2b">
+<title>Al Noor Loyalty — Customer Login</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+<script src="../assets/config.js"></script>
+
+<style>
+:root{
+  --green:#073b2b;
+  --green2:#0b523c;
+  --cream:#f7f1e3;
+  --ivory:#fffdf8;
+  --gold:#c49a45;
+  --gold2:#dfbf72;
+  --ink:#173c31;
+  --muted:#7b837d;
+  --line:#ded9ca;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  min-height:100vh;
+  font-family:Georgia,"Times New Roman",serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 10% 0%,rgba(196,154,69,.13),transparent 30%),
+    linear-gradient(135deg,#f3eddf 0%,#fffdf8 48%,#eee7d7 100%);
+}
+.auth{
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:28px 18px;
+}
+.authbox{
+  width:min(100%,480px);
+  background:rgba(255,253,248,.97);
+  border:1px solid rgba(196,154,69,.32);
+  border-radius:34px;
+  padding:34px 30px 30px;
+  box-shadow:0 24px 70px rgba(7,59,43,.12);
+}
+.logo{text-align:center;margin-bottom:30px}
+.sun{
+  width:76px;height:76px;margin:0 auto 12px;
+  border:2px solid var(--gold);
+  border-radius:50%;
+  display:grid;place-items:center;
+  color:#e4aa20;
+  font-size:38px;
+}
+.logo h1{
+  margin:0;
+  color:var(--green);
+  font-size:42px;
+  letter-spacing:2px;
+  line-height:1;
+}
+.logo small{
+  display:block;
+  color:var(--gold);
+  font-family:Arial,sans-serif;
+  font-weight:700;
+  letter-spacing:7px;
+  margin-top:10px;
+}
+h2{
+  margin:0 0 8px;
+  color:var(--green);
+  font-size:40px;
+  line-height:1.08;
+}
+.sub{
+  color:var(--muted);
+  font-family:Arial,sans-serif;
+  font-size:16px;
+  line-height:1.5;
+}
+.field{margin-top:26px}
+.field label{
+  display:block;
+  margin-bottom:9px;
+  color:var(--green);
+  font-family:Arial,sans-serif;
+  font-weight:700;
+  font-size:15px;
+}
+.input{
+  width:100%;
+  height:58px;
+  border:1.5px solid var(--line);
+  border-radius:17px;
+  background:#fff;
+  padding:0 18px;
+  font-family:Arial,sans-serif;
+  font-size:16px;
+  color:var(--ink);
+  outline:none;
+}
+.input:focus{
+  border-color:var(--gold);
+  box-shadow:0 0 0 3px rgba(196,154,69,.12);
+}
+.btn{
+  border:0;
+  border-radius:18px;
+  min-height:58px;
+  padding:0 20px;
+  font-family:Arial,sans-serif;
+  font-weight:700;
+  font-size:17px;
+  cursor:pointer;
+}
+.primary{
+  color:#fff;
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  box-shadow:0 12px 24px rgba(7,59,43,.16);
+}
+.block{width:100%;margin-top:24px}
+.btn:disabled{opacity:.65;cursor:default}
+.note{
+  min-height:22px;
+  margin-top:14px;
+  text-align:center;
+  color:var(--green2);
+  font-family:Arial,sans-serif;
+  font-size:14px;
+  line-height:1.45;
+}
+.center{text-align:center}
+a{text-decoration:none}
+@media(max-width:520px){
+  .auth{padding:18px 12px}
+  .authbox{padding:28px 22px 26px;border-radius:30px}
+  .logo h1{font-size:38px}
+  h2{font-size:35px}
+}
+</style>
+</head>
+
+<body>
+<div class="auth">
+  <main class="authbox">
+    <div class="logo">
+      <div class="sun">☀</div>
+      <h1>AL NOOR</h1>
+      <small>LOYALTY</small>
+    </div>
+
+    <h2>Welcome Back</h2>
+    <p class="sub">Sign in to your Al Noor Loyalty account.</p>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" class="input" type="email"
+             autocomplete="email" placeholder="you@example.com">
+    </div>
+
+    <button id="loginBtn" class="btn primary block" type="button">
+      Send Magic Link →
+    </button>
+
+    <div id="msg" class="note" aria-live="polite"></div>
+
+    <div class="center" style="margin-top:14px">
+      <a href="customer-register.html" class="sub">Don't have an account? Create one</a>
+    </div>
+
+    <div class="center" style="margin-top:12px">
+      <a href="../index.html" class="sub">← Back</a>
+    </div>
+  </main>
+</div>
+
+<script>
+(function(){
+  const cfg=window.AL_NOOR_CONFIG||{};
+  const url=cfg.SUPABASE_URL;
+  const key=cfg.SUPABASE_PUBLISHABLE_KEY;
+  const msg=document.getElementById("msg");
+  const btn=document.getElementById("loginBtn");
+  const email=document.getElementById("email");
+
+  function show(t,error){
+    msg.textContent=t||"";
+    msg.style.color=error ? "#9b382e" : "";
+  }
+
+  if(!url||!key){
+    show("Al Noor connection is not configured. Please check assets/config.js.",true);
+    btn.disabled=true;
+    return;
+  }
+
+  const sb=supabase.createClient(url,key,{
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+  });
+
+  btn.addEventListener("click",async()=>{
+    const value=email.value.trim().toLowerCase();
+    if(!value){show("Please enter your email address.",true);email.focus();return;}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)){
+      show("Please enter a valid email address.",true);email.focus();return;
+    }
+
+    btn.disabled=true;
+    btn.textContent="Sending…";
+    show("Sending your secure sign-in link…");
+
+    try{
+      const redirectTo=new URL("../customer/customer-home.html",location.href).href;
+      const {error}=await sb.auth.signInWithOtp({
+        email:value,
+        options:{emailRedirectTo:redirectTo,shouldCreateUser:false}
+      });
+
+      if(error){
+        show(error.message||"We could not send the sign-in link.",true);
+        btn.disabled=false;
+        btn.textContent="Send Magic Link →";
+        return;
+      }
+
+      show("Check your email. We sent you a secure Al Noor sign-in link.");
+      btn.textContent="Link Sent ✓";
+    }catch(e){
+      console.error(e);
+      show("Something went wrong. Please try again.",true);
+      btn.disabled=false;
+      btn.textContent="Send Magic Link →";
+    }
+  });
+
+  email.addEventListener("keydown",e=>{
+    if(e.key==="Enter"&&!btn.disabled)btn.click();
+  });
+})();
+</script>
+</body>
+</html>
