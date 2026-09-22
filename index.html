@@ -6,12 +6,66 @@
 <meta name="theme-color" content="#073a2b">
 <title>Al Noor Loyalty</title>
 <link rel="stylesheet" href="assets/style.css">
+
+<style>
+/* INDEX BOTTOM NAVIGATION */
+body{
+  padding-bottom:88px !important;
+}
+.index-nav{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  z-index:9999;
+  background:#073a2b;
+  border-top:1px solid rgba(255,255,255,.14);
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+}
+.index-nav-inner{
+  max-width:620px;
+  margin:auto;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:6px;
+}
+.index-nav a{
+  min-height:58px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  color:#d8cfbd;
+  text-decoration:none;
+  border-radius:14px;
+  font-size:11px;
+  font-weight:700;
+}
+.index-nav a:hover,
+.index-nav a.active{
+  background:#174c3c;
+  color:#fff;
+}
+.index-nav .nav-icon{
+  font-size:22px;
+  line-height:1;
+}
+.index-nav .start{
+  background:#c6a15b;
+  color:#fff;
+}
+.index-nav .start:hover{
+  background:#b18b49;
+  color:#fff;
+}
+</style>
 </head>
 
-<body style="padding-bottom:90px">
+<body>
 
 <main class="container">
-  <div class="auth" style="min-height:calc(100vh - 110px);padding:20px 0;background:transparent">
+  <div class="auth" style="min-height:calc(100vh - 110px);padding-top:20px">
     <div class="authbox center">
 
       <div class="logo">
@@ -23,43 +77,44 @@
       <h2>Welcome to Al Noor Loyalty</h2>
       <p class="sub">More Than Points • A Brighter Tomorrow</p>
 
-      <div class="card" style="margin-top:22px;text-align:left">
-        <h3>Choose your portal</h3>
-        <p class="sub">Use the menu below to open the customer, staff, or management pages.</p>
-      </div>
+      <p class="sub" style="margin-top:20px">
+        Choose the section you want to open.
+      </p>
 
-      <div class="grid" style="margin-top:16px">
-        <a class="btn primary block" href="customer-login.html">Customer</a>
-        <a class="btn soft block" href="staff-login.html">Staff</a>
-        <a class="btn gold block" href="gm-login.html">GM / Management</a>
-      </div>
+      <a class="btn primary block" href="customer/customer-login.html">
+        CUSTOMER
+      </a>
+
+      <a class="btn soft block" href="admin/admin-login.html" style="margin-top:10px">
+        STAFF & MANAGEMENT
+      </a>
 
     </div>
   </div>
 </main>
 
-<!-- BOTTOM NAVIGATION -->
-<nav class="nav" aria-label="Main navigation">
-  <div class="navin">
+<!-- BOTTOM BAR -->
+<nav class="index-nav" aria-label="Al Noor Loyalty navigation">
+  <div class="index-nav-inner">
 
     <a href="index.html" class="active">
-      <b>⌂</b>
+      <span class="nav-icon">⌂</span>
       <span>Home</span>
     </a>
 
-    <a href="customer-login.html">
-      <b>▣</b>
+    <a href="customer/customer-login.html">
+      <span class="nav-icon">▣</span>
       <span>Customer</span>
     </a>
 
-    <a href="staff-login.html">
-      <b>♙</b>
-      <span>Staff</span>
+    <a href="customer/customer-register.html" class="start">
+      <span class="nav-icon">＋</span>
+      <span>Start</span>
     </a>
 
-    <a href="gm-login.html">
-      <b>⚙</b>
-      <span>Management</span>
+    <a href="admin/admin-login.html">
+      <span class="nav-icon">♙</span>
+      <span>Staff / GM</span>
     </a>
 
   </div>
