@@ -1,11 +1,189 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><title>Al Noor — Staff &amp; Management</title><link rel="stylesheet" href="../assets/style.css"></head>
-<body class="customer-page">
-<main class="customer-auth"><section class="customer-auth-card">
-<div class="customer-auth-brand"><div class="mark">☀</div><h1>AL NOOR</h1><small>LOYALTY</small></div>
-<h2>Staff &amp; Management</h2><p class="sub">Choose the portal you need to access.</p>
-<div class="entry-grid" style="display:grid;gap:12px">
-<a class="entry-btn" style="display:flex;align-items:center;justify-content:space-between;text-decoration:none;border:1px solid #ded8ca;border-radius:18px;padding:17px;background:#0b4a36;color:#fff" href="staff/staff-login.html"><div><strong style="display:block;font:800 18px Georgia,serif;color:#fff">Staff Portal</strong><span style="display:block;font-size:11px;color:#dce8e1;margin-top:4px">Scan customers • Add points • Redeem</span></div><b style="font-size:24px;color:#d0ad68">→</b></a>
-<a class="entry-btn" style="display:flex;align-items:center;justify-content:space-between;text-decoration:none;border:1px solid #ded8ca;border-radius:18px;padding:17px;background:#fffdf8" href="gm/gm-login.html"><div><strong style="display:block;font:800 18px Georgia,serif;color:#0b4a36">GM Portal</strong><span style="display:block;font-size:11px;color:#777b75;margin-top:4px">Dashboard • Members • Reports • Settings</span></div><b style="font-size:24px;color:#c6a15b">→</b></a>
-</div><a class="auth-back" href="../index.html">← Back</a>
-</section></main></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<title>Al Noor Loyalty — Staff & Management</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+<script src="../assets/config.js"></script>
+<style>
+  .authbox{max-width:560px}
+  .login-status{margin-top:18px;padding:14px 16px;border-radius:16px;background:#f5f0e5;color:#6f7b73;font-size:15px;line-height:1.45;display:none}
+  .login-status.error{display:block;color:#8f3b32}
+  .login-status.ok{display:block;color:#0b523c}
+  .btn:disabled{opacity:.65;cursor:not-allowed}
+</style>
+</head>
+
+<body data-page="admin-login">
+<div class="auth">
+  <main class="authbox">
+
+    <div class="logo">
+      <div class="sun">☀</div>
+      <h1>AL NOOR</h1>
+      <small>LOYALTY</small>
+    </div>
+
+    <h2>Staff Portal</h2>
+    <p class="sub">Secure access for Al Noor staff.</p>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" class="input" type="email"
+             autocomplete="username" placeholder="staff@alnoor.com">
+    </div>
+
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" class="input" type="password"
+             autocomplete="current-password" placeholder="Password">
+    </div>
+
+    <button id="loginBtn" class="btn primary block" type="button">
+      Staff Sign In →
+    </button>
+
+    <div id="msg" class="login-status" aria-live="polite"></div>
+
+    <div class="center" style="margin-top:16px">
+      <a href="../index.html" class="sub">← Back</a>
+    </div>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  const cfg = window.AL_NOOR_CONFIG || {};
+  const url = cfg.SUPABASE_URL;
+  const key = cfg.SUPABASE_PUBLISHABLE_KEY;
+
+  const emailEl = document.getElementById("email");
+  const passEl = document.getElementById("password");
+  const btn = document.getElementById("loginBtn");
+  const msg = document.getElementById("msg");
+
+  function show(text, type){
+    msg.textContent = text || "";
+    msg.className = "login-status" + (type ? " " + type : "");
+  }
+
+  if(!url || !key){
+    show("Al Noor connection is not configured. Check assets/config.js.", "error");
+    btn.disabled = true;
+    return;
+  }
+
+  const sb = supabase.createClient(url, key, {
+    auth:{
+      persistSession:true,
+      autoRefreshToken:true,
+      detectSessionInUrl:true
+    }
+  });
+
+  async function login(){
+    const email = emailEl.value.trim().toLowerCase();
+    const password = passEl.value;
+
+    if(!email){
+      show("Please enter your email.", "error");
+      emailEl.focus();
+      return;
+    }
+
+    if(!password){
+      show("Please enter your password.", "error");
+      passEl.focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Signing in…";
+    show("Connecting to Al Noor Loyalty…", "");
+
+    try{
+      const { data, error } = await sb.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if(error) throw error;
+
+      if(!data || !data.session){
+        throw new Error("Login succeeded but no session was returned.");
+      }
+
+      /*
+       * Read the user's role from the existing Al Noor RPC.
+       * Staff -> admin/staff/staff-dashboard.html
+       * GM    -> admin/gm/gm-dashboard.html
+       */
+      let role = null;
+
+      try{
+        const result = await sb.rpc("get_my_profile");
+        if(!result.error){
+          const profile = Array.isArray(result.data)
+            ? result.data[0]
+            : result.data;
+          role = profile && String(profile.role || "").toLowerCase();
+        }
+      }catch(_){}
+
+      if(role === "gm" || role === "admin" || role === "manager"){
+        location.href = "../admin/gm/gm-dashboard.html";
+        return;
+      }
+
+      if(role === "staff" || role === "supervisor"){
+        location.href = "../admin/staff/staff-dashboard.html";
+        return;
+      }
+
+      /*
+       * Fallback: check staff profile RPC for installations where
+       * get_my_profile does not expose the role.
+       */
+      try{
+        const result = await sb.rpc("get_my_staff_profile");
+        if(!result.error && result.data){
+          location.href = "../admin/staff/staff-dashboard.html";
+          return;
+        }
+      }catch(_){}
+
+      await sb.auth.signOut();
+      throw new Error("This account is not authorized for Staff or Management access.");
+
+    }catch(error){
+      console.error("AL NOOR STAFF LOGIN:", error);
+
+      let text = error && error.message
+        ? error.message
+        : "Unable to sign in.";
+
+      if(/failed to fetch|load failed|network/i.test(text)){
+        text = "Unable to connect to Al Noor Loyalty. Please check the Supabase connection.";
+      }
+
+      show(text, "error");
+      btn.disabled = false;
+      btn.textContent = "Staff Sign In →";
+    }
+  }
+
+  btn.addEventListener("click", login);
+
+  [emailEl, passEl].forEach(el=>{
+    el.addEventListener("keydown", e=>{
+      if(e.key === "Enter" && !btn.disabled) login();
+    });
+  });
+})();
+</script>
+</body>
+</html>
