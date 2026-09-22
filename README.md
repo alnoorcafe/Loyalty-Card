@@ -1,22 +1,31 @@
-# AL NOOR LOYALTY — FINAL DESIGN STRUCTURE
+# Al Noor Loyalty — Final Structure Patch
 
-This version uses the agreed separation:
-
-- `index.html` = Welcome / entry only
-- `customer/` = Customer experience only
-- `admin/admin-login.html` = Staff & Management gateway
-- `admin/staff/` = Staff portal only
-- `admin/gm/` = GM portal only
-- `assets/` = shared CSS/JS/config
+Target GitHub Pages site:
+https://alnoorcafe.github.io/Loyalty-Card/
 
 ## Important
-Keep the existing working `assets/config.js` from your current project if it already contains your Supabase publishable key. The included file contains the new project URL but intentionally does not contain a secret/publishable key.
+This patch intentionally does **not** include `assets/config.js`.
+Keep the existing `assets/config.js` in the GitHub repository because it contains the Supabase publishable key.
 
-All local HTML links were checked after the folder move.
+Do not use the old `mustafamosalam685-ai.github.io` URL.
 
+## Structure
+- Customer: `customer/`
+- Staff: `admin/staff/`
+- GM: `admin/gm/`
+- Shared files: `assets/`
+- Management login: `admin/admin-login.html`
 
-IMPORTANT BEFORE UPLOAD
-- Keep the working `assets/config.js` already in your GitHub project if it contains your current `sb_publishable_...` key.
-- This package intentionally does not include or expose that key.
-- The Staff and GM pages now load `assets/config.js` before `assets/app.js`.
-- Do not use the old Supabase project URL. The project URL in config.js should be `https://hlzmbmngsbvnlaaoau.supabase.co`.
+## Main fixes
+- All GitHub Pages paths keep `/Loyalty-Card/`.
+- Customer QR opens the customer card URL with the customer token.
+- Staff scanner can read that QR URL and extract the token.
+- Staff and GM are separated by role.
+- Staff profile uses `get_my_profile()` instead of the broken `get_my_staff_profile()` schema-cache path.
+- Customer self-registration is disabled; the registration page tells customers to register through Al Noor staff.
+- Customer login is email magic-link only and does not create new users.
+- PWA manifest uses the correct project-site scope and start URL.
+- Service worker is included for Android/PWA installation support.
+
+## Supabase
+The existing `assets/config.js` must contain the new project URL and the publishable key for the new Supabase project.
