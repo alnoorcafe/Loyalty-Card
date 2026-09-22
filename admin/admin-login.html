@@ -144,18 +144,6 @@
         return;
       }
 
-      /*
-       * Fallback: check staff profile RPC for installations where
-       * get_my_profile does not expose the role.
-       */
-      try{
-        const result = await sb.rpc("get_my_staff_profile");
-        if(!result.error && result.data){
-          location.href = "../admin/staff/staff-dashboard.html";
-          return;
-        }
-      }catch(_){}
-
       await sb.auth.signOut();
       throw new Error("This account is not authorized for Staff or Management access.");
 
