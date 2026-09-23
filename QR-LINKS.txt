@@ -1,9 +1,0 @@
-AL NOOR LOYALTY — FINAL QR LINKS
-
-CUSTOMER PUBLIC QR
-https://alnoorcafe.github.io/Loyalty-Card/customer/customer-register.html
-
-STAFF / GM QR
-https://alnoorcafe.github.io/Loyalty-Card/admin/admin-login.html
-
-Customer personal QR: generated inside customer/customer-card.html after login.
