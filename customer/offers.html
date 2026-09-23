@@ -1,61 +1,11 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b4a36">
-<link rel="manifest" href="../manifest.webmanifest">
-<title>Offers • Al Noor Loyalty</title>
-<link rel="stylesheet" href="../assets/style.css">
-</head>
-<body>
-<header class="topbar">
-  <a class="brand" href="customer-home.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a>
-  <a class="icon" href="customer-home.html" aria-label="Back">↩</a>
-</header>
-<main class="container customer-shell">
-  <section class="customer-hero">
-    <div class="customer-kicker">AL NOOR • MEMBER OFFERS</div>
-    <h1>Exclusive Offers</h1>
-    <p class="welcome">Special benefits created for Al Noor Loyalty members.</p>
-  </section>
-
-  <section class="section-card" style="margin-top:16px">
-    <div class="section-title">Your Loyalty Benefit</div>
-    <div class="section-sub">Available automatically through your visits.</div>
-    <article class="offer-card active-offer">
-      <div class="offer-icon">🎁</div>
-      <div class="offer-body">
-        <span class="offer-label">LOYALTY REWARD</span>
-        <h2>FREE DRINK</h2>
-        <p>Complete 10 visits and unlock one free drink reward.</p>
-        <div class="offer-progress"><span style="width:10%"></span></div>
-        <small>Earn 1 point with every visit.</small>
-      </div>
-      <span class="offer-status">ACTIVE</span>
-    </article>
-  </section>
-
-  <section class="section-card" style="margin-top:16px">
-    <div class="section-title">Coming Soon</div>
-    <div class="section-sub">More member benefits can be activated by Al Noor.</div>
-    <div class="offer-list">
-      <article class="offer-row"><div class="offer-icon soft">🎂</div><div><strong>Birthday Offer</strong><p>Exclusive birthday benefit for eligible members.</p></div><span class="coming">SOON</span></article>
-      <article class="offer-row"><div class="offer-icon soft">✦</div><div><strong>Seasonal Specials</strong><p>Limited-time offers and selected seasonal products.</p></div><span class="coming">SOON</span></article>
-      <article class="offer-row"><div class="offer-icon soft">♛</div><div><strong>Member Exclusives</strong><p>Special benefits reserved for Al Noor Loyalty members.</p></div><span class="coming">SOON</span></article>
-    </div>
-  </section>
-</main>
-<nav class="nav"><div class="navin">
-  <a href="customer-home.html"><b>⌂</b>Home</a>
-  <a href="customer-card.html"><b>▣</b>Card</a>
-  <a class="active" href="offers.html"><b>✦</b>Offers</a>
-  <a href="customer-rewards.html"><b>★</b>Rewards</a>
-  <a href="menu.html"><b>☰</b>Menu</a>
-</div></nav>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><title>Al Noor • Offers</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="../assets/config.js"></script>
 <style>
-.offer-card{position:relative;display:flex;gap:14px;align-items:flex-start;padding:18px;border:1px solid #e3dccf;border-radius:20px;background:linear-gradient(135deg,#f7f0e1,#fffdf8);overflow:hidden}.offer-icon{width:52px;height:52px;flex:0 0 52px;border-radius:16px;background:#f1e7d3;display:grid;place-items:center;font-size:25px}.offer-icon.soft{background:#edf2eb}.offer-body{min-width:0;flex:1}.offer-label{font-size:9px;font-weight:900;letter-spacing:1.8px;color:var(--gold)}.offer-body h2{margin:4px 0;color:var(--green);font:800 22px Georgia,serif}.offer-body p{color:var(--muted);font-size:12px;line-height:1.5;margin:0 0 10px}.offer-body small{color:var(--muted);font-size:10px}.offer-status,.coming{font-size:9px;font-weight:900;letter-spacing:1px;color:var(--green);background:#e9f0e8;border-radius:99px;padding:6px 8px}.offer-progress{height:7px;background:#e5e3da;border-radius:99px;overflow:hidden;margin:10px 0 6px}.offer-progress span{display:block;height:100%;background:linear-gradient(90deg,var(--green),var(--gold));border-radius:99px}.offer-list{display:grid;gap:0}.offer-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.offer-row:last-child{border-bottom:0}.offer-row>div:nth-child(2){flex:1}.offer-row strong{display:block;color:var(--green);font-size:14px}.offer-row p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.4}.coming{background:#f2efe7;color:#8a806e}.active-offer{box-shadow:0 8px 25px rgba(19,48,37,.06)}
-@media(max-width:520px){.offer-status{position:absolute;right:14px;top:14px}.offer-card{padding:17px}.offer-body{padding-top:2px}}
-</style>
-</body>
-</html>
+:root{--green:#073b2b;--cream:#f7f1e5;--paper:#fffdf8;--gold:#c9a96a;--gold2:#a98545;--ink:#211914;--muted:#766c61;--line:#e1d7c8}.page{max-width:620px;margin:auto;padding:20px 15px 100px}.head{padding:10px 3px 18px}.eyebrow{font-size:10px;letter-spacing:2px;color:var(--gold2);font-weight:800}.head h1{font:700 35px Georgia,serif;color:var(--green);margin:7px 0}.head p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}.offer{background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;margin:13px 0;box-shadow:0 12px 28px rgba(65,49,35,.07)}.offer img{display:block;width:100%;height:205px;object-fit:cover;background:#eee5d8}.content{padding:17px}.content h2{margin:0 0 7px;font:700 23px Georgia,serif;color:var(--green)}.content p{margin:0;color:var(--muted);font-size:13px;line-height:1.55;white-space:pre-wrap}.date{display:inline-block;margin-top:12px;padding:7px 9px;border-radius:999px;background:#f3eadb;color:#74582e;font-size:9px;font-weight:800;letter-spacing:.7px}.empty{margin-top:20px;background:#fff;border:1px dashed var(--line);border-radius:20px;padding:35px 18px;text-align:center;color:var(--muted)}.empty strong{display:block;color:var(--green);font:700 21px Georgia,serif;margin-bottom:7px}.bottom{position:fixed;left:0;right:0;bottom:0;background:rgba(255,253,248,.97);border-top:1px solid var(--line);display:flex;justify-content:center;padding:9px 6px calc(9px + env(safe-area-inset-bottom));z-index:20;backdrop-filter:blur(12px)}.nav{width:20%;max-width:110px;text-align:center;color:#8a7d70;font-size:9px;text-decoration:none}.nav span{display:block;font-size:19px;margin-bottom:3px}.nav.active{color:var(--green);font-weight:800}.error{padding:35px 10px;text-align:center;color:#9b382e}.error a{display:inline-block;margin-top:12px;background:var(--green);color:#fff;padding:12px 15px;border-radius:12px;text-decoration:none;font-weight:800}
+</style></head>
+<body><main class="page"><header class="head"><div class="eyebrow">AL NOOR • LOYALTY</div><h1>Offers</h1><p>Discover the latest offers from Al Noor Modern Bakery & Café.</p></header><section id="list"><div class="empty">Loading offers…</div></section></main>
+<nav class="bottom"><a class="nav" href="customer-home.html"><span>⌂</span>Home</a><a class="nav" href="customer-card.html"><span>▣</span>Card</a><a class="nav" href="customer-rewards.html"><span>♢</span>Rewards</a><a class="nav active" href="offers.html"><span>✦</span>Offers</a><a class="nav" href="menu.html"><span>☕</span>Menu</a></nav>
+<script>
+(async function(){const cfg=window.AL_NOOR_CONFIG||{};const url=cfg.SUPABASE_URL,key=cfg.SUPABASE_PUBLISHABLE_KEY;const list=document.getElementById('list');if(!url||!key){list.innerHTML='<div class="error">Al Noor connection is not configured.</div>';return}const sb=supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});const {data:{session}}=await sb.auth.getSession();if(!session){list.innerHTML='<div class="error">Please sign in to view Al Noor offers.<br><a href="customer-login.html">Customer Sign In</a></div>';return}const {data,error}=await sb.from('offers').select('id,title,description,image_url,start_at,end_at').eq('is_active',true).lte('start_at',new Date().toISOString()).or('end_at.is.null,end_at.gte.'+new Date().toISOString()).order('sort_order',{ascending:true}).order('start_at',{ascending:false});if(error){list.innerHTML='<div class="error">'+String(error.message).replace(/[<>]/g,'')+'</div>';return}if(!data?.length){list.innerHTML='<div class="empty"><strong>Nothing new today</strong>New Al Noor offers will appear here when the GM activates them.</div>';return}const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));list.innerHTML=data.map(o=>`<article class="offer">${o.image_url?`<img src="${esc(o.image_url)}" alt="${esc(o.title)}" onerror="this.style.display='none'">`:''}<div class="content"><h2>${esc(o.title)}</h2><p>${esc(o.description||'')}</p>${o.end_at?`<span class="date">VALID UNTIL ${esc(new Date(o.end_at).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase())}</span>`:''}</div></article>`).join('')})();
+</script></body></html>
