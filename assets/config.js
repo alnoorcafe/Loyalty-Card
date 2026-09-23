@@ -1,4 +1,5 @@
+
 window.AL_NOOR_CONFIG = {
   SUPABASE_URL: "https://fgarlyoqobopudfkifbp.supabase.co",
-  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH"
+  SUPABASE_PUBLISHABLE_KEY: "sb_publishable_hmDY0Nch_M_WPIMRXW26-HA_eaLaVZcY"
 };
