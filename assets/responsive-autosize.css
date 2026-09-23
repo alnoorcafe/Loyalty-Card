@@ -1,0 +1,24 @@
+/* AL NOOR CUSTOMER RESPONSIVE AUTO-SIZE */
+*,*::before,*::after{box-sizing:border-box}
+html{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{width:100%;max-width:100%;min-width:0;overflow-x:hidden;margin:0}
+img,svg,canvas,video,iframe{max-width:100%;height:auto}
+button,input,select,textarea{max-width:100%;font:inherit}
+.container,main,.page,.app,.wrap{width:min(100%,920px);margin-inline:auto;min-width:0}
+.card,.hero,.points-card,.member-card,.panel,.section{max-width:100%;min-width:0;overflow:hidden}
+h1,h2,h3,p,.title,.sub{overflow-wrap:anywhere}
+@media(max-width:600px){
+ .container,main,.page,.app,.wrap{width:100%;padding-left:clamp(14px,4vw,24px);padding-right:clamp(14px,4vw,24px)}
+ h1,.title{font-size:clamp(28px,8vw,42px)}
+ h2{font-size:clamp(24px,6.5vw,34px)}
+ h3{font-size:clamp(18px,5vw,24px)}
+ .grid,.quick,.quick-grid,.menu-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .navin{width:100%;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+ .navin a{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ .bottom-nav,.nav{padding-bottom:max(8px,env(safe-area-inset-bottom))}
+}
+@media(max-width:390px){
+ .container,main,.page,.app,.wrap{padding-left:12px;padding-right:12px}
+ .grid,.quick,.quick-grid,.menu-grid{grid-template-columns:1fr}
+ .navin a{font-size:11px}
+}
