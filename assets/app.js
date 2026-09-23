@@ -1,116 +1,737 @@
-/* AL NOOR LOYALTY — final application logic */
-const cfg = window.AL_NOOR_CONFIG || {};
-const SUPABASE_URL = cfg.SUPABASE_URL || "";
-const SUPABASE_KEY = cfg.SUPABASE_PUBLISHABLE_KEY || "";
-const isConfigured = !!SUPABASE_URL && !!SUPABASE_KEY && !SUPABASE_KEY.includes("PASTE_NEW_");
-const sb = isConfigured ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
-}) : null;
-window.sb = sb;
-const KEYS={staffCustomer:"alnoor_staff_customer"};
-const $=id=>document.getElementById(id);
-function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
-function initials(name){return (name||"AN").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"AN";}
-function moneyPoints(n){return Number(n||0).toLocaleString();}
-function toast(message,good=true){let el=$("toast");if(!el){el=document.createElement("div");el.id="toast";document.body.appendChild(el);}el.className=good?"toast toast-ok":"toast toast-bad";el.textContent=message;clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>el.remove(),3200);}
-function setupError(){return new Error("Supabase is not configured. Open assets/config.js and make sure the NEW publishable key is present.");}
-function cleanError(e){return e?.message||e?.error_description||e?.details||e?.hint||"Something went wrong.";}
-async function getSession(){if(!sb)throw setupError();const {data,error}=await sb.auth.getSession();if(error)throw error;return data.session;}
-async function getProfile(){
-  if(!sb)throw setupError();
-  const session=await getSession();
-  if(!session?.user?.id)throw new Error("Your Al Noor session is missing. Please sign in again.");
-  let rpcError=null;
-  try{
-    const {data,error}=await sb.rpc("get_my_profile");
-    if(!error){
-      const p=Array.isArray(data)?data[0]:data;
-      if(p)return p;
-    }
-    rpcError=error;
-  }catch(e){rpcError=e;}
-  const {data:profile,error:profileError}=await sb.from("profiles").select("id,full_name,phone,email,role,member_id,loyalty_token,points,is_active,birthday,birthday_contact").eq("id",session.user.id).maybeSingle();
-  if(profileError)throw new Error((profileError.message||rpcError?.message||"Could not load your Al Noor profile.")+" [profile lookup]");
-  if(profile)return profile;
-  throw new Error(rpcError?.message||"Al Noor profile was not found for this account.");
-}
-async function guardRole(roles){const session=await getSession();if(!session){const target=roles.includes("customer")?"/Loyalty-Card/customer/customer-login.html":"/Loyalty-Card/admin/admin-login.html";location.href=target;return null;}const p=await getProfile();if(!p||!roles.includes(String(p.role||"").toLowerCase())){await sb.auth.signOut();location.href=roles.includes("customer")?"/Loyalty-Card/customer/customer-login.html":"/Loyalty-Card/admin/admin-login.html";return null;}return p;}
-function roleRoute(role){return role==="gm"?"../admin/gm/gm-dashboard.html":role==="staff"?"../admin/staff/staff-dashboard.html":"customer-home.html";}
-function customerRoleRoute(){return "customer-home.html";}
 
-async function sendCustomerMagicLink(){
-  const email=$("email")?.value.trim().toLowerCase(), msg=$("msg");
-  if(!email){msg.textContent="Enter your email address.";return;}
-  if(!sb){msg.textContent=setupError().message;return;}
-  msg.textContent="Sending your secure sign-in link…";
-  const redirectTo=new URL("customer-login.html",location.href).href;
-  const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:redirectTo}});
-  if(error){msg.textContent=error.message;return;}
-  msg.textContent="Check your email. The secure Al Noor sign-in link has been sent.";
+const SUPABASE_URL = "https://fgarlyoqobopudfkifbp.supabase.co";
+const SUPABASE_KEY = "sb_publishable_hmDY0Nch_M_WPIMRXW26-HA_eaLaVZcY";
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+window.sb = sb;
+
+const KEYS = {
+  staffCustomer: "alnoor_staff_customer",
+  customerToken: "alnoor_public_token"
+};
+
+const $ = (id) => document.getElementById(id);
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[m]));
 }
-async function registerCustomer(){
-  const name=$("name")?.value.trim(),phone=$("phone")?.value.trim(),email=$("email")?.value.trim().toLowerCase(),dob=$("dob")?.value||null,consent=$("birthdayConsent")?.checked||false,msg=$("msg");
-  if(!name||!phone||!email||!dob){msg.textContent="Please complete your name, mobile number, email and date of birth.";return;}
-  if(!sb){msg.textContent=setupError().message;return;}
-  msg.textContent="Creating your Al Noor Loyalty account…";
-  const redirectTo=new URL("customer-login.html",location.href).href;
-  const {data,error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,emailRedirectTo:redirectTo,data:{full_name:name,phone,mobile_number:phone,birthday:dob,birthday_contact:consent}}});
-  if(error){msg.textContent=error.message;return;}
-  msg.textContent="Your registration is ready. Check your email to open your Al Noor Loyalty account.";
-  $("registerBtn").disabled=true;
+
+function initials(name) {
+  return (name || "AN").trim().split(/\s+/).slice(0,2)
+    .map(x => x[0]).join("").toUpperCase() || "AN";
 }
-async function finishCustomerSession(){
-  const session=await getSession();if(!session)return false;
-  const p=await getProfile();if(!p)throw new Error("Customer profile is not ready yet. Please wait a moment and open the email link again.");
-  if(p.role!=="customer"){await sb.auth.signOut();throw new Error("This account is not a customer account.");}
-  location.href=customerRoleRoute();return true;
+
+function moneyPoints(n) {
+  return Number(n || 0).toLocaleString();
 }
-async function loginStaffGm(){
-  const email=$("email")?.value.trim().toLowerCase(),password=$("password")?.value,msg=$("msg");
-  if(!email||!password){msg.textContent="Enter your email and password.";return;}
-  if(!sb){msg.textContent=setupError().message;return;}
-  msg.textContent="Signing in…";
-  const {error}=await sb.auth.signInWithPassword({email,password});
-  if(error){msg.textContent=error.message;return;}
-  try{const p=await getProfile();if(!p||!['staff','gm'].includes(String(p.role||'').toLowerCase()))throw new Error("This account is not authorized for Staff / GM access.");location.href=p.role==='gm'?"gm/gm-dashboard.html":"staff/staff-dashboard.html";}catch(e){await sb.auth.signOut();msg.textContent=e.message;}
+
+function toast(message, good = true) {
+  let el = $("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    el.style.cssText =
+      "position:fixed;left:50%;bottom:92px;transform:translateX(-50%);" +
+      "z-index:99;max-width:90%;padding:12px 16px;border-radius:12px;" +
+      "font-size:12px;font-weight:800;box-shadow:0 12px 30px #0002;" +
+      "text-align:center;";
+    document.body.appendChild(el);
+  }
+  el.style.background = good ? "#0b4a36" : "#b94a48";
+  el.style.color = "#fff";
+  el.textContent = message;
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => el.remove(), 3000);
 }
-async function logout(){if(sb)await sb.auth.signOut();localStorage.removeItem(KEYS.staffCustomer);location.href="/Loyalty-Card/index.html";}
-async function renderVisitProgress(points){
-  const total=Number(points||0);
-  const current=((total%10)+10)%10;
-  const remaining=current===0?10:10-current;
-  document.querySelectorAll('[data-current-points]').forEach(e=>e.textContent=String(current));
-  document.querySelectorAll('[data-remaining]').forEach(e=>e.textContent=`${remaining} ${remaining===1?'VISIT':'VISITS'} LEFT`);
-  document.querySelectorAll('[data-progress-note]').forEach(e=>e.textContent=current===0?'10 visits unlock one FREE DRINK reward.':`${remaining} ${remaining===1?'visit':'visits'} until your FREE DRINK reward.`);
-  const fill=$("progressFill"); if(fill)fill.style.width=`${current*10}%`;
-  const dots=$("progressDots"); if(dots){dots.innerHTML='';for(let i=1;i<=10;i++){const d=document.createElement('span');d.className='progress-dot'+(i<=current?' active':'');dots.appendChild(d);}}
+
+async function getSession() {
+  const { data, error } = await sb.auth.getSession();
+  if (error) throw error;
+  return data.session;
 }
-async function loadCustomerHome(){const p=await guardRole(['customer']);if(!p)return;document.querySelectorAll('[data-name]').forEach(e=>e.textContent=p.full_name||'Customer');document.querySelectorAll('[data-id]').forEach(e=>e.textContent=p.member_id||'—');await renderVisitProgress(p.points);}
-async function loadCustomerCard(){const p=await guardRole(['customer']);if(!p)return;document.querySelectorAll('[data-name]').forEach(e=>e.textContent=p.full_name||'Customer');document.querySelectorAll('[data-id]').forEach(e=>e.textContent=p.member_id||'—');await renderVisitProgress(p.points);const qr=$("qr");if(qr&&typeof QRCode!=="undefined"){qr.innerHTML='';new QRCode(qr,{text:String(p.loyalty_token),width:270,height:270,colorDark:'#073d2b',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});}}
-function formatCustomerDate(v){if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?String(v):d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
-async function loadCustomerProfile(){const p=await guardRole(['customer']);if(!p)return;document.querySelectorAll('[data-name]').forEach(e=>e.textContent=p.full_name||'Customer');document.querySelectorAll('[data-email]').forEach(e=>e.textContent=p.email||'—');document.querySelectorAll('[data-phone]').forEach(e=>e.textContent=p.phone||'—');document.querySelectorAll('[data-id]').forEach(e=>e.textContent=p.member_id||'—');document.querySelectorAll('[data-birthday]').forEach(e=>e.textContent=formatCustomerDate(p.birthday));document.querySelectorAll('[data-birthday-contact]').forEach(e=>e.textContent=p.birthday_contact?'Enabled':'Not enabled');document.querySelectorAll('[data-current-points]').forEach(e=>e.textContent=String(Number(p.points||0)%10));const a=$("profileAvatar");if(a)a.textContent=initials(p.full_name);}
-async function fetchCustomerRewardHistory(p){
-  if(!sb)throw setupError();
-  if(p?.loyalty_token){try{const {data,error}=await sb.rpc('get_customer_reward_history',{p_token:p.loyalty_token});if(!error&&Array.isArray(data))return data;}catch(e){}}
-  try{const {data,error}=await sb.from('customer_coupons').select('*').eq('customer_id',p.id).order('issued_at',{ascending:false});if(!error&&Array.isArray(data))return data;}catch(e){}
-  return [];
+
+async function getProfile() {
+  const { data, error } = await sb.rpc("get_my_profile");
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
 }
-async function loadCustomerRewards(){const p=await guardRole(['customer']);if(!p)return;const box=$("rewardHistory");if(!box)return;const rows=await fetchCustomerRewardHistory(p);const available=rows.filter(x=>String(x.status||'AVAILABLE').toUpperCase()==='AVAILABLE');const obtained=rows.length;const ac=$("availableCount"),oc=$("obtainedCount"),tc=$("totalRewards");if(ac)ac.textContent=moneyPoints(available.length);if(oc)oc.textContent=moneyPoints(obtained);if(tc)tc.textContent=moneyPoints(obtained);if(!rows.length){box.innerHTML='<div class="empty"><strong>No rewards yet.</strong><br>Complete 10 visits to unlock your first FREE DRINK.</div>';return;}box.innerHTML=rows.map(x=>{const status=String(x.status||'AVAILABLE').toUpperCase();const ready=status==='AVAILABLE';const date=ready?(x.issued_at||x.created_at):(x.redeemed_at||x.updated_at||x.issued_at);const code=x.coupon_code||x.coupon_number||'FREE DRINK';return `<div class="reward-item"><div class="reward-icon">☕</div><div><strong>FREE DRINK</strong><small>${ready?'Available to redeem':'Redeemed'} • ${formatCustomerDate(date)}<br>Coupon: ${esc(code)}</small></div><span class="reward-status ${ready?'':'redeemed'}">${ready?'AVAILABLE':'OBTAINED'}</span></div>`;}).join('');}
-async function loadCustomerTransactions(){const p=await guardRole(['customer']);if(!p)return;const box=$("transactions");if(!box)return;const {data,error}=await sb.rpc('get_customer_transactions',{p_customer_id:p.id});if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}if(!data?.length){box.innerHTML='<div class="empty">No visits recorded yet.</div>';return;}box.innerHTML=data.map(t=>{const pts=Number(t.points||0);const positive=pts>=0;return `<div class="txn"><div class="txn-icon">${positive?'+':'−'}</div><div class="txn-main"><strong>${esc((t.type||'VISIT').replace(/_/g,' '))}</strong><small>${esc(t.note||'Al Noor visit')} • ${formatCustomerDate(t.created_at)}</small></div><div class="txn-points">${positive?'+':''}${moneyPoints(pts)}</div></div>`;}).join('');}
-function saveStaffCustomer(c){localStorage.setItem(KEYS.staffCustomer,JSON.stringify(c));}
-function getStaffCustomer(){try{return JSON.parse(localStorage.getItem(KEYS.staffCustomer)||'null')}catch{return null}}
-async function lookupCustomerToken(token){token=String(token||'').trim();if(!token)throw new Error('No customer QR token was provided.');try{const u=new URL(token);token=u.searchParams.get('token')||token;}catch{}const {data,error}=await sb.rpc('get_customer_by_token',{p_token:token});if(error)throw error;const c=Array.isArray(data)?data[0]:data;if(!c)throw new Error('Customer not found.');saveStaffCustomer(c);return c;}
-function renderStaffCustomer(c){if(!c)return;document.querySelectorAll('[data-name]').forEach(e=>e.textContent=c.full_name||'Customer');document.querySelectorAll('[data-id]').forEach(e=>e.textContent=c.member_id||c.customer_code||'—');document.querySelectorAll('[data-points]').forEach(e=>e.textContent=moneyPoints(c.points));const a=$("avatar");if(a)a.textContent=initials(c.full_name);const s=$("customerStatus");if(s)s.textContent=c.is_active?'Active':'Inactive';}
-async function loadStaffCustomer(){const p=await guardRole(['staff','gm']);if(!p)return;const c=getStaffCustomer();if(!c){location.href='staff-scan.html';return;}renderStaffCustomer(c);}
-async function loadAddPoints(){await loadStaffCustomer();const btn=$("addPointsBtn");if(!btn)return;btn.onclick=async()=>{const c=getStaffCustomer();if(!c){toast('Customer not found.',false);return;}btn.disabled=true;btn.textContent='Adding 1 visit…';try{const staff=await getProfile();const {data,error}=await sb.rpc('add_customer_point',{p_customer_id:c.id,p_points:1,p_location_id:staff?.location_id||null,p_note:'Visit'});if(error)throw error;const updated=Array.isArray(data)?data[0]:data;if(updated&&typeof updated==='object'){Object.assign(c,updated);}else if(typeof updated==='number'){c.points=updated;}c.points=Number(c.points||0);saveStaffCustomer(c);const earned=c.points>0&&c.points%10===0;toast(earned?'1 visit added — reward unlocked!':'1 visit added successfully.');setTimeout(()=>location.href='staff-customer.html',650);}catch(e){toast(e.message||'Could not add visit.',false);}finally{btn.disabled=false;btn.textContent='ADD 1 VISIT';}};}
-async function loadStaffRedeem(){const p=await guardRole(['staff','gm']);if(!p)return;const c=getStaffCustomer();if(!c){location.href='staff-scan.html';return;}renderStaffCustomer(c);const box=$("rewards");if(!box)return;const {data,error}=await sb.from('rewards').select('id,name,description,points_cost,is_active').eq('is_active',true).eq('points_cost',10).order('name');if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}const rewards=Array.isArray(data)?data:[];box.innerHTML=rewards.length?rewards.map(r=>{const canRedeem=Number(c.points||0)>=10;return `<div class="reward"><div class="food">☕</div><div class="grow"><strong>${esc(r.name||'Free Drink')}</strong><small>${esc(r.description||'Every 10 visits')} • 10 points</small></div><button class="btn primary" ${canRedeem?'':'disabled'} onclick="redeemReward('${esc(r.id)}',10)">${canRedeem?'Redeem':'10 points needed'}</button></div>`;}).join(''):'<div class="empty">Free Drink reward is not configured yet.</div>';}
-async function redeemReward(rewardId,cost){const c=getStaffCustomer();if(!c||!rewardId)return;if(Number(c.points||0)<Number(cost)){toast('Customer needs 10 points for a Free Drink.',false);return;}try{const staff=await getProfile();const {data,error}=await sb.rpc('redeem_customer_coupon',{p_customer_id:c.id,p_reward_id:rewardId,p_location_id:staff?.location_id||null});if(error)throw error;const r=Array.isArray(data)?data[0]:data;if(r&&typeof r==='object')Object.assign(c,r);if(r?.remaining_points!=null)c.points=Number(r.remaining_points);else c.points=Math.max(0,Number(c.points||0)-Number(cost));saveStaffCustomer(c);toast(`Free Drink reward redeemed${r?.coupon_code?` • ${r.coupon_code}`:''}.`);setTimeout(()=>location.href='staff-customer.html',700);}catch(e){toast(e.message||'Could not redeem reward.',false);}}
-async function loadStaffHistory(){const p=await guardRole(['staff','gm']);if(!p)return;const c=getStaffCustomer(),box=$("history");if(!c){box.innerHTML='<div class="empty">Scan a customer first to view their history.</div>';return;}const {data,error}=await sb.rpc('get_customer_transactions',{p_customer_id:c.id});if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}box.innerHTML=data?.length?`<table class="table"><thead><tr><th>Type</th><th>Points</th><th>Note</th><th>Date</th></tr></thead><tbody>${data.map(t=>`<tr><td>${esc(t.type)}</td><td>${moneyPoints(t.points)}</td><td>${esc(t.note||'—')}</td><td>${new Date(t.created_at).toLocaleString()}</td></tr>`).join('')}</tbody></table>`:'<div class="empty">No transactions yet.</div>';}
-async function loadStaffProfile(){const p=await guardRole(['staff','gm']);if(!p)return;document.querySelectorAll('[data-name]').forEach(e=>e.textContent=p.full_name||'Staff');document.querySelectorAll('[data-email]').forEach(e=>e.textContent=p.email||'—');document.querySelectorAll('[data-role]').forEach(e=>e.textContent=p.role||'—');document.querySelectorAll('[data-location]').forEach(e=>e.textContent=p.location_name||'Not assigned');}
-async function startScanner(){const p=await guardRole(['staff','gm']);if(!p)return;const result=$("scanResult"),input=$("manualToken"),manual=$("manualBtn");manual.onclick=async()=>{try{const c=await lookupCustomerToken(input.value);result.innerHTML=`<div class="alert ok">Customer found: <b>${esc(c.full_name)}</b></div>`;setTimeout(()=>location.href='staff-customer.html',400);}catch(e){result.innerHTML=`<div class="alert">${esc(e.message)}</div>`;}};if(typeof Html5Qrcode==='undefined')return;const reader=$("reader");if(!reader)return;const scanner=new Html5Qrcode('reader');const onScan=async text=>{try{await scanner.stop()}catch{}try{const c=await lookupCustomerToken(text);result.innerHTML=`<div class="alert ok">Customer found: <b>${esc(c.full_name)}</b></div>`;setTimeout(()=>location.href='staff-customer.html',400);}catch(e){result.innerHTML=`<div class="alert">${esc(e.message)}</div>`;}};try{await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:240,height:240}},onScan,()=>{});}catch(e){result.innerHTML='<div class="note">Camera could not start. Allow camera access or use the manual token field.</div>';}}
-async function loadGmDashboard(){const p=await guardRole(['gm']);if(!p)return;const {data,error}=await sb.rpc('get_gm_report');if(error){toast(error.message,false);return;}const r=Array.isArray(data)?data[0]:data||{};const map={total_members:'members',total_points:'points',points_issued:'issued',points_redeemed:'redeemed',active_locations:'locations'};Object.entries(map).forEach(([k,id])=>{if($(id))$(id).textContent=moneyPoints(r[k]);});}
-async function loadGmMembers(){const p=await guardRole(['gm']);if(!p)return;const box=$("members"),search=$("search");async function render(){let q=search.value.trim(),query=sb.from('profiles').select('id,full_name,phone,member_id,points,is_active,created_at').eq('role','customer').order('created_at',{ascending:false});if(q)query=query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%,member_id.ilike.%${q}%`);const {data,error}=await query;if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}box.innerHTML=data?.length?data.map(m=>`<div class="row listrow"><div class="avatar">${esc(initials(m.full_name))}</div><div class="grow"><strong>${esc(m.full_name||'Customer')}</strong><small>${esc(m.member_id||'—')} • ${esc(m.phone||'—')}</small></div><span class="badge">${moneyPoints(m.points)} pts</span></div>`).join(''):'<div class="empty">No members found.</div>';};search.oninput=render;await render();}
-async function loadGmLocations(){const p=await guardRole(['gm']);if(!p)return;const box=$("locations"),{data,error}=await sb.from('locations').select('id,name,city,address,phone,is_active,created_at').order('name');if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}box.innerHTML=data?.length?data.map(l=>`<div class="card" style="margin-bottom:12px"><div class="row"><div class="avatar">AN</div><div class="grow"><strong>${esc(l.name)}</strong><small>${esc(l.city||'')} • ${esc(l.address||'Address not set')}</small></div><span class="badge">${l.is_active?'Active':'Inactive'}</span></div>${l.phone?`<p class="sub" style="margin:12px 0 0">☎ ${esc(l.phone)}</p>`:''}</div>`).join(''):'<div class="empty">No locations found.</div>';}
-async function loadGmReports(){const p=await guardRole(['gm']);if(!p)return;const {data,error}=await sb.rpc('get_gm_report');if(error){toast(error.message,false);return;}const r=Array.isArray(data)?data[0]:data||{};const map={points_issued:'issued',points_redeemed:'redeemed',total_members:'members',active_locations:'locations'};Object.entries(map).forEach(([k,id])=>{if($(id))$(id).textContent=moneyPoints(r[k]);});}
-async function init(){const page=document.body.dataset.page;try{if(page==='customer-login'){const session=await getSession();if(session){await finishCustomerSession();return;}$("loginBtn").onclick=sendCustomerMagicLink;}else if(page==='customer-register'){$("registerBtn").onclick=registerCustomer;}else if(page==='customer-home'){await loadCustomerHome();}else if(page==='customer-card'){await loadCustomerCard();}else if(page==='customer-profile'){await loadCustomerProfile();}else if(page==='customer-rewards'){await loadCustomerRewards();}else if(page==='customer-transactions'){await loadCustomerTransactions();}else if(page==='admin-login'){$("loginBtn").onclick=loginStaffGm;}else if(page==='staff-dashboard'){await guardRole(['staff']);}else if(page==='staff-scan'){await startScanner();}else if(page==='staff-customer'){await loadStaffCustomer();}else if(page==='staff-add-points'){await loadAddPoints();}else if(page==='staff-redeem'){await loadStaffRedeem();}else if(page==='staff-history'){await loadStaffHistory();}else if(page==='staff-profile'){await loadStaffProfile();}else if(page==='gm-dashboard'){await loadGmDashboard();}else if(page==='gm-members'){await loadGmMembers();}else if(page==='gm-locations'){await loadGmLocations();}else if(page==='gm-reports'){await loadGmReports();}else if(page==='gm-settings'){await guardRole(['gm']);}}catch(e){console.error(e);const message=cleanError(e);const msg=$("msg");if(msg)msg.textContent=message;else toast(message,false);}}
-document.addEventListener('DOMContentLoaded',init);
+
+async function getStaffProfile() {
+  const { data, error } = await sb.rpc("get_my_staff_profile");
+  if (error) throw error;
+  return Array.isArray(data) ? data[0] : data;
+}
+
+async function guardRole(allowedRoles) {
+  const session = await getSession();
+  if (!session) {
+    location.href = allowedRoles.includes("customer")
+      ? "customer-login.html"
+      : allowedRoles.includes("gm") ? "gm-login.html" : "staff-login.html";
+    return null;
+  }
+
+  const profile = await getProfile();
+
+  if (!profile || !allowedRoles.includes(profile.role)) {
+    toast("You do not have access to this portal.", false);
+    await sb.auth.signOut();
+    location.href = "index.html";
+    return null;
+  }
+
+  return profile;
+}
+
+function routeForRole(role) {
+  if (role === "gm") return "gm-dashboard.html";
+  if (role === "staff") return "staff-scan.html";
+  return "customer-home.html";
+}
+
+async function login(role) {
+  const email = $("email")?.value.trim().toLowerCase();
+  const password = $("password")?.value;
+  const msg = $("msg");
+
+  if (!email || !password) {
+    if (msg) msg.textContent = "Enter your email and password.";
+    return;
+  }
+
+  if (msg) msg.textContent = "Signing in…";
+
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+  if (error) {
+    if (msg) msg.textContent = error.message;
+    else toast(error.message, false);
+    return;
+  }
+
+  try {
+    const profile = await getProfile();
+
+    if (!profile) throw new Error("Your profile is not ready yet. Please try again.");
+
+    if (profile.role !== role) {
+      await sb.auth.signOut();
+      throw new Error(`This account is not registered as ${role}.`);
+    }
+
+    location.href = routeForRole(profile.role);
+  } catch (e) {
+    if (msg) msg.textContent = e.message || "Login failed.";
+  }
+}
+
+async function registerCustomer() {
+  const name = $("name")?.value.trim();
+  const phone = $("phone")?.value.trim();
+  const email = $("email")?.value.trim().toLowerCase();
+  const password = $("password")?.value;
+  const confirm = $("confirm")?.value;
+  const msg = $("msg");
+
+  if (!name || !phone || !email || !password) {
+    msg.textContent = "Please complete all required fields.";
+    return;
+  }
+
+  if (password.length < 6) {
+    msg.textContent = "Password must be at least 6 characters.";
+    return;
+  }
+
+  if (password !== confirm) {
+    msg.textContent = "Passwords do not match.";
+    return;
+  }
+
+  msg.textContent = "Creating your Al Noor account…";
+
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        full_name: name,
+        phone: phone
+      }
+    }
+  });
+
+  if (error) {
+    msg.textContent = error.message;
+    return;
+  }
+
+  if (!data.session) {
+    msg.textContent =
+      "Account created. Check your email to confirm the account, then sign in.";
+    return;
+  }
+
+  msg.textContent = "Account created. Opening your loyalty card…";
+  setTimeout(() => location.href = "customer-home.html", 500);
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  localStorage.removeItem(KEYS.customerToken);
+  localStorage.removeItem(KEYS.staffCustomer);
+  location.href = "index.html";
+}
+
+async function loadCustomerHome() {
+  const profile = await guardRole(["customer"]);
+  if (!profile) return;
+
+  document.querySelectorAll("[data-name]").forEach(e => e.textContent = profile.full_name || "Customer");
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
+  document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
+
+  const avatar = $("avatar");
+  if (avatar) avatar.textContent = initials(profile.full_name);
+}
+
+async function loadCustomerCard() {
+  const profile = await guardRole(["customer"]);
+  if (!profile) return;
+
+  document.querySelectorAll("[data-name]").forEach(e => e.textContent = profile.full_name || "Customer");
+  document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
+
+  const qr = $("qr");
+  if (qr && typeof QRCode !== "undefined") {
+    qr.innerHTML = "";
+    new QRCode(qr, {
+      text: String(profile.loyalty_token),
+      width: 270,
+      height: 270,
+      colorDark: "#073d2b",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+
+  const copyBtn = $("copyToken");
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      await navigator.clipboard?.writeText(String(profile.loyalty_token));
+      toast("Customer QR token copied.");
+    };
+  }
+}
+
+async function loadCustomerProfile() {
+  const profile = await guardRole(["customer"]);
+  if (!profile) return;
+
+  document.querySelectorAll("[data-name]").forEach(e => e.textContent = profile.full_name || "Customer");
+  document.querySelectorAll("[data-email]").forEach(e => e.textContent = profile.email || "—");
+  document.querySelectorAll("[data-phone]").forEach(e => e.textContent = profile.phone || "—");
+  document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
+}
+
+async function loadCustomerRewards() {
+  const profile = await guardRole(["customer"]);
+  if (!profile) return;
+
+  const box = $("rewards");
+  if (!box) return;
+
+  const { data, error } = await sb
+    .from("rewards")
+    .select("id,name,description,points_cost,is_active")
+    .eq("is_active", true)
+    .order("points_cost", { ascending: true });
+
+  if (error) {
+    box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+    return;
+  }
+
+  box.innerHTML = data?.length ? data.map(r => `
+    <div class="reward">
+      <div class="food">★</div>
+      <div class="grow">
+        <strong>${esc(r.name)}</strong>
+        <small>${esc(r.description || "Al Noor reward")} • ${moneyPoints(r.points_cost)} points</small>
+      </div>
+      <span class="badge">${moneyPoints(r.points_cost)} pts</span>
+    </div>
+  `).join("") : `<div class="empty">No rewards are active yet.</div>`;
+}
+
+function saveStaffCustomer(customer) {
+  localStorage.setItem(KEYS.staffCustomer, JSON.stringify(customer));
+}
+
+function getStaffCustomer() {
+  try {
+    return JSON.parse(localStorage.getItem(KEYS.staffCustomer) || "null");
+  } catch {
+    return null;
+  }
+}
+
+async function lookupCustomerToken(token) {
+  token = String(token || "").trim();
+
+  if (!token) throw new Error("No QR token was provided.");
+
+  // QR may contain a full URL.
+  try {
+    const u = new URL(token);
+    const fromUrl = u.searchParams.get("token");
+    if (fromUrl) token = fromUrl;
+  } catch {}
+
+  const { data, error } = await sb.rpc("get_customer_by_token", {
+    p_token: token
+  });
+
+  if (error) throw error;
+
+  const customer = Array.isArray(data) ? data[0] : data;
+
+  if (!customer) throw new Error("Customer not found.");
+
+  saveStaffCustomer(customer);
+  return customer;
+}
+
+function renderStaffCustomer(customer) {
+  if (!customer) return;
+
+  document.querySelectorAll("[data-name]").forEach(e => e.textContent = customer.full_name || "Customer");
+  document.querySelectorAll("[data-id]").forEach(e => e.textContent = customer.member_id || "—");
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(customer.points));
+
+  const avatar = $("avatar");
+  if (avatar) avatar.textContent = initials(customer.full_name);
+
+  const status = $("customerStatus");
+  if (status) status.textContent = customer.is_active ? "Active" : "Inactive";
+}
+
+async function loadStaffCustomer() {
+  const profile = await guardRole(["staff","gm"]);
+  if (!profile) return;
+
+  const customer = getStaffCustomer();
+  if (!customer) {
+    location.href = "staff-scan.html";
+    return;
+  }
+
+  renderStaffCustomer(customer);
+}
+
+async function loadAddPoints() {
+  const profile = await guardRole(["staff","gm"]);
+  if (!profile) return;
+
+  const customer = getStaffCustomer();
+  if (!customer) {
+    location.href = "staff-scan.html";
+    return;
+  }
+
+  renderStaffCustomer(customer);
+
+  const btn = $("addPointsBtn");
+  if (!btn) return;
+
+  btn.onclick = async () => {
+    const points = Number($("pts")?.value || 0);
+    const note = $("note")?.value.trim() || null;
+
+    if (!points || points <= 0) {
+      toast("Enter valid points.", false);
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Adding…";
+
+    try {
+      const staff = await getStaffProfile();
+      const { data, error } = await sb.rpc("add_customer_point", {
+        p_customer_id: customer.id,
+        p_points: points,
+        p_location_id: staff?.location_id || null,
+        p_note: note
+      });
+
+      if (error) throw error;
+
+      customer.points = data;
+      saveStaffCustomer(customer);
+      renderStaffCustomer(customer);
+      toast(`${points} points added successfully.`);
+      setTimeout(() => location.href = "staff-customer.html", 500);
+    } catch (e) {
+      toast(e.message || "Could not add points.", false);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Add Points →";
+    }
+  };
+}
+
+async function loadStaffRedeem() {
+  const profile = await guardRole(["staff","gm"]);
+  if (!profile) return;
+
+  const customer = getStaffCustomer();
+  if (!customer) {
+    location.href = "staff-scan.html";
+    return;
+  }
+
+  renderStaffCustomer(customer);
+
+  const box = $("rewards");
+  const { data, error } = await sb
+    .from("rewards")
+    .select("id,name,description,points_cost,is_active")
+    .eq("is_active", true)
+    .order("points_cost", { ascending: true });
+
+  if (error) {
+    box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+    return;
+  }
+
+  box.innerHTML = data?.length ? data.map(r => `
+    <div class="reward">
+      <div class="food">★</div>
+      <div class="grow">
+        <strong>${esc(r.name)}</strong>
+        <small>${esc(r.description || "Reward")} • ${moneyPoints(r.points_cost)} points</small>
+      </div>
+      <button class="btn primary" onclick="redeemReward('${r.id}',${Number(r.points_cost)})">Redeem</button>
+    </div>
+  `).join("") : `<div class="empty">No rewards are active.</div>`;
+}
+
+async function redeemReward(rewardId, cost) {
+  const customer = getStaffCustomer();
+  if (!customer) return;
+
+  if (Number(customer.points) < Number(cost)) {
+    toast("Customer does not have enough points.", false);
+    return;
+  }
+
+  try {
+    const staff = await getStaffProfile();
+
+    const { data, error } = await sb.rpc("redeem_customer_coupon", {
+      p_customer_id: customer.id,
+      p_reward_id: rewardId,
+      p_location_id: staff?.location_id || null
+    });
+
+    if (error) throw error;
+
+    const result = Array.isArray(data) ? data[0] : data;
+    customer.points = result?.remaining_points ?? (customer.points - cost);
+    saveStaffCustomer(customer);
+
+    toast(`Reward redeemed. Coupon: ${result?.coupon_code || "created"}`);
+    setTimeout(() => location.href = "staff-customer.html", 700);
+  } catch (e) {
+    toast(e.message || "Could not redeem reward.", false);
+  }
+}
+
+async function loadStaffHistory() {
+  const profile = await guardRole(["staff","gm"]);
+  if (!profile) return;
+
+  const customer = getStaffCustomer();
+  const box = $("history");
+  if (!box) return;
+
+  if (!customer) {
+    box.innerHTML = `<div class="empty">Scan a customer first to view their history.</div>`;
+    return;
+  }
+
+  const { data, error } = await sb.rpc("get_customer_transactions_with_staff", {
+    p_customer_id: customer.id
+  });
+
+  if (error) {
+    box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+    return;
+  }
+
+  box.innerHTML = data?.length ? `
+    <table class="table">
+      <thead><tr><th>Type</th><th>Points</th><th>Staff Member</th><th>Date</th></tr></thead>
+      <tbody>
+      ${data.map(t => `
+        <tr>
+          <td>${esc(t.type)}</td>
+          <td>${moneyPoints(t.points)}</td>
+          <td>${esc(t.staff_name || "—")}</td>
+          <td>${new Date(t.created_at).toLocaleString()}</td>
+        </tr>
+      `).join("")}
+      </tbody>
+    </table>` : `<div class="empty">No transactions yet.</div>`;
+}
+
+async function loadStaffProfile() {
+  const profile = await guardRole(["staff","gm"]);
+  if (!profile) return;
+
+  const staff = await getStaffProfile();
+
+  document.querySelectorAll("[data-name]").forEach(e => e.textContent = staff?.full_name || "Staff");
+  document.querySelectorAll("[data-email]").forEach(e => e.textContent = staff?.email || "—");
+  document.querySelectorAll("[data-role]").forEach(e => e.textContent = staff?.role || "—");
+  document.querySelectorAll("[data-location]").forEach(e => e.textContent = staff?.location_name || "Not assigned");
+}
+
+async function startScanner() {
+  const profile = await guardRole(["staff","gm"]);
+  if (!profile) return;
+
+  const result = $("scanResult");
+  const input = $("manualToken");
+  const manualBtn = $("manualBtn");
+
+  manualBtn.onclick = async () => {
+    try {
+      const c = await lookupCustomerToken(input.value);
+      result.innerHTML = `<div class="alert ok">Customer found: <b>${esc(c.full_name)}</b></div>`;
+      setTimeout(() => location.href = "staff-customer.html", 400);
+    } catch (e) {
+      result.innerHTML = `<div class="alert">${esc(e.message)}</div>`;
+    }
+  };
+
+  const reader = $("reader");
+  if (!reader || typeof Html5Qrcode === "undefined") return;
+
+  const scanner = new Html5Qrcode("reader");
+
+  const onScan = async (decodedText) => {
+    try {
+      await scanner.stop();
+    } catch {}
+
+    try {
+      const c = await lookupCustomerToken(decodedText);
+      result.innerHTML = `<div class="alert ok">Customer found: <b>${esc(c.full_name)}</b></div>`;
+      setTimeout(() => location.href = "staff-customer.html", 400);
+    } catch (e) {
+      result.innerHTML = `<div class="alert">${esc(e.message)}</div>`;
+    }
+  };
+
+  try {
+    await scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 240, height: 240 } },
+      onScan,
+      () => {}
+    );
+  } catch (e) {
+    result.innerHTML =
+      `<div class="note">Camera could not start. Allow camera permission or use manual token entry below.</div>`;
+  }
+}
+
+async function loadGmDashboard() {
+  const profile = await guardRole(["gm"]);
+  if (!profile) return;
+
+  const { data, error } = await sb.rpc("get_gm_report");
+  if (error) {
+    toast(error.message, false);
+    return;
+  }
+
+  const r = data || {};
+  const map = {
+    total_members: "members",
+    total_points: "points",
+    points_issued: "issued",
+    points_redeemed: "redeemed",
+    active_locations: "locations"
+  };
+
+  Object.entries(map).forEach(([key,id]) => {
+    const el = $(id);
+    if (el) el.textContent = moneyPoints(r[key]);
+  });
+}
+
+async function loadGmMembers() {
+  const profile = await guardRole(["gm"]);
+  if (!profile) return;
+
+  const box = $("members");
+  const search = $("search");
+
+  async function render() {
+    const q = search.value.trim();
+
+    let query = sb
+      .from("profiles")
+      .select("id,full_name,phone,member_id,points,is_active,created_at")
+      .eq("role","customer")
+      .order("created_at",{ascending:false});
+
+    if (q) {
+      query = query.or(
+        `full_name.ilike.%${q}%,phone.ilike.%${q}%,member_id.ilike.%${q}%`
+      );
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+      return;
+    }
+
+    box.innerHTML = data?.length ? data.map(m => `
+      <div class="row" style="padding:13px 0;border-bottom:1px solid var(--line)">
+        <div class="avatar">${esc(initials(m.full_name))}</div>
+        <div class="grow">
+          <strong>${esc(m.full_name || "Customer")}</strong>
+          <small>${esc(m.member_id || "—")} • ${esc(m.phone || "—")}</small>
+        </div>
+        <span class="badge">${moneyPoints(m.points)} pts</span>
+      </div>
+    `).join("") : `<div class="empty">No members found.</div>`;
+  }
+
+  search.oninput = render;
+  await render();
+}
+
+async function loadGmLocations() {
+  const profile = await guardRole(["gm"]);
+  if (!profile) return;
+
+  const box = $("locations");
+  const { data, error } = await sb
+    .from("locations")
+    .select("id,name,city,address,phone,is_active,created_at")
+    .order("name");
+
+  if (error) {
+    box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+    return;
+  }
+
+  box.innerHTML = data?.length ? data.map(l => `
+    <div class="card" style="margin-bottom:12px">
+      <div class="row">
+        <div class="avatar">AN</div>
+        <div class="grow">
+          <strong>${esc(l.name)}</strong>
+          <small>${esc(l.city || "")} • ${esc(l.address || "Address not set")}</small>
+        </div>
+        <span class="badge">${l.is_active ? "Active" : "Inactive"}</span>
+      </div>
+      ${l.phone ? `<p class="sub" style="margin:12px 0 0">☎ ${esc(l.phone)}</p>` : ""}
+    </div>
+  `).join("") : `<div class="empty">No locations found.</div>`;
+}
+
+async function loadGmReports() {
+  const profile = await guardRole(["gm"]);
+  if (!profile) return;
+
+  const { data, error } = await sb.rpc("get_gm_report");
+  if (error) {
+    toast(error.message, false);
+    return;
+  }
+
+  const r = data || {};
+  ["issued","redeemed","members","locations"].forEach(k => {
+    const el = $(k);
+    if (el) {
+      const source = {
+        issued: r.points_issued,
+        redeemed: r.points_redeemed,
+        members: r.total_members,
+        locations: r.active_locations
+      }[k];
+      el.textContent = moneyPoints(source);
+    }
+  });
+}
+
+async function init() {
+  const page = document.body.dataset.page;
+  try {
+    if (page === "customer-login") {
+      $("loginBtn").onclick = () => login("customer");
+    } else if (page === "customer-register") {
+      $("registerBtn").onclick = registerCustomer;
+    } else if (page === "customer-home") {
+      await loadCustomerHome();
+    } else if (page === "customer-card") {
+      await loadCustomerCard();
+    } else if (page === "customer-profile") {
+      await loadCustomerProfile();
+    } else if (page === "customer-rewards") {
+      await loadCustomerRewards();
+    } else if (page === "staff-login") {
+      $("loginBtn").onclick = () => login("staff");
+    } else if (page === "staff-scan") {
+      await startScanner();
+    } else if (page === "staff-customer") {
+      await loadStaffCustomer();
+    } else if (page === "staff-add-points") {
+      await loadAddPoints();
+    } else if (page === "staff-redeem") {
+      await loadStaffRedeem();
+    } else if (page === "staff-history") {
+      await loadStaffHistory();
+    } else if (page === "staff-profile") {
+      await loadStaffProfile();
+    } else if (page === "gm-login") {
+      $("loginBtn").onclick = () => login("gm");
+    } else if (page === "gm-dashboard") {
+      await loadGmDashboard();
+    } else if (page === "gm-members") {
+      await loadGmMembers();
+    } else if (page === "gm-locations") {
+      await loadGmLocations();
+    } else if (page === "gm-reports") {
+      await loadGmReports();
+    } else if (page === "gm-settings") {
+      await guardRole(["gm"]);
+    }
+  } catch (e) {
+    console.error(e);
+    const msg = $("msg");
+    if (msg) msg.textContent = e.message || "Something went wrong.";
+    else toast(e.message || "Something went wrong.", false);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", init);
