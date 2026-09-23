@@ -1,32 +1,29 @@
-AL NOOR — VISIT / REWARD DATABASE FIX
+AL NOOR LOYALTY — VISIT / REWARD DATABASE FIX (REVISION 2)
 
-WHAT THIS FIXES
-- Fixes the missing add_customer_point() RPC shown on the Staff Add Visit page.
-- Enforces exactly 1 point per visit at the database level.
-- Records every visit in point_transactions.
-- Automatically creates one FREE DRINK coupon at every 10th point.
-- Fixes customer reward history to use the current profiles + loyalty_token structure.
-- Adds points_cost compatibility to rewards so Staff Redeem can load correctly.
+Why this revision exists:
+The previous SQL patch could fail on databases where public.rewards.points_required is NOT NULL.
+This revision explicitly supports points_required and supplies value 10 when creating Free Drink.
 
-WHAT IT DOES NOT DO
-- Does not delete customers.
-- Does not reset points.
-- Does not replace assets/config.js.
-- Does not change the visual design of the Add Visit page.
+RUN THIS FILE:
+AL-NOOR-VISIT-REWARDS-DB-FIX.sql
 
-HOW TO INSTALL
-1. Open Supabase Dashboard.
-2. Open SQL Editor.
-3. Create a new query.
-4. Paste the entire file:
-   AL-NOOR-VISIT-REWARDS-DB-FIX.sql
-5. Click Run.
-6. Wait for the final verification SELECT results.
-7. Then refresh the live Al Noor Staff page.
-8. Scan Mustafa Mosalam again and press ADD 1 VISIT once.
+Run it once in Supabase SQL Editor. It is designed to be safe to re-run.
 
-EXPECTED RESULT
-- The red schema-cache error disappears.
-- Current Points changes from 0 to 1.
-- History records a VISIT +1.
-- On the 10th visit, one FREE DRINK appears in Rewards.
+It does NOT:
+- delete customers
+- reset existing points
+- change assets/config.js
+- change the Add Visit page design
+
+It DOES:
+- install/replace add_customer_point(customer_id, points, location_id, note)
+- enforce exactly 1 point per successful visit
+- record each visit
+- ensure Free Drink exists with points_required = 10 and points_cost = 10
+- create a Free Drink coupon at every 10th point
+- repair customer reward history for profiles/loyalty_token
+- repair customer transaction history
+
+IMPORTANT:
+Do not run the older Visit Rewards SQL after this revision.
+After Run succeeds, send a screenshot of the SQL result before testing ADD 1 VISIT.
