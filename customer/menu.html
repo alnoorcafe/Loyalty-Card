@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b4a36">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>Menu • Al Noor Loyalty</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="customer-home.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a>
+  <a class="icon" href="customer-home.html" aria-label="Back">↩</a>
+</header>
+<main class="container customer-shell">
+  <section class="customer-hero">
+    <div class="customer-kicker">AL NOOR • BAKERY &amp; CAFÉ</div>
+    <h1>Our Menu</h1>
+    <p class="welcome">Explore selected Al Noor coffee and bakery favorites.</p>
+  </section>
+
+  <div class="menu-tabs" role="tablist" aria-label="Menu categories">
+    <button class="menu-tab active" data-category="Coffee">Coffee</button>
+    <button class="menu-tab" data-category="Bakery">Bakery</button>
+    <button class="menu-tab" data-category="Breakfast">Breakfast</button>
+    <button class="menu-tab" data-category="Cold Drinks">Cold Drinks</button>
+  </div>
+
+  <section class="section-card menu-panel">
+    <div class="menu-heading"><span class="menu-heading-icon">☕</span><div><h2 id="categoryTitle">Coffee</h2><p>Prepared with care by Al Noor.</p></div></div>
+    <div id="menuList" class="menu-list"></div>
+  </section>
+
+  <div class="menu-note">Menu items and prices are subject to the branch's approved menu and availability.</div>
+</main>
+<nav class="nav"><div class="navin">
+  <a href="customer-home.html"><b>⌂</b>Home</a>
+  <a href="customer-card.html"><b>▣</b>Card</a>
+  <a href="offers.html"><b>✦</b>Offers</a>
+  <a href="customer-rewards.html"><b>★</b>Rewards</a>
+  <a class="active" href="menu.html"><b>☰</b>Menu</a>
+</div></nav>
+<script>
+const MENU={
+  "Coffee":[
+    ["Espresso","Classic double espresso","12 AED"],
+    ["Americano","Espresso with hot water","14 AED"],
+    ["Cappuccino","Espresso, steamed milk and foam","16 AED"],
+    ["Latte","Smooth espresso with steamed milk","16 AED"],
+    ["Spanish Latte","Creamy latte with a rich sweet finish","18 AED"],
+    ["Caramel Macchiato","Espresso, milk and caramel","18 AED"],
+    ["Mocha","Espresso, chocolate and milk","18 AED"]
+  ],
+  "Bakery":[
+    ["Croissant","Fresh bakery pastry","12 AED"],
+    ["Chocolate Croissant","Buttery pastry with chocolate","14 AED"],
+    ["Cookies","Freshly baked cookies","12 AED"],
+    ["Muffin","Fresh bakery muffin","14 AED"],
+    ["Banana Bread","Soft banana bread slice","14 AED"]
+  ],
+  "Breakfast":[
+    ["Breakfast Selection","Fresh bakery breakfast options","—"],
+    ["Egg Sandwich","Freshly prepared breakfast sandwich","—"],
+    ["Manakish","Freshly baked Arabic flatbread selection","—"]
+  ],
+  "Cold Drinks":[
+    ["Iced Latte","Chilled espresso and milk","—"],
+    ["Iced Americano","Chilled espresso and water","—"],
+    ["Fresh Juice","Freshly prepared juice selection","—"]
+  ]
+};
+const icons={Coffee:"☕",Bakery:"🥐",Breakfast:"🍳","Cold Drinks":"❄"};
+const list=document.getElementById('menuList'),title=document.getElementById('categoryTitle');
+function render(category){
+  title.textContent=category;
+  document.querySelector('.menu-heading-icon').textContent=icons[category]||'✦';
+  list.innerHTML=MENU[category].map(([name,desc,price])=>`<article class="menu-item"><div class="menu-thumb">${icons[category]||'✦'}</div><div class="menu-info"><strong>${name}</strong><span>${desc}</span></div><b class="menu-price">${price}</b></article>`).join('');
+  document.querySelectorAll('.menu-tab').forEach(b=>b.classList.toggle('active',b.dataset.category===category));
+}
+document.querySelectorAll('.menu-tab').forEach(b=>b.addEventListener('click',()=>render(b.dataset.category)));
+render('Coffee');
+</script>
+<style>
+.menu-tabs{display:flex;gap:8px;overflow-x:auto;padding:16px 1px 4px;scrollbar-width:none}.menu-tabs::-webkit-scrollbar{display:none}.menu-tab{flex:0 0 auto;border:1px solid var(--line);background:#fffdf8;color:var(--muted);border-radius:99px;padding:10px 14px;font-size:11px;font-weight:900}.menu-tab.active{background:var(--green);color:#fff;border-color:var(--green)}.menu-panel{margin-top:12px}.menu-heading{display:flex;align-items:center;gap:12px;padding-bottom:13px;border-bottom:1px solid var(--line)}.menu-heading-icon{width:48px;height:48px;border-radius:15px;background:#f2eadb;color:var(--gold);display:grid;place-items:center;font-size:22px}.menu-heading h2{margin:0;color:var(--green);font:800 23px Georgia,serif}.menu-heading p{margin:3px 0 0;color:var(--muted);font-size:11px}.menu-list{display:grid}.menu-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.menu-item:last-child{border-bottom:0}.menu-thumb{width:46px;height:46px;flex:0 0 46px;border-radius:14px;background:linear-gradient(145deg,#f1e7d3,#edf2eb);display:grid;place-items:center;font-size:20px}.menu-info{flex:1;min-width:0}.menu-info strong{display:block;color:var(--green);font-size:14px}.menu-info span{display:block;color:var(--muted);font-size:11px;line-height:1.4;margin-top:3px}.menu-price{white-space:nowrap;color:var(--gold);font-size:12px}.menu-note{margin:12px 2px 4px;color:var(--muted);font-size:10px;line-height:1.5;text-align:center}
+</style>
+</body>
+</html>
