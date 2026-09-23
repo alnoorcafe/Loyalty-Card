@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="al-noor-build" content="2026-09-23-FINAL-3">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073b2b">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>Al Noor Loyalty — Staff / GM Portal</title>
+<link rel="stylesheet" href="../assets/style.css?v=20260923-3">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+<script src="../assets/config.js?v=20260923-3"></script>
+<style>
+  .login-status{display:none;margin-top:16px;padding:13px 14px;border-radius:14px;font-size:12px;line-height:1.5;background:#f4f0e6;color:#6e685c}
+  .login-status.show{display:block}.login-status.error{background:#fff0ee;color:#8f3b32}.login-status.ok{background:#edf7f0;color:#2f6b47}
+  .btn:disabled{opacity:.65;cursor:not-allowed}
+</style>
+</head>
+<body data-page="gm-login">
+<main class="auth">
+  <div class="authbox">
+    <div class="logo"><img src="../assets/al-noor-logo.jpg" alt="AL NOOR BAKERY & CAFE"></div>
+    <h2>Staff / GM Portal</h2>
+    <p class="sub">Secure access for authorized Al Noor staff and management.</p>
+
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" class="input" type="email" autocomplete="username" placeholder="name@alnoor.com">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" class="input" type="password" autocomplete="current-password" placeholder="Password">
+    </div>
+
+    <button id="loginBtn" class="btn primary block" type="button">Sign In →</button>
+    <div id="msg" class="login-status" aria-live="polite"></div>
+    <div class="center" style="margin-top:16px"><a href="../index.html" class="sub">← Back</a></div>
+  </div>
+</main>
+<script>
+(function(){
+  const cfg=window.AL_NOOR_CONFIG||{};
+  const emailEl=document.getElementById('email');
+  const passEl=document.getElementById('password');
+  const btn=document.getElementById('loginBtn');
+  const msg=document.getElementById('msg');
+
+  function show(text,type){
+    msg.textContent=text||'';
+    msg.className='login-status'+(text?' show':'')+(type?' '+type:'');
+  }
+  function failText(e){
+    const t=String(e?.message||e||'Unable to sign in.');
+    if(/failed to fetch|load failed|network|networkerror/i.test(t)) return 'Unable to connect to Al Noor Loyalty. Please check your internet connection.';
+    if(/invalid login credentials/i.test(t)) return 'Incorrect email or password.';
+    if(/email not confirmed/i.test(t)) return 'This account email has not been confirmed in Supabase.';
+    return t;
+  }
+  if(!cfg.SUPABASE_URL||!cfg.SUPABASE_PUBLISHABLE_KEY){
+    show('Al Noor connection is not configured.','error'); btn.disabled=true; return;
+  }
+  if(!window.supabase||!window.supabase.createClient){
+    show('Supabase library could not be loaded. Refresh the page and try again.','error'); btn.disabled=true; return;
+  }
+  const sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+  async function login(){
+    const email=emailEl.value.trim().toLowerCase();
+    const password=passEl.value;
+    if(!email){show('Please enter your email.','error');emailEl.focus();return;}
+    if(!password){show('Please enter your password.','error');passEl.focus();return;}
+    btn.disabled=true;btn.textContent='Signing in…';show('Connecting to Al Noor Loyalty...','');
+    try{
+      const {data,error}=await sb.auth.signInWithPassword({email,password});
+      if(error) throw error;
+      if(!data?.session) throw new Error('Login succeeded but no session was returned.');
+
+      let profile=null;
+      const r=await sb.rpc('get_my_profile');
+      if(!r.error) profile=Array.isArray(r.data)?r.data[0]:r.data;
+      if(!profile){
+        const s=await sb.rpc('get_my_staff_profile');
+        if(!s.error&&s.data) profile=Array.isArray(s.data)?s.data[0]:s.data;
+      }
+      const role=String(profile?.role||'').toLowerCase();
+      if(['gm','admin','manager'].includes(role)){
+        location.href='../gm/gm-dashboard.html'; return;
+      }
+      if(['staff','supervisor'].includes(role)){
+        location.href='../staff/staff-scan.html'; return;
+      }
+      await sb.auth.signOut();
+      throw new Error('This account is not authorized for Staff or Management access.');
+    }catch(e){
+      console.error('AL NOOR LOGIN',e);
+      show(failText(e),'error');
+      btn.disabled=false;btn.textContent='Sign In →';
+    }
+  }
+  btn.addEventListener('click',login);
+  [emailEl,passEl].forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter'&&!btn.disabled)login();}));
+})();
+</script>
+</body>
+</html>
