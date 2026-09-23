@@ -3,34 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#073a2b">
+<meta name="theme-color" content="#0b4a36">
 <link rel="manifest" href="../manifest.webmanifest">
 <title>Rewards</title>
 <link rel="stylesheet" href="../assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body data-page="customer-rewards">
-<header class="topbar">
-<a class="brand" href="customer-home.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a>
-<button class="icon" onclick="logout()" title="Sign out">↪</button>
-</header>
-<main class="container">
+<header class="topbar"><a class="brand" href="customer-home.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header>
+<main class="container customer-shell">
 <h1 class="title">Rewards</h1><p class="sub">Your Al Noor rewards, earned through visits.</p>
 <div class="reward-stats">
-<div class="reward-stat"><div class="reward-stat-icon">🎁</div><strong id="rewardAvailable">0</strong><span>Available</span></div>
-<div class="reward-stat"><div class="reward-stat-icon">✓</div><strong id="rewardObtained">0</strong><span>Obtained</span></div>
-<div class="reward-stat"><div class="reward-stat-icon">★</div><strong id="rewardTotal">0</strong><span>Total Rewards</span></div>
+<div class="reward-stat"><div class="rs-icon">🎁</div><strong id="availableCount">0</strong><span>Available</span></div>
+<div class="reward-stat"><div class="rs-icon">✓</div><strong id="obtainedCount">0</strong><span>Obtained</span></div>
+<div class="reward-stat"><div class="rs-icon">★</div><strong id="totalRewards">0</strong><span>Total Rewards</span></div>
 </div>
-<div class="card" style="margin-top:16px">
-<h3 style="color:var(--green);margin-bottom:6px">Reward History</h3>
-<p class="small-note">Every 10 visits unlocks one Free Drink reward.</p>
+<section class="section-card">
+<div class="section-title">Reward History</div><div class="section-sub">Every 10 visits unlocks one FREE DRINK reward.</div>
 <div id="rewardHistory"><div class="empty">Loading rewards…</div></div>
-</div>
+</section>
 </main>
-<nav class="nav"><div class="navin"><a href="customer-home.html"><b>⌂</b>Home</a>
-<a href="customer-card.html"><b>▣</b>Card</a>
-<a href="customer-rewards.html" class="active"><b>★</b>Rewards</a>
-<a href="customer-profile.html"><b>●</b>Profile</a></div></nav>
+<nav class="nav"><div class="navin"><a href="customer-home.html"><b>⌂</b>Home</a><a href="customer-card.html"><b>▣</b>Card</a><a href="customer-rewards.html"><b>★</b>Rewards</a><a href="customer-profile.html"><b>●</b>Profile</a></div></nav>
 <script src="../assets/config.js"></script><script src="../assets/app.js"></script>
-</body>
-</html>
+</body></html>
