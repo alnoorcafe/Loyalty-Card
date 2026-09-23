@@ -1,1 +1,118 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Join Al Noor Loyalty</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="../assets/config.js"></script></head><body data-page="customer-register"><div class="auth"><div class="authbox"><div class="logo"><div class="sun">☀</div><h1>AL NOOR</h1><small>LOYALTY</small></div><h2>Join Al Noor Loyalty</h2><p class="sub">Register yourself and receive your personal Al Noor Loyalty card.</p><div class="field"><label>Full Name</label><input id="name" class="input" autocomplete="name" placeholder="Full name"></div><div class="field"><label>Mobile Number</label><input id="phone" class="input" type="tel" autocomplete="tel" placeholder="+971 ..."></div><div class="field"><label>Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com"></div><div class="field"><label>Date of Birth</label><input id="dob" class="input" type="date" autocomplete="bday"></div><label class="checkbox-row"><input id="birthdayConsent" type="checkbox"><span>I agree that Al Noor may use my date of birth to contact me for birthday-related loyalty communication.</span></label><button id="registerBtn" class="btn primary block">Create My Loyalty Account →</button><div id="msg" class="note"></div><div class="center" style="margin-top:14px"><a href="customer-login.html" class="sub">Already a member? Sign in</a></div></div></div><script src="../assets/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073b2b">
+<title>Al Noor Loyalty — Create Account</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+<script src="../assets/config.js"></script>
+<style>
+:root{--green:#073b2b;--green2:#0b523c;--cream:#f7f1e3;--ivory:#fffdf8;--gold:#c49a45;--ink:#173c31;--muted:#7b837d;--line:#ded9ca}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;color:var(--ink);font-family:Georgia,"Times New Roman",serif;background:radial-gradient(circle at 10% 0%,rgba(196,154,69,.13),transparent 30%),linear-gradient(135deg,#f3eddf 0%,#fffdf8 48%,#eee7d7 100%)}
+.auth{min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px 14px}
+.authbox{width:min(100%,500px);background:rgba(255,253,248,.98);border:1px solid rgba(196,154,69,.32);border-radius:34px;padding:28px 28px 30px;box-shadow:0 24px 70px rgba(7,59,43,.12)}
+.logo{text-align:center;margin-bottom:25px}.sun{width:66px;height:66px;margin:0 auto 10px;border:2px solid var(--gold);border-radius:50%;display:grid;place-items:center;color:#e4aa20;font-size:32px}.logo h1{margin:0;color:var(--green);font-size:38px;letter-spacing:2px;line-height:1}.logo small{display:block;color:var(--gold);font-family:Arial,sans-serif;font-weight:700;letter-spacing:7px;margin-top:9px}
+h2{margin:0 0 7px;color:var(--green);font-size:36px;line-height:1.1}.sub{color:var(--muted);font-family:Arial,sans-serif;font-size:15px;line-height:1.45}.field{margin-top:17px}.field label{display:block;margin-bottom:7px;color:var(--green);font-family:Arial,sans-serif;font-weight:700;font-size:14px}.input{width:100%;height:52px;border:1.5px solid var(--line);border-radius:15px;background:#fff;padding:0 15px;font-family:Arial,sans-serif;font-size:15px;color:var(--ink);outline:none}.input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(196,154,69,.12)}
+.check{display:flex;gap:10px;align-items:flex-start;margin-top:17px;color:var(--muted);font-family:Arial,sans-serif;font-size:13px;line-height:1.4}.check input{margin-top:3px;accent-color:var(--green)}
+.btn{width:100%;min-height:56px;margin-top:22px;border:0;border-radius:18px;color:#fff;background:linear-gradient(135deg,var(--green),var(--green2));box-shadow:0 12px 24px rgba(7,59,43,.16);font-family:Arial,sans-serif;font-weight:700;font-size:16px;cursor:pointer}.btn:disabled{opacity:.65;cursor:default}
+.note{min-height:22px;margin-top:13px;text-align:center;color:var(--green2);font-family:Arial,sans-serif;font-size:13px;line-height:1.45}.center{text-align:center}
+@media(max-width:520px){.auth{padding:14px 10px}.authbox{padding:25px 20px;border-radius:30px}.logo h1{font-size:35px}h2{font-size:32px}}
+</style>
+</head>
+<body>
+<div class="auth">
+<main class="authbox">
+  <div class="logo">
+    <div class="sun">☀</div><h1>AL NOOR</h1><small>LOYALTY</small>
+  </div>
+  <h2>Create Account</h2>
+  <p class="sub">Join Al Noor Loyalty and start earning points.</p>
+
+  <div class="field"><label for="name">Full Name</label><input id="name" class="input" type="text" autocomplete="name" placeholder="Your full name"></div>
+  <div class="field"><label for="phone">Mobile Number</label><input id="phone" class="input" type="tel" autocomplete="tel" placeholder="+971 5X XXX XXXX"></div>
+  <div class="field"><label for="email">Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com"></div>
+  <div class="field"><label for="birthday">Date of Birth</label><input id="birthday" class="input" type="date" autocomplete="bday"></div>
+
+  <label class="check">
+    <input id="birthdayContact" type="checkbox">
+    <span>I agree that Al Noor may contact me about my birthday and loyalty benefits.</span>
+  </label>
+
+  <button id="registerBtn" class="btn" type="button">Create Account →</button>
+  <div id="msg" class="note" aria-live="polite"></div>
+
+  <div class="center" style="margin-top:13px"><a href="customer-login.html" class="sub">Already have an account? Sign in</a></div>
+  <div class="center" style="margin-top:10px"><a href="../index.html" class="sub">← Back</a></div>
+</main>
+</div>
+
+<script>
+(function(){
+  const cfg=window.AL_NOOR_CONFIG||{};
+  const url=cfg.SUPABASE_URL, key=cfg.SUPABASE_PUBLISHABLE_KEY;
+  const msg=document.getElementById("msg"), btn=document.getElementById("registerBtn");
+
+  function show(t,error){
+    msg.textContent=t||"";
+    msg.style.color=error ? "#9b382e" : "";
+  }
+
+  if(!url||!key){
+    show("Al Noor connection is not configured. Please check assets/config.js.",true);
+    btn.disabled=true; return;
+  }
+
+  const sb=supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+
+  btn.addEventListener("click",async()=>{
+    const fullName=document.getElementById("name").value.trim();
+    const phone=document.getElementById("phone").value.trim();
+    const email=document.getElementById("email").value.trim().toLowerCase();
+    const birthday=document.getElementById("birthday").value;
+    const birthdayContact=document.getElementById("birthdayContact").checked;
+
+    if(!fullName){show("Please enter your full name.",true);return;}
+    if(!phone){show("Please enter your mobile number.",true);return;}
+    if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){show("Please enter a valid email address.",true);return;}
+    if(!birthday){show("Please enter your date of birth.",true);return;}
+
+    btn.disabled=true;btn.textContent="Creating…";show("Creating your secure Al Noor account…");
+
+    try{
+      const redirectTo=new URL("../customer/customer-home.html",location.href).href;
+
+      const {error}=await sb.auth.signInWithOtp({
+        email,
+        options:{
+          emailRedirectTo:redirectTo,
+          shouldCreateUser:true,
+          data:{
+            full_name:fullName,
+            mobile_number:phone,
+            birthday:birthday,
+            birthday_contact:birthdayContact,
+            role:"customer"
+          }
+        }
+      });
+
+      if(error){
+        show(error.message||"We could not create your account.",true);
+        btn.disabled=false;btn.textContent="Create Account →";return;
+      }
+
+      show("Account started successfully. Check your email for the secure Al Noor sign-in link.");
+      btn.textContent="Check Your Email ✓";
+    }catch(e){
+      console.error(e);
+      show("Something went wrong. Please try again.",true);
+      btn.disabled=false;btn.textContent="Create Account →";
+    }
+  });
+})();
+</script>
+</body>
+</html>
