@@ -5,25 +5,171 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b4a36">
 <link rel="manifest" href="../manifest.webmanifest">
-<title>Rewards</title>
+<title>Al Noor • Rewards</title>
 <link rel="stylesheet" href="../assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<style>
+/* Rewards live-data rows */
+.reward-history-item{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 0;border-bottom:1px solid rgba(120,100,75,.18)}
+.reward-history-item:last-child{border-bottom:0}
+.reward-history-item strong{display:block;color:var(--green,#073b2b);font-family:Georgia,serif;font-size:17px}
+.reward-history-item .sub{margin-top:4px;font-size:12px}
+.reward-status{flex:0 0 auto;border-radius:999px;padding:7px 9px;font-size:9px;font-weight:800;letter-spacing:.5px}
+.reward-status.available{background:#e9f1e9;color:#2d6545}
+.reward-status.redeemed{background:#eee8df;color:#756b60}
+</style>
 </head>
 <body data-page="customer-rewards">
-<header class="topbar"><a class="brand" href="customer-home.html"><span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header>
+
+<header class="topbar">
+  <a class="brand" href="customer-home.html">
+    <span class="sun">☀</span><span>AL NOOR<small>LOYALTY</small></span>
+  </a>
+  <button class="icon" onclick="logout()" title="Sign out">↪</button>
+</header>
+
 <main class="container customer-shell">
-<h1 class="title">Rewards</h1><p class="sub">Your Al Noor rewards, earned through visits.</p>
-<div class="reward-stats">
-<div class="reward-stat"><div class="rs-icon">🎁</div><strong id="availableCount">0</strong><span>Available</span></div>
-<div class="reward-stat"><div class="rs-icon">✓</div><strong id="obtainedCount">0</strong><span>Obtained</span></div>
-<div class="reward-stat"><div class="rs-icon">★</div><strong id="totalRewards">0</strong><span>Total Rewards</span></div>
-</div>
-<section class="section-card">
-<div class="section-title">Reward History</div><div class="section-sub">Every 10 visits unlocks one FREE DRINK reward.</div>
-<div id="rewardHistory"><div class="empty">Loading rewards…</div></div>
-</section>
+  <h1 class="title">Rewards</h1>
+  <p class="sub">Your Al Noor rewards, earned through visits.</p>
+
+  <div class="reward-stats">
+    <div class="reward-stat">
+      <div class="rs-icon">🎁</div>
+      <strong id="availableCount">0</strong>
+      <span>Available</span>
+    </div>
+    <div class="reward-stat">
+      <div class="rs-icon">✓</div>
+      <strong id="obtainedCount">0</strong>
+      <span>Obtained</span>
+    </div>
+    <div class="reward-stat">
+      <div class="rs-icon">★</div>
+      <strong id="totalRewards">0</strong>
+      <span>Total Rewards</span>
+    </div>
+  </div>
+
+  <section class="section-card">
+    <div class="section-title">Reward History</div>
+    <div class="section-sub">Every 10 visits unlocks one FREE DRINK reward.</div>
+    <div id="rewardHistory"><div class="empty">Loading rewards…</div></div>
+  </section>
 </main>
-<nav class="nav"><div class="navin"><a href="customer-home.html"><b>⌂</b>Home</a><a href="customer-card.html"><b>▣</b>Card</a><a href="customer-rewards.html"><b>★</b>Rewards</a><a href="customer-profile.html"><b>●</b>Profile</a></div></nav>
-<script src="../assets/config.js"></script><script src="../assets/app.js"></script>
-</body></html>
+
+<nav class="nav">
+  <div class="navin">
+    <a href="customer-home.html"><b>⌂</b>Home</a>
+    <a href="customer-card.html"><b>▣</b>Card</a>
+    <a href="customer-rewards.html" class="active"><b>★</b>Rewards</a>
+    <a href="customer-profile.html"><b>●</b>Profile</a>
+  </div>
+</nav>
+
+<script src="../assets/config.js"></script>
+<script src="../assets/app.js"></script>
+<script>
+(function () {
+  const sb = supabase.createClient(
+    window.AL_NOOR_CONFIG.SUPABASE_URL,
+    window.AL_NOOR_CONFIG.SUPABASE_PUBLISHABLE_KEY,
+    { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } }
+  );
+
+  const $ = id => document.getElementById(id);
+
+  function esc(v) {
+    return String(v ?? "").replace(/[&<>"']/g, m => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+    }[m]));
+  }
+
+  function date(v) {
+    if (!v) return "—";
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? esc(v) :
+      d.toLocaleDateString("en-GB", {day:"2-digit", month:"short", year:"numeric"});
+  }
+
+  function tokenFromUrl() {
+    return new URLSearchParams(location.search).get("token");
+  }
+
+  async function getToken() {
+    const fromUrl = tokenFromUrl();
+    if (fromUrl) {
+      localStorage.setItem("alnoor_public_token", fromUrl);
+      return fromUrl;
+    }
+    return localStorage.getItem("alnoor_public_token");
+  }
+
+  async function loadRewards() {
+    const list = $("rewardHistory");
+    list.innerHTML = '<div class="empty">Loading rewards…</div>';
+
+    const token = await getToken();
+    if (!token) {
+      list.innerHTML = '<div class="empty">Customer card not found. Please open your loyalty card first.</div>';
+      return;
+    }
+
+    const { data, error } = await sb.rpc("get_customer_reward_history", {
+      p_token: token
+    });
+
+    if (error) {
+      console.error("Reward history error:", error);
+      list.innerHTML =
+        '<div class="empty">Rewards could not be loaded right now.</div>';
+      return;
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+
+    // Current database uses: active / redeemed / expired.
+    const active = rows.filter(r => String(r.status || "").toLowerCase() === "active");
+    const redeemed = rows.filter(r => String(r.status || "").toLowerCase() === "redeemed");
+
+    $("availableCount").textContent = active.length;
+    $("obtainedCount").textContent = redeemed.length;
+    $("totalRewards").textContent = active.length + redeemed.length;
+
+    if (!rows.length) {
+      list.innerHTML =
+        '<div class="empty"><strong>No rewards yet.</strong><br>Earn 10 visits to receive your FREE DRINK.</div>';
+      return;
+    }
+
+    const sorted = [...rows].sort((a,b) => {
+      const da = new Date(a.redeemed_at || a.issued_at || a.created_at || 0).getTime();
+      const db = new Date(b.redeemed_at || b.issued_at || b.created_at || 0).getTime();
+      return db - da;
+    });
+
+    list.innerHTML = sorted.map(r => {
+      const status = String(r.status || "").toLowerCase();
+      const isActive = status === "active";
+      const label = isActive ? "READY TO REDEEM" :
+                    status === "redeemed" ? "REDEEMED" : "EXPIRED";
+      const when = isActive ? (r.issued_at || r.created_at) :
+                   status === "redeemed" ? r.redeemed_at : (r.issued_at || r.created_at);
+      const code = r.coupon_code || r.code || (r.coupon_number ? "FREE-" + r.coupon_number : "FREE DRINK");
+
+      return `
+        <article class="reward-history-item">
+          <div>
+            <strong>FREE DRINK</strong>
+            <div class="sub">Coupon: ${esc(code)}</div>
+            <div class="sub">${isActive ? "Issued" : status === "redeemed" ? "Redeemed" : "Expired"}: ${date(when)}</div>
+          </div>
+          <span class="reward-status ${isActive ? "available" : "redeemed"}">${label}</span>
+        </article>`;
+    }).join("");
+  }
+
+  loadRewards();
+})();
+</script>
+</body>
+</html>
