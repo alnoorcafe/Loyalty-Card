@@ -3,68 +3,144 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#073b2b">
+<meta name="theme-color" content="#073a2b">
 <title>Al Noor Loyalty — Customer Login</title>
 <link rel="stylesheet" href="../assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
 <script src="../assets/config.js"></script>
 </head>
 <body data-page="customer-login">
-<div class="auth"><div class="authbox">
-<div class="logo"><img class="official-logo" src="../assets/al-noor-official-logo.jpeg" alt="AL NOOR BAKERY & CAFE"></div>
-<h2>Welcome Back</h2>
-<p class="sub">Sign in to your Al Noor Loyalty account without a password.</p>
+<div class="auth">
+  <div class="authbox">
+    <h2>Welcome Back</h2>
+    <p class="sub">Sign in to your Al Noor Loyalty account.</p>
 
-<div id="emailArea">
-<div class="field"><label>Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com"></div>
-<button id="sendBtn" class="btn primary block">Send Login Code →</button>
+    <div id="emailArea">
+      <div class="field">
+        <label>Email</label>
+        <input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com">
+      </div>
+      <button id="sendBtn" class="btn primary block" type="button">Send Login Code →</button>
+    </div>
+
+    <div id="otpArea" style="display:none">
+      <div class="field">
+        <label>Verification Code</label>
+        <input id="otp" class="input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Enter 6-digit code">
+      </div>
+      <button id="verifyBtn" class="btn primary block" type="button">Verify & Open My Card →</button>
+      <button id="resendBtn" class="btn soft block" style="margin-top:10px" type="button">Send Code Again</button>
+    </div>
+
+    <div id="msg" class="note" aria-live="polite"></div>
+    <div class="center" style="margin-top:16px">
+      <a href="customer-register.html" class="btn soft block">Create Loyalty Account</a>
+    </div>
+    <div class="center" style="margin-top:14px">
+      <a href="../index.html" class="sub">← Back</a>
+    </div>
+  </div>
 </div>
-
-<div id="otpArea" style="display:none">
-<div class="field"><label>Verification Code</label><input id="otp" class="input" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Enter 6-digit code"></div>
-<button id="verifyBtn" class="btn primary block">Verify & Sign In →</button>
-<button id="resendBtn" class="btn soft block" style="margin-top:10px">Send Code Again</button>
-</div>
-
-<div id="msg" class="note" aria-live="polite"></div>
-<div class="center" style="margin-top:16px"><a href="customer-register.html" class="btn soft block">Create Loyalty Account</a></div>
-<div class="center" style="margin-top:14px"><a href="../index.html" class="sub">← Back</a></div>
-</div></div>
 
 <script>
 (function(){
-  const cfg=window.AL_NOOR_CONFIG||{}, emailArea=document.getElementById("emailArea"), otpArea=document.getElementById("otpArea");
-  const emailInput=document.getElementById("email"), otpInput=document.getElementById("otp"), sendBtn=document.getElementById("sendBtn");
-  const verifyBtn=document.getElementById("verifyBtn"), resendBtn=document.getElementById("resendBtn"), msg=document.getElementById("msg");
-  const url=cfg.SUPABASE_URL, key=cfg.SUPABASE_PUBLISHABLE_KEY;
-  function show(t,e){msg.textContent=t||"";msg.style.color=e?"#a33b2f":"";}
-  if(!url||!key||typeof supabase==="undefined"){show("Al Noor connection is not configured. Please check assets/config.js.",true);sendBtn.disabled=true;return;}
-  const sb=supabase.createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const cfg=window.AL_NOOR_CONFIG||{};
+  const msg=document.getElementById("msg");
+  const emailArea=document.getElementById("emailArea");
+  const otpArea=document.getElementById("otpArea");
+  const emailInput=document.getElementById("email");
+  const otpInput=document.getElementById("otp");
+  const sendBtn=document.getElementById("sendBtn");
+  const verifyBtn=document.getElementById("verifyBtn");
+  const resendBtn=document.getElementById("resendBtn");
+
+  function show(t,error){
+    msg.textContent=t||"";
+    msg.style.color=error ? "#a33b2f" : "";
+  }
+
+  if(!cfg.SUPABASE_URL || !cfg.SUPABASE_PUBLISHABLE_KEY || typeof supabase==="undefined"){
+    show("Al Noor connection is not configured.",true);
+    sendBtn.disabled=true;
+    return;
+  }
+
+  const sb=supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY,{
+    auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}
+  });
+
   let pendingEmail="";
+
   async function sendCode(){
     const email=emailInput.value.trim().toLowerCase();
-    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){show("Please enter a valid email address.",true);emailInput.focus();return;}
-    sendBtn.disabled=true;resendBtn.disabled=true;sendBtn.textContent="Sending…";show("Sending your secure login code…");
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+      show("Please enter a valid email address.",true);
+      return;
+    }
+
+    sendBtn.disabled=true;
+    resendBtn.disabled=true;
+    sendBtn.textContent="Sending…";
+    show("Sending your secure login code…");
+
     try{
-      const {error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
-      if(error)throw error;
-      pendingEmail=email;emailArea.style.display="none";otpArea.style.display="block";
-      show("A 6-digit verification code was sent to your email.");otpInput.focus();
-    }catch(e){console.error(e);show(e?.message||"We could not send the login code.",true);sendBtn.disabled=false;resendBtn.disabled=false;sendBtn.textContent="Send Login Code →";}
+      const {error}=await sb.auth.signInWithOtp({
+        email,
+        options:{shouldCreateUser:false}
+      });
+      if(error) throw error;
+
+      pendingEmail=email;
+      emailArea.style.display="none";
+      otpArea.style.display="block";
+      show("A 6-digit verification code was sent to your email.");
+      otpInput.focus();
+    }catch(e){
+      console.error(e);
+      show(e?.message||"We could not send the login code.",true);
+      sendBtn.disabled=false;
+      sendBtn.textContent="Send Login Code →";
+    }finally{
+      resendBtn.disabled=false;
+    }
   }
+
   async function verifyCode(){
     const token=otpInput.value.trim();
-    if(!pendingEmail)return show("Please request a login code first.",true);
-    if(!/^\d{6}$/.test(token))return show("Please enter the 6-digit verification code.",true);
-    verifyBtn.disabled=true;resendBtn.disabled=true;verifyBtn.textContent="Signing In…";show("Verifying your login…");
+    if(!pendingEmail) return show("Please request a login code first.",true);
+    if(!/^\d{6}$/.test(token)) return show("Please enter the 6-digit verification code.",true);
+
+    verifyBtn.disabled=true;
+    resendBtn.disabled=true;
+    verifyBtn.textContent="Opening My Card…";
+    show("Verifying your login…");
+
     try{
-      const {data,error}=await sb.auth.verifyOtp({email:pendingEmail,token,type:"email"});
-      if(error)throw error;if(!data?.session)throw new Error("Verification succeeded, but no session was returned.");
-      show("Signed in successfully. Opening your loyalty account…");location.href="customer-home.html";
-    }catch(e){console.error(e);show(e?.message||"The verification code is invalid or expired.",true);verifyBtn.disabled=false;resendBtn.disabled=false;verifyBtn.textContent="Verify & Sign In →";}
+      const {data,error}=await sb.auth.verifyOtp({
+        email:pendingEmail,
+        token,
+        type:"email"
+      });
+
+      if(error) throw error;
+      if(!data?.session) throw new Error("Verification succeeded, but no session was returned.");
+
+      // Customer Card is the first screen after successful OTP.
+      location.replace("customer-card.html");
+    }catch(e){
+      console.error(e);
+      show(e?.message||"The verification code is invalid or expired.",true);
+      verifyBtn.disabled=false;
+      resendBtn.disabled=false;
+      verifyBtn.textContent="Verify & Open My Card →";
+    }
   }
-  sendBtn.addEventListener("click",sendCode);verifyBtn.addEventListener("click",verifyCode);
-  resendBtn.addEventListener("click",async()=>{resendBtn.disabled=true;await sendCode();resendBtn.disabled=false;});
+
+  sendBtn.addEventListener("click",sendCode);
+  verifyBtn.addEventListener("click",verifyCode);
+  resendBtn.addEventListener("click",sendCode);
+  emailInput.addEventListener("keydown",e=>{if(e.key==="Enter")sendCode();});
+  otpInput.addEventListener("keydown",e=>{if(e.key==="Enter")verifyCode();});
 })();
 </script>
 </body>
