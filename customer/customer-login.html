@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>Customer Login</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body data-page="customer-login">
+
+<div class="auth"><div class="authbox">
+<div class="logo"><img class="official-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></div>
+<h2>Welcome Back</h2><p class="sub">Sign in to your Al Noor Loyalty account.</p>
+<div class="field"><label>Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com"></div>
+<div class="field"><label>Password</label><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Your password"></div>
+<button id="loginBtn" class="btn primary block">Sign In →</button>
+<div id="msg" class="note"></div>
+<div class="center" style="margin-top:16px"><a href="customer-register.html" class="btn soft block">Create Loyalty Account</a></div>
+<div class="center" style="margin-top:14px"><a href="../index.html" class="sub">← Back</a></div>
+</div></div>
+
+<script src="../assets/app.js"></script>
+
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
+</body>
+</html>
