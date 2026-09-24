@@ -79,5 +79,11 @@
   resendBtn.addEventListener("click",async()=>{resendBtn.disabled=true;await sendCode();resendBtn.disabled=false;});
 })();
 </script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js").catch(console.error));
+}
+</script>
 </body>
 </html>

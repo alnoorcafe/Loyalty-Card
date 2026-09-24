@@ -106,4 +106,10 @@ label{display:block;font-size:15px;font-weight:800;color:var(--green);margin:0 0
   email.onkeydown=e=>{if(e.key==="Enter")sendCode();};otp.onkeydown=e=>{if(e.key==="Enter")verifyCode();};
 })();
 </script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js").catch(console.error));
+}
+</script>
 </body></html>
