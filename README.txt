@@ -1,18 +1,11 @@
-AL NOOR CUSTOMER PASSWORD FINAL
-================================
-Replace these two files in your GitHub project:
+INDEX LINK FIX
+==============
+Replace the root index.html in:
+alnoorcafe/Loyalty-Card
 
-customer/customer-register.html
-customer/customer-login.html
+Correct project-site links:
+Customer -> customer/customer-login.html
+Staff -> staff/staff-login.html
+GM -> gm/gm-login.html
 
-New flow:
-Register -> Email + Password -> Customer Card
-Login -> Email + Password -> Customer Card
-
-No OTP is used.
-
-IMPORTANT:
-In Supabase Dashboard:
-Authentication -> Providers -> Email
-Turn OFF "Confirm email" so registration creates a session immediately.
-Do not change Staff/GM login.
+Do NOT use /customer-login.html, /staff-login.html or /gm-login.html from the root.
