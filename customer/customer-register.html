@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>Create Loyalty Account</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body data-page="customer-register">
+
+<div class="auth"><div class="authbox">
+<div class="logo"><img class="official-logo" src="../assets/al-noor-official-logo.jpeg" alt="AL NOOR BAKERY & CAFE"></div>
+<h2>Create Account</h2><p class="sub">Create your Al Noor Loyalty account and receive your personal QR code.</p>
+<div class="field"><label>Full Name</label><input id="name" class="input" autocomplete="name" placeholder="Full name"></div>
+<div class="field"><label>Mobile Number</label><input id="phone" class="input" type="tel" autocomplete="tel" placeholder="+971 ..."></div>
+<div class="field"><label>Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com"></div>
+<div class="field"><label>Password</label><input id="password" class="input" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
+<div class="field"><label>Confirm Password</label><input id="confirm" class="input" type="password" autocomplete="new-password" placeholder="Repeat password"></div>
+<button id="registerBtn" class="btn primary block">Create My Loyalty Account →</button>
+<div id="msg" class="note"></div>
+<div class="center" style="margin-top:14px"><a href="customer-login.html" class="sub">Already have an account? Sign in</a></div>
+</div></div>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>
