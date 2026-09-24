@@ -24,5 +24,11 @@
 <a href="staff-history.html"><b>↺</b>History</a>
 <a href="staff-profile.html"><b>●</b>Profile</a></div></nav>
 <script src="../assets/app.js"></script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js").catch(console.error));
+}
+</script>
 </body>
 </html>
