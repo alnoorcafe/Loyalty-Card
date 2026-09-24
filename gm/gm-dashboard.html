@@ -31,5 +31,11 @@
 <a href="gm-reports.html"><b>▥</b>Reports</a>
 <a href="gm-settings.html"><b>⚙</b>Settings</a></div></nav>
 <script src="../assets/app.js"></script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js").catch(console.error));
+}
+</script>
 </body>
 </html>

@@ -1,1 +1,7 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Al Noor GM Portal</title><meta http-equiv="refresh" content="0;url=gm-login.html"><script>location.replace("gm-login.html"+location.search+location.hash);</script></head><body><p>Opening Al Noor GM Portal…</p></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Al Noor GM Portal</title><meta http-equiv="refresh" content="0;url=gm-login.html"><script>location.replace("gm-login.html"+location.search+location.hash);</script></head><body><p>Opening Al Noor GM Portal…</p>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("../sw.js").catch(console.error));
+}
+</script>
+</body></html>
