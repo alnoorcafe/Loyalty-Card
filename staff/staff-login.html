@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>Staff Login</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body data-page="staff-login">
+
+<div class="auth"><div class="authbox">
+<div class="logo"><img class="official-logo" src="../assets/al-noor-official-logo.jpeg" alt="AL NOOR BAKERY & CAFE"></div>
+<h2>Staff Portal</h2><p class="sub">Secure access for Al Noor staff.</p>
+<div class="field"><label>Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="staff@alnoor.ae"></div>
+<div class="field"><label>Password</label><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Password"></div>
+<button id="loginBtn" class="btn primary block">Staff Sign In →</button>
+<div id="msg" class="note"></div>
+<div class="center" style="margin-top:14px"><a href="../index.html" class="sub">← Back</a></div>
+</div></div>
+
+<script src="../assets/app.js"></script>
+</body>
+</html>

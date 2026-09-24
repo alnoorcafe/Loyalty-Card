@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>Staff Profile</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body data-page="staff-profile">
+
+<header class="topbar">
+<a class="brand brand-image" href="staff-scan.html"><img class="brand-logo" src="../assets/al-noor-official-logo.jpeg" alt="AL NOOR BAKERY & CAFE"></a>
+<button class="icon" onclick="logout()" title="Sign out">↪</button>
+</header>
+<main class="container">
+<h1 class="title">Staff Profile</h1><p class="sub">Your staff access details.</p>
+<div class="card">
+<div class="row"><div class="avatar">AN</div><div class="grow"><strong data-name>Staff</strong><small data-role>—</small></div></div>
+<div style="margin-top:18px">
+<div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)"><div class="grow"><small>Email</small><strong data-email>—</strong></div></div>
+<div class="row" style="padding:12px 0"><div class="grow"><small>Branch</small><strong data-location>—</strong></div></div>
+</div>
+<button class="btn danger block" onclick="logout()">Sign Out</button>
+</div></main>
+<nav class="nav"><div class="navin"><a href="staff-scan.html" class="active"><b>⌗</b>Scan</a>
+<a href="staff-customer.html"><b>●</b>Customer</a>
+<a href="staff-history.html"><b>↺</b>History</a>
+<a href="staff-profile.html"><b>●</b>Profile</a></div></nav>
+<script src="../assets/app.js"></script>
+</body>
+</html>
