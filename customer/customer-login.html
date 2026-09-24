@@ -10,85 +10,37 @@
 <script src="../assets/config.js"></script>
 </head>
 <body data-page="customer-login">
-<div class="auth">
-  <div class="authbox">
-    <h2>Welcome Back</h2>
-    <p class="sub">Sign in to your Al Noor Loyalty account.</p>
-
-    <div class="field">
-      <label>Email</label>
-      <input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com">
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input id="password" class="input" type="password" autocomplete="current-password" placeholder="Your password">
-    </div>
-
-    <button id="loginBtn" class="btn primary block" type="button">Sign In →</button>
-    <div id="msg" class="note" aria-live="polite"></div>
-
-    <div class="center" style="margin-top:16px">
-      <a href="customer-register.html" class="btn soft block">Create Loyalty Account</a>
-    </div>
-    <div class="center" style="margin-top:14px">
-      <a href="../index.html" class="sub">← Back</a>
-    </div>
-  </div>
-</div>
-
+<div class="auth"><div class="authbox">
+<div class="logo"><img class="official-logo" src="../assets/al-noor-official-logo.jpeg" alt="AL NOOR BAKERY & CAFE"></div>
+<h2>Welcome Back</h2>
+<p class="sub">Sign in to your Al Noor Loyalty account.</p>
+<div class="field"><label>Email</label><input id="email" class="input" type="email" autocomplete="email" placeholder="you@example.com"></div>
+<div class="field"><label>Password</label><input id="password" class="input" type="password" autocomplete="current-password" placeholder="Your password"></div>
+<button id="loginBtn" class="btn primary block" type="button">Sign In →</button>
+<div id="msg" class="note" aria-live="polite"></div>
+<div class="center" style="margin-top:16px"><a href="customer-register.html" class="btn soft block">Create Loyalty Account</a></div>
+<div class="center" style="margin-top:14px"><a href="../index.html" class="sub">← Back</a></div>
+</div></div>
 <script>
 (function(){
-  const cfg = window.AL_NOOR_CONFIG || {};
-  const msg = document.getElementById("msg");
-  const btn = document.getElementById("loginBtn");
-
-  function show(t, error){
-    msg.textContent = t || "";
-    msg.style.color = error ? "#a33b2f" : "";
+  const cfg=window.AL_NOOR_CONFIG||{}, msg=document.getElementById("msg"), btn=document.getElementById("loginBtn");
+  const show=(t,e)=>{msg.textContent=t||"";msg.style.color=e?"#a33b2f":""};
+  if(!cfg.SUPABASE_URL||!cfg.SUPABASE_PUBLISHABLE_KEY||typeof supabase==="undefined"){
+    show("Al Noor connection is not configured.",true);btn.disabled=true;return;
   }
-
-  if(!cfg.SUPABASE_URL || !cfg.SUPABASE_PUBLISHABLE_KEY || typeof supabase === "undefined"){
-    show("Al Noor connection is not configured.", true);
-    btn.disabled = true;
-    return;
+  const sb=supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  async function signIn(){
+    const email=document.getElementById("email").value.trim().toLowerCase();
+    const password=document.getElementById("password").value;
+    if(!email||!password){show("Enter your email and password.",true);return;}
+    btn.disabled=true;show("Signing in...");
+    const {data,error}=await sb.auth.signInWithPassword({email,password});
+    if(error){show(error.message,true);btn.disabled=false;return;}
+    if(data.session){location.href="customer-card.html";}
+    else {show("Login succeeded but no session was created.",true);btn.disabled=false;}
   }
-
-  const sb = supabase.createClient(
-    cfg.SUPABASE_URL,
-    cfg.SUPABASE_PUBLISHABLE_KEY,
-    {auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}
-  );
-
-  btn.addEventListener("click", async function(){
-    const email = document.getElementById("email").value.trim().toLowerCase();
-    const password = document.getElementById("password").value;
-
-    if(!email || !password){
-      show("Enter your email and password.", true); return;
-    }
-
-    btn.disabled = true;
-    show("Signing in...");
-
-    const {data, error} = await sb.auth.signInWithPassword({email, password});
-
-    if(error){
-      show(error.message, true);
-      btn.disabled = false;
-      return;
-    }
-
-    if(data.session){
-      location.href = "customer-card.html";
-    } else {
-      show("Login succeeded but no session was created.", true);
-      btn.disabled = false;
-    }
-  });
-
-  document.addEventListener("keydown", e => {
-    if(e.key === "Enter") btn.click();
-  });
+  btn.addEventListener("click",signIn);
+  document.addEventListener("keydown",e=>{if(e.key==="Enter")signIn();});
 })();
 </script>
 </body>
