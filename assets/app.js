@@ -1,7 +1,7 @@
 
 const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
-const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
-const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
+const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "";
+const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -280,10 +280,11 @@ async function loadCustomerHome() {
   document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
   document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
 
-  const avatar = $("avatar");
+  // Customer Home: show the selected avatar only in the dedicated area below the quick buttons.
+  // Remove any stale/legacy avatar markup that may still exist inside the points card.
+  document.querySelectorAll(".points .avatar, .points .avatar-photo, .points [id*=avatar], .points [data-avatar]").forEach(el => el.remove());
   const homeAvatar = $("homeAvatar");
   const avatarUrl = await getOwnAvatarUrl();
-  renderAvatar(avatar, profile.full_name, avatarUrl);
   renderAvatar(homeAvatar, profile.full_name, avatarUrl);
 }
 
