@@ -1,7 +1,7 @@
 
 const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
-const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
-const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
+const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "";
+const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -282,7 +282,7 @@ async function loadCustomerHome() {
 
   // Customer Home: show the selected avatar only in the dedicated area below the quick buttons.
   // Remove any stale/legacy avatar markup that may still exist inside the points card.
-  document.querySelectorAll(".points .avatar, .points .avatar-photo, .points [id*=avatar], .points [data-avatar]").forEach(el => el.remove());
+  // Keep the approved home avatar element inside the green points panel.
   const homeAvatar = $("homeAvatar");
   const avatarUrl = await getOwnAvatarUrl();
   renderAvatar(homeAvatar, profile.full_name, avatarUrl);
@@ -405,7 +405,6 @@ async function loadCustomerRewards() {
     .from("rewards")
     .select("id,title,name,description,points_cost,is_active,image_url")
     .eq("is_active", true)
-    .lte("points_cost", Number(profile.points || 0))
     .order("points_cost", { ascending: true });
 
   if (error) {
@@ -413,16 +412,20 @@ async function loadCustomerRewards() {
     return;
   }
 
-  box.innerHTML = data?.length ? data.map(r => `
+  const customerPoints = Number(profile.points || 0);
+  box.innerHTML = data?.length ? data.map(r => {
+    const cost = Number(r.points_cost || 0);
+    const canRedeem = customerPoints >= cost;
+    const status = canRedeem ? "Available now" : `Need ${moneyPoints(cost - customerPoints)} more points`;
+    return `
     <div class="reward">
       <img class="reward-product-image" src="${esc(r.image_url || "../assets/free-drink.svg")}" alt="${esc(r.title || r.name || "Reward")}">
       <div class="grow">
         <strong>${esc(r.title || r.name || "Reward")}</strong>
-        <small>${esc(r.description || "Reward available")}</small>
+        <small>${esc(r.description || "Reward available")} • ${moneyPoints(cost)} points • ${esc(status)}</small>
       </div>
-      <span class="badge">${moneyPoints(r.points_cost)} points</span>
-    </div>
-  `).join("") : `<div class="empty">No rewards are active yet.</div>`;
+    </div>`;
+  }).join("") : `<div class="empty">No rewards are active yet.</div>`;
 }
 
 function saveStaffCustomer(customer) {
@@ -554,7 +557,6 @@ async function loadStaffRedeem() {
     .from("rewards")
     .select("id,title,name,description,points_cost,is_active,image_url")
     .eq("is_active", true)
-    .lte("points_cost", Number(customer.points || 0))
     .order("points_cost", { ascending: true });
 
   if (error) {
@@ -562,16 +564,20 @@ async function loadStaffRedeem() {
     return;
   }
 
-  box.innerHTML = data?.length ? data.map(r => `
+  const customerPoints = Number(customer.points || 0);
+  box.innerHTML = data?.length ? data.map(r => {
+    const cost = Number(r.points_cost || 0);
+    const canRedeem = customerPoints >= cost;
+    return `
     <div class="reward">
       ${r.image_url ? `<img class="reward-product-image" src="${esc(r.image_url)}" alt="${esc(r.title || r.name || "Reward")}">` : `<div class="food">★</div>`}
       <div class="grow">
         <strong>${esc(r.title || r.name || "Reward")}</strong>
-        <small>${esc(r.description || "Reward available")}</small>
+        <small>${esc(r.description || "Reward available")} • ${moneyPoints(cost)} points</small>
       </div>
-      <button class="btn primary" onclick="redeemReward('${r.id}',${Number(r.points_cost || 0)})">Redeem</button>
-    </div>
-  `).join("") : `<div class="empty">No rewards are active.</div>`;
+      <button class="btn primary" ${canRedeem ? `` : `disabled`} onclick="redeemReward('${r.id}',${cost})">${canRedeem ? "Redeem" : `Need ${moneyPoints(cost-customerPoints)} more`}</button>
+    </div>`;
+  }).join("") : `<div class="empty">No rewards are active.</div>`;
 }
 
 async function redeemReward(rewardId, cost) {
