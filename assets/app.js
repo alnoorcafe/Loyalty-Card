@@ -1,6 +1,7 @@
 
-const SUPABASE_URL = "https://hlzmnbmngsbvnlnaaoau.supabase.co";
-const SUPABASE_KEY = "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
+const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
+const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "";
+const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -273,7 +274,7 @@ async function loadCustomerRewards() {
 
   const { data, error } = await sb
     .from("rewards")
-    .select("id,name,description,points_cost,is_active")
+    .select("id,name,description,points_cost,is_active,image_url")
     .eq("is_active", true)
     .eq("points_cost", 10)
     .order("points_cost", { ascending: true });
@@ -285,10 +286,10 @@ async function loadCustomerRewards() {
 
   box.innerHTML = data?.length ? data.map(r => `
     <div class="reward">
-      <div class="food">★</div>
+      <img class="reward-product-image" src="${esc(r.image_url || "../assets/free-drink.svg")}" alt="${esc(r.name)}">
       <div class="grow">
         <strong>${esc(r.name)}</strong>
-        <small>Free Drink • 10 visits</small>
+        <small>${esc(r.description || "Free Drink • 10 visits")}</small>
       </div>
       <span class="badge">10 visits</span>
     </div>
@@ -488,6 +489,9 @@ async function loadStaffHistory() {
     return;
   }
 
+  const staffProfile = await getStaffProfile();
+  const currentStaffName = staffProfile?.full_name || "Staff";
+
   const { data, error } = await sb.rpc("get_customer_transactions", {
     p_customer_id: customer.id
   });
@@ -505,7 +509,7 @@ async function loadStaffHistory() {
         <tr>
           <td>${esc(t.type)}</td>
           <td>${moneyPoints(t.points)}</td>
-          <td>${esc(t.staff_member_name || t.staff_name || t.staff_member || t.staff_email || "—")}</td>
+          <td>${esc(t.staff_member_name || t.staff_name || t.staff_member || t.staff_email || currentStaffName)}</td>
           <td>${new Date(t.created_at).toLocaleString()}</td>
         </tr>
       `).join("")}
