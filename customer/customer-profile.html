@@ -18,7 +18,8 @@
 <main class="container">
 <h1 class="title">My Profile</h1><p class="sub">Your Al Noor Loyalty account details.</p>
 <div class="card">
-<div class="row"><div id="avatar" class="avatar">AN</div><div class="grow"><strong data-name>Customer</strong><small>Member ID: <span data-id>—</span></small></div></div>
+<div class="profile-head"><div id="avatar" class="avatar avatar-photo">AN</div><div class="grow"><strong data-name>Customer</strong><small>Member ID: <span data-id>—</span></small></div></div>
+<div class="photo-actions"><input id="avatarInput" type="file" accept="image/*" hidden><button id="avatarBtn" class="btn soft" type="button">ADD / CHANGE MY PHOTO</button><small>Choose a personal profile photo.</small></div>
 <div style="margin-top:20px">
 <div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)"><div class="grow"><small>Email</small><strong data-email>—</strong></div></div>
 <div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)"><div class="grow"><small>Mobile</small><strong data-phone>—</strong></div></div>
@@ -33,22 +34,18 @@
 <button id="changePasswordBtn" class="btn primary block">CHANGE PASSWORD</button>
 <div id="passwordMsg" class="note"></div>
 </div>
-<div class="card" style="margin-top:16px;background:#fbf8f1">
-<h3>Change Password</h3>
-<p class="sub">Choose a new password for your Al Noor account.</p>
-<div class="field"><label>New Password</label><input id="newPassword" class="input" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
-<div class="field"><label>Confirm New Password</label><input id="confirmNewPassword" class="input" type="password" autocomplete="new-password" placeholder="Repeat new password"></div>
-<button id="changePasswordBtn" class="btn primary block">CHANGE PASSWORD</button>
-<div id="passwordMsg" class="note"></div>
-</div>
 <button class="btn danger block" onclick="logout()">Sign Out</button>
 </div>
-<div class="quick" style="margin-top:16px"><a href="customer-offers.html"><b>◇</b>Offers</a><a href="customer-menu.html"><b>☰</b>Menu</a><a href="customer-locations.html"><b>⌖</b>Locations</a></div>
+
 </main>
-<nav class="nav"><div class="navin"><a href="customer-home.html" class="active"><b>⌂</b>Home</a>
-<a href="customer-card.html"><b>▣</b>Card</a>
-<a href="customer-rewards.html"><b>★</b>Rewards</a>
-<a href="customer-profile.html"><b>●</b>Profile</a></div></nav>
+<nav class="nav"><div class="navin">
+<a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
+<a href="customer-card.html" data-nav="card"><b>▣</b>Card</a>
+<a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
+<a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
+<a href="customer-menu.html" data-nav="menu"><b>☰</b>Menu</a>
+<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
+</div></nav>
 <script src="../assets/config.js"></script>
 <script src="../assets/app.js"></script>
 
