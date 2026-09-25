@@ -423,7 +423,7 @@ async function loadStaffRedeem() {
   const box = $("rewards");
   const { data, error } = await sb
     .from("rewards")
-    .select("id,name,description,points_cost,is_active")
+    .select("id,name,description,points_cost,is_active,image_url")
     .eq("is_active", true)
     .eq("points_cost", 10)
     .order("points_cost", { ascending: true });
@@ -435,7 +435,7 @@ async function loadStaffRedeem() {
 
   box.innerHTML = data?.length ? data.map(r => `
     <div class="reward">
-      <div class="food">★</div>
+      ${r.image_url ? `<img class="reward-product-image" src="${esc(r.image_url)}" alt="${esc(r.name)}">` : `<div class="food">★</div>`}
       <div class="grow">
         <strong>${esc(r.name)}</strong>
         <small>Free Drink • 10 visits</small>
@@ -501,20 +501,45 @@ async function loadStaffHistory() {
     return;
   }
 
-  box.innerHTML = data?.length ? `
+  if (!data?.length) {
+    box.innerHTML = `<div class="empty">No transactions yet.</div>`;
+    return;
+  }
+
+  // Some older transaction RPC versions return a staff/user id but not the
+  // staff display name. Resolve those ids from profiles so the history always
+  // shows the actual staff member when the RPC provides the id.
+  const staffIds = [...new Set(data
+    .map(t => t.staff_id || t.staff_user_id || t.created_by || t.user_id)
+    .filter(Boolean))];
+
+  let staffMap = {};
+  if (staffIds.length) {
+    const { data: staffRows } = await sb
+      .from("profiles")
+      .select("id,full_name,email")
+      .in("id", staffIds);
+    (staffRows || []).forEach(s => { staffMap[s.id] = s.full_name || s.email || "Staff"; });
+  }
+
+  box.innerHTML = `
     <table class="table">
       <thead><tr><th>Type</th><th>Points</th><th>Staff Member</th><th>Date</th></tr></thead>
       <tbody>
-      ${data.map(t => `
+      ${data.map(t => {
+        const staffId = t.staff_id || t.staff_user_id || t.created_by || t.user_id;
+        const staffName = t.staff_member_name || t.staff_name || t.staff_member ||
+          t.staff_email || (staffId ? staffMap[staffId] : "") || currentStaffName;
+        return `
         <tr>
           <td>${esc(t.type)}</td>
           <td>${moneyPoints(t.points)}</td>
-          <td>${esc(t.staff_member_name || t.staff_name || t.staff_member || t.staff_email || currentStaffName)}</td>
+          <td>${esc(staffName)}</td>
           <td>${new Date(t.created_at).toLocaleString()}</td>
-        </tr>
-      `).join("")}
+        </tr>`;
+      }).join("")}
       </tbody>
-    </table>` : `<div class="empty">No transactions yet.</div>`;
+    </table>`;
 }
 
 async function loadStaffProfile() {
