@@ -1,7 +1,7 @@
 
 const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
-const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
-const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
+const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "";
+const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -33,6 +33,85 @@ function initials(name) {
 
 function moneyPoints(n) {
   return Number(n || 0).toLocaleString();
+}
+
+async function getOwnAvatarUrl() {
+  try {
+    const { data: userData } = await sb.auth.getUser();
+    const uid = userData?.user?.id;
+    if (!uid) return null;
+    const { data, error } = await sb.from("profiles").select("avatar_url").eq("id", uid).maybeSingle();
+    if (error) return null;
+    return data?.avatar_url || null;
+  } catch { return null; }
+}
+
+function renderAvatar(el, name, url) {
+  if (!el) return;
+  if (url) {
+    el.innerHTML = `<img src="${esc(url)}" alt="Profile avatar" loading="eager">`;
+    el.classList.add("avatar-photo");
+  } else {
+    el.textContent = initials(name);
+  }
+}
+
+async function saveCustomerAvatarChoice(url) {
+  const { data: userData } = await sb.auth.getUser();
+  const uid = userData?.user?.id;
+  if (!uid) throw new Error("Please sign in again.");
+  const { error } = await sb.from("profiles").update({avatar_url:url}).eq("id",uid);
+  if (error) throw error;
+  return url;
+}
+
+function bindAvatarChoices(currentUrl, profileName) {
+  const buttons = document.querySelectorAll(".avatar-option");
+  buttons.forEach(btn => {
+    const url = btn.dataset.avatarUrl || "";
+    if (url === currentUrl) btn.classList.add("selected");
+    btn.onclick = async () => {
+      buttons.forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      btn.disabled = true;
+      try {
+        const saved = await saveCustomerAvatarChoice(url);
+        renderAvatar($("avatar"), profileName, saved);
+        toast("Avatar updated successfully.");
+      } catch (e) {
+        btn.classList.remove("selected");
+        toast(e?.message || "Could not update avatar.", false);
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  });
+}
+
+function bindCustomerNav(page) {
+  const map = {
+    "customer-home":"home", "customer-card":"card", "customer-rewards":"rewards",
+    "customer-offers":"offers", "customer-menu":"menu", "customer-locations":"locations"
+  };
+  document.querySelectorAll("[data-nav]").forEach(a => a.classList.toggle("active", a.dataset.nav === map[page]));
+}
+
+async function saveCustomerPhoto(file) {
+  if (!file || !file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Photo must be 5 MB or smaller.");
+  const dataUrl = await new Promise((resolve, reject) => {
+    const fr = new FileReader(); fr.onload=()=>resolve(fr.result); fr.onerror=()=>reject(new Error("Could not read the photo.")); fr.readAsDataURL(file);
+  });
+  const img = await new Promise((resolve, reject) => { const i=new Image(); i.onload=()=>resolve(i); i.onerror=()=>reject(new Error("Invalid image.")); i.src=dataUrl; });
+  const max=512, scale=Math.min(1,max/Math.max(img.width,img.height));
+  const c=document.createElement("canvas"); c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale));
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+  const compressed=c.toDataURL("image/jpeg",0.78);
+  const { data:userData } = await sb.auth.getUser();
+  const uid=userData?.user?.id; if(!uid) throw new Error("Please sign in again.");
+  const { error } = await sb.from("profiles").update({avatar_url:compressed}).eq("id",uid);
+  if(error) throw error;
+  return compressed;
 }
 
 function toast(message, good = true) {
@@ -202,7 +281,10 @@ async function loadCustomerHome() {
   document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
 
   const avatar = $("avatar");
-  if (avatar) avatar.textContent = initials(profile.full_name);
+  const homeAvatar = $("homeAvatar");
+  const avatarUrl = await getOwnAvatarUrl();
+  renderAvatar(avatar, profile.full_name, avatarUrl);
+  renderAvatar(homeAvatar, profile.full_name, avatarUrl);
 }
 
 async function loadCustomerCard() {
@@ -249,6 +331,42 @@ async function loadCustomerProfile() {
   document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
   document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
 
+  const avatar = $("avatar");
+  const avatarUrl = await getOwnAvatarUrl();
+  renderAvatar(avatar, profile.full_name, avatarUrl);
+  bindAvatarChoices(avatarUrl, profile.full_name);
+  const avatarBtn=$("avatarBtn"), avatarInput=$("avatarInput");
+  const avatarEditPanel=$("avatarEditPanel");
+  const uploadAvatarBtn=$("uploadAvatarBtn");
+  const closeAvatarPanelBtn=$("closeAvatarPanelBtn");
+
+  if (avatarBtn && avatarEditPanel) {
+    avatarBtn.onclick=()=>{
+      avatarEditPanel.hidden=!avatarEditPanel.hidden;
+      if (!avatarEditPanel.hidden) avatarEditPanel.scrollIntoView({behavior:"smooth",block:"nearest"});
+    };
+  }
+
+  if (uploadAvatarBtn && avatarInput) {
+    uploadAvatarBtn.onclick=()=>avatarInput.click();
+    avatarInput.onchange=async()=>{
+      const file=avatarInput.files?.[0]; if(!file)return;
+      uploadAvatarBtn.disabled=true; uploadAvatarBtn.textContent="UPLOADING…";
+      try {
+        const url=await saveCustomerPhoto(file);
+        renderAvatar(avatar, profile.full_name, url);
+        toast("Profile photo updated.");
+        if (avatarEditPanel) avatarEditPanel.hidden=true;
+      }
+      catch(e){ toast(e?.message||"Could not update photo.",false); }
+      finally { uploadAvatarBtn.disabled=false; uploadAvatarBtn.textContent="UPLOAD MY PHOTO"; avatarInput.value=""; }
+    };
+  }
+
+  if (closeAvatarPanelBtn && avatarEditPanel) {
+    closeAvatarPanelBtn.onclick=()=>{ avatarEditPanel.hidden=true; };
+  }
+
   const btn = $("changePasswordBtn");
   if (btn) btn.onclick = async () => {
     const next = $("newPassword")?.value || "";
@@ -263,6 +381,16 @@ async function loadCustomerProfile() {
     $("newPassword").value = ""; $("confirmNewPassword").value = "";
     btn.disabled = false; btn.textContent = "CHANGE PASSWORD";
   };
+}
+
+async function loadCustomerLocations() {
+  const profile = await guardRole(["customer"]);
+  if (!profile) return;
+  const box=$("customerLocations"); if(!box)return;
+  const {data,error}=await sb.from("locations").select("id,name,city,address,phone,is_active").eq("is_active",true).order("name");
+  if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}
+  box.innerHTML=data?.length ? data.map(l=>`<div class="card"><strong>${esc(l.name)}</strong><small>${esc(l.city||"")}
+${esc(l.address||"")}</small></div>`).join("") : `<div class="empty">No active locations found.</div>`;
 }
 
 async function loadCustomerRewards() {
@@ -772,6 +900,7 @@ async function loadAdminLocations() {
 
 async function init() {
   const page = document.body.dataset.page;
+  bindCustomerNav(page);
   try {
     if (page === "admin-login") {
       $("loginBtn").onclick = () => login("admin");
@@ -799,8 +928,12 @@ async function init() {
       await loadCustomerProfile();
     } else if (page === "customer-rewards") {
       await loadCustomerRewards();
-    } else if (page === "customer-menu" || page === "customer-offers" || page === "customer-locations") {
+    } else if (page === "customer-menu") {
       await guardRole(["customer"]);
+    } else if (page === "customer-offers") {
+      await guardRole(["customer"]);
+    } else if (page === "customer-locations") {
+      await loadCustomerLocations();
     } else if (page === "staff-login") {
       $("loginBtn").onclick = () => login("staff");
     } else if (page === "staff-scan") {
