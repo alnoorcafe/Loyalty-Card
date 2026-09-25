@@ -8,6 +8,16 @@
 <title>Customer Profile</title>
 <link rel="stylesheet" href="../assets/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+#avatarEditPanel[hidden]{display:none !important;}
+#avatarEditPanel:not([hidden]){display:block !important;}
+.avatar-picker-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px;}
+.avatar-option{display:block;width:100%;aspect-ratio:1/1;border:2px solid transparent;border-radius:50%;padding:0;background:transparent;overflow:hidden;cursor:pointer;}
+.avatar-option img{width:100%;height:100%;display:block;object-fit:cover;}
+.avatar-option.selected{border-color:#b48b4a;box-shadow:0 0 0 3px #b48b4a33;}
+@media(max-width:600px){.avatar-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+</style>
 </head>
 <body data-page="customer-profile">
 
@@ -64,5 +74,51 @@
 <script src="../assets/app.js"></script>
 
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
+
+<script>
+(function(){
+  function setupAvatarEditor(){
+    const panel=document.getElementById('avatarEditPanel');
+    const open=document.getElementById('avatarBtn');
+    const close=document.getElementById('closeAvatarPanelBtn');
+    const upload=document.getElementById('uploadAvatarBtn');
+    const input=document.getElementById('avatarInput');
+    if(!panel || !open) return;
+    panel.hidden=true;
+    open.onclick=function(e){
+      e.preventDefault(); e.stopPropagation();
+      panel.hidden=false;
+      panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+    };
+    if(close) close.onclick=function(e){e.preventDefault(); e.stopPropagation(); panel.hidden=true;};
+    if(upload && input) upload.onclick=function(e){e.preventDefault(); input.click();};
+    document.querySelectorAll('.avatar-option').forEach(function(btn){
+      btn.onclick=async function(e){
+        e.preventDefault();
+        const url=btn.getAttribute('data-avatar-url');
+        if(!url || !window.sb) return;
+        document.querySelectorAll('.avatar-option').forEach(b=>b.classList.remove('selected'));
+        btn.classList.add('selected');
+        btn.disabled=true;
+        try{
+          const u=await window.sb.auth.getUser();
+          const uid=u && u.data && u.data.user && u.data.user.id;
+          if(!uid) throw new Error('Please sign in again.');
+          const r=await window.sb.from('profiles').update({avatar_url:url}).eq('id',uid);
+          if(r.error) throw r.error;
+          const av=document.getElementById('avatar');
+          if(av) av.innerHTML='<img src="'+url.replace(/"/g,'&quot;')+'" alt="Profile avatar" loading="eager">';
+          panel.hidden=true;
+          if(window.toast) window.toast('Avatar updated successfully.');
+        }catch(err){
+          btn.classList.remove('selected');
+          if(window.toast) window.toast(err && err.message ? err.message : 'Could not update avatar.',false);
+        }finally{btn.disabled=false;}
+      };
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',setupAvatarEditor); else setupAvatarEditor();
+})();
+</script>
 </body>
 </html>
