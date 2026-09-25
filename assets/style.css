@@ -147,3 +147,11 @@ h2{color:var(--green);margin-bottom:8px}
 .home-avatar-bottom{display:flex;justify-content:center;align-items:center;margin-top:18px;margin-bottom:2px}
 .home-avatar-bottom .avatar{width:82px;height:82px;border-radius:50%;overflow:hidden}
 .home-avatar-bottom .avatar img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Customer Home approved layout: remove the four center shortcut buttons. */
+.customer-home-quick-actions,
+.home-quick-actions,
+.quick-actions,
+.home-shortcuts {
+  display: none !important;
+}
