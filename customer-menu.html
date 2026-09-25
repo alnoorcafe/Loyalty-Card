@@ -1,0 +1,17 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Menu</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script></head><body data-page="customer-menu"><header class="topbar"><a class="brand brand-image" href="customer-home.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">Our Menu</h1><p class="sub">Freshly baked and carefully crafted at Al Noor.</p><div class="card"><div id="customerMenu"><div class="empty">Loading menu…</div></div></div></main><nav class="nav"><div class="navin">
+<a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
+<a href="customer-card.html" data-nav="card"><b>▣</b>Card</a>
+<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
+<a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
+<a href="customer-menu.html" data-nav="menu"><b>☰</b>Menu</a>
+</div></nav><script src="../assets/config.js"></script>
+<script src="../assets/app.js"></script><script>
+(async function(){
+ const box=document.getElementById("customerMenu"); if(!box)return;
+ const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+ const {data,error}=await sb.from("menu_items").select("name,description,price,image_url,status").eq("status","active").order("created_at",{ascending:false});
+ if(error){box.innerHTML='<div class="alert">'+esc(error.message)+'</div>';return}
+ box.innerHTML=data?.length?data.map(x=>'<div class="reward">'+(x.image_url?'<img class="reward-product-image" src="'+esc(x.image_url)+'" alt="'+esc(x.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(x.name)+'</strong><small>'+esc(x.description||"")+'</small></div><span class="badge">AED '+Number(x.price||0).toFixed(2)+'</span></div>').join(""):'<div class="empty">No active menu items.</div>';
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
