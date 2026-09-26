@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#073a2b">
 <link rel="manifest" href="../manifest.webmanifest">
 <title>Customer Home</title>
-<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/style.css?v=20260926-home-card-qr-fix">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body data-page="customer-home">
@@ -17,29 +17,29 @@
 </header>
 <main class="container">
 <div class="hero">
-<div class="home-head"><a href="customer-profile.html" class="avatar-link"><div id="homeAvatar" class="avatar avatar-photo">AN</div></a><div><h2>Hello, <span data-name>Customer</span> 👋</h2>
+<div class="home-head"><div><h2>Hello, <span data-name>Customer</span> 👋</h2>
 <p>Loyal Customer • Welcome back</p></div></div>
-<div class="points"><small>YOUR POINTS</small><strong data-points>0</strong><span>Keep earning brighter rewards</span></div>
+<div class="points"><small>YOUR POINTS</small><strong><span data-points>0</span> / 50</strong><span>Keep earning brighter rewards</span><div class="home-avatar-inline"><a href="customer-profile.html" class="avatar-link"><div id="homeAvatar" class="avatar avatar-photo">AN</div></a></div></div>
 </div>
-<div class="quick">
-<a href="customer-card.html"><b>▣</b>My Card</a>
-<a href="customer-rewards.html"><b>★</b>Rewards</a>
-<a href="customer-card.html"><b>⌗</b>QR</a>
-<a href="customer-profile.html"><b>●</b>Profile</a>
-</div>
+
 <div class="card" style="margin-top:18px"><h3>More Rewards<br>Brighter Days</h3><p class="sub">Earn points with every eligible purchase at Al Noor.</p></div>
+
+<div class="card home-qr-card" style="margin-top:18px;text-align:center">
+  <h3>My QR Code</h3>
+  <p class="sub">Show this QR code at the counter.</p>
+  <div id="homeQr" class="qrbox home-qr-box" aria-label="Customer QR code"></div>
+</div>
 
 </main>
 <nav class="nav"><div class="navin">
 <a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
-<a href="customer-card.html" data-nav="card"><b>▣</b>Card</a>
 <a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
+<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
 <a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
 <a href="customer-menu.html" data-nav="menu"><b>☰</b>Menu</a>
-<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
 </div></nav>
-<script src="../assets/config.js"></script>
-<script src="../assets/app.js"></script>
+<script src="../assets/config.js?v=20260926-home-card-qr-fix"></script>
+<script src="../assets/app.js?v=20260926-home-card-qr-fix"></script>
 
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body>

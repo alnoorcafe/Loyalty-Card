@@ -6,8 +6,18 @@
 <meta name="theme-color" content="#073a2b">
 <link rel="manifest" href="../manifest.webmanifest">
 <title>Customer Profile</title>
-<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/style.css?v=20260926-home-card-merge">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+#avatarEditPanel[hidden]{display:none !important;}
+#avatarEditPanel:not([hidden]){display:block !important;}
+.avatar-picker-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px;}
+.avatar-option{display:block;width:100%;aspect-ratio:1/1;border:2px solid transparent;border-radius:50%;padding:0;background:transparent;overflow:hidden;cursor:pointer;}
+.avatar-option img{width:100%;height:100%;display:block;object-fit:cover;}
+.avatar-option.selected{border-color:#b48b4a;box-shadow:0 0 0 3px #b48b4a33;}
+@media(max-width:600px){.avatar-picker-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}
+</style>
 </head>
 <body data-page="customer-profile">
 
@@ -19,7 +29,21 @@
 <h1 class="title">My Profile</h1><p class="sub">Your Al Noor Loyalty account details.</p>
 <div class="card">
 <div class="profile-head"><div id="avatar" class="avatar avatar-photo">AN</div><div class="grow"><strong data-name>Customer</strong><small>Member ID: <span data-id>—</span></small></div></div>
-<div class="photo-actions"><input id="avatarInput" type="file" accept="image/*" hidden><button id="avatarBtn" class="btn soft" type="button">ADD / CHANGE MY PHOTO</button><small>Choose a personal profile photo.</small></div>
+<div class="photo-actions">
+<input id="avatarInput" type="file" accept="image/*" hidden>
+<button id="avatarBtn" class="btn soft" type="button">ADD / CHANGE MY PHOTO</button>
+</div>
+<div id="avatarEditPanel" class="avatar-edit-panel" hidden>
+  <div class="avatar-edit-actions">
+    <button id="uploadAvatarBtn" class="btn soft" type="button">UPLOAD MY PHOTO</button>
+    <button id="closeAvatarPanelBtn" class="btn soft" type="button">CLOSE</button>
+  </div>
+  <small>Or choose an Al Noor UAE / Gulf avatar.</small>
+<div class="avatar-picker" aria-label="Choose an Al Noor avatar">
+<h3>Choose Your Avatar</h3>
+<p class="sub">15 women • 15 men</p>
+<div class="avatar-picker-grid"><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/01_women_avatar.png"><img src="../assets/avatars/01_women_avatar.png" alt="UAE Gulf woman avatar 1" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/02_women_avatar.png"><img src="../assets/avatars/02_women_avatar.png" alt="UAE Gulf woman avatar 2" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/03_women_avatar.png"><img src="../assets/avatars/03_women_avatar.png" alt="UAE Gulf woman avatar 3" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/04_women_avatar.png"><img src="../assets/avatars/04_women_avatar.png" alt="UAE Gulf woman avatar 4" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/05_women_avatar.png"><img src="../assets/avatars/05_women_avatar.png" alt="UAE Gulf woman avatar 5" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/06_women_avatar.png"><img src="../assets/avatars/06_women_avatar.png" alt="UAE Gulf woman avatar 6" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/07_women_avatar.png"><img src="../assets/avatars/07_women_avatar.png" alt="UAE Gulf woman avatar 7" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/08_women_avatar.png"><img src="../assets/avatars/08_women_avatar.png" alt="UAE Gulf woman avatar 8" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/09_women_avatar.png"><img src="../assets/avatars/09_women_avatar.png" alt="UAE Gulf woman avatar 9" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/10_women_avatar.png"><img src="../assets/avatars/10_women_avatar.png" alt="UAE Gulf woman avatar 10" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/11_women_avatar.png"><img src="../assets/avatars/11_women_avatar.png" alt="UAE Gulf woman avatar 11" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/12_women_avatar.png"><img src="../assets/avatars/12_women_avatar.png" alt="UAE Gulf woman avatar 12" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/13_women_avatar.png"><img src="../assets/avatars/13_women_avatar.png" alt="UAE Gulf woman avatar 13" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/14_women_avatar.png"><img src="../assets/avatars/14_women_avatar.png" alt="UAE Gulf woman avatar 14" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/15_women_avatar.png"><img src="../assets/avatars/15_women_avatar.png" alt="UAE Gulf woman avatar 15" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/16_men_avatar.png"><img src="../assets/avatars/16_men_avatar.png" alt="UAE Gulf man avatar 1" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/17_men_avatar.png"><img src="../assets/avatars/17_men_avatar.png" alt="UAE Gulf man avatar 2" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/18_men_avatar.png"><img src="../assets/avatars/18_men_avatar.png" alt="UAE Gulf man avatar 3" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/19_men_avatar.png"><img src="../assets/avatars/19_men_avatar.png" alt="UAE Gulf man avatar 4" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/20_men_avatar.png"><img src="../assets/avatars/20_men_avatar.png" alt="UAE Gulf man avatar 5" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/21_men_avatar.png"><img src="../assets/avatars/21_men_avatar.png" alt="UAE Gulf man avatar 6" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/22_men_avatar.png"><img src="../assets/avatars/22_men_avatar.png" alt="UAE Gulf man avatar 7" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/23_men_avatar.png"><img src="../assets/avatars/23_men_avatar.png" alt="UAE Gulf man avatar 8" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/24_men_avatar.png"><img src="../assets/avatars/24_men_avatar.png" alt="UAE Gulf man avatar 9" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/25_men_avatar.png"><img src="../assets/avatars/25_men_avatar.png" alt="UAE Gulf man avatar 10" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/26_men_avatar.png"><img src="../assets/avatars/26_men_avatar.png" alt="UAE Gulf man avatar 11" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/27_men_avatar.png"><img src="../assets/avatars/27_men_avatar.png" alt="UAE Gulf man avatar 12" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/28_men_avatar.png"><img src="../assets/avatars/28_men_avatar.png" alt="UAE Gulf man avatar 13" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/29_men_avatar.png"><img src="../assets/avatars/29_men_avatar.png" alt="UAE Gulf man avatar 14" loading="lazy"></button><button class="avatar-option" type="button" data-avatar-url="../assets/avatars/30_men_avatar.png"><img src="../assets/avatars/30_men_avatar.png" alt="UAE Gulf man avatar 15" loading="lazy"></button></div></div>
+</div>
 <div style="margin-top:20px">
 <div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)"><div class="grow"><small>Email</small><strong data-email>—</strong></div></div>
 <div class="row" style="padding:12px 0;border-bottom:1px solid var(--line)"><div class="grow"><small>Mobile</small><strong data-phone>—</strong></div></div>
@@ -40,15 +64,16 @@
 </main>
 <nav class="nav"><div class="navin">
 <a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
-<a href="customer-card.html" data-nav="card"><b>▣</b>Card</a>
 <a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
+<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
 <a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
 <a href="customer-menu.html" data-nav="menu"><b>☰</b>Menu</a>
-<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
 </div></nav>
-<script src="../assets/config.js"></script>
-<script src="../assets/app.js"></script>
+<script src="../assets/config.js?v=20260926-home-card-merge"></script>
+<script src="../assets/app.js?v=20260926-home-card-merge"></script>
 
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
+
+
 </body>
 </html>

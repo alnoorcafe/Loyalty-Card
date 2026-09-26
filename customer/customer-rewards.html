@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#073a2b">
 <link rel="manifest" href="../manifest.webmanifest">
 <title>Rewards</title>
-<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/style.css?v=20260926-rewards-images-fix">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body data-page="customer-rewards">
@@ -16,20 +16,20 @@
 <button class="icon" onclick="logout()" title="Sign out">↪</button>
 </header>
 <main class="container">
-<h1 class="title">Rewards</h1><p class="sub">Available rewards from Al Noor.</p>
-<div id="rewards" class="card"><div class="empty">Loading rewards…</div></div>
-
+<h1 class="title">Rewards</h1><p class="sub">Choose how you want to use your points.</p>
+<div class="card reward-balance-card"><div class="stat"><i>★</i><div><strong><span data-points>0</span> / 50</strong><span>Your current points</span></div></div></div>
+<div id="rewards" class="reward-grid"><div class="card"><div class="empty">Loading rewards…</div></div></div>
+<p class="note" style="margin:14px 2px 90px">Tell the staff member which reward you want. The points will be deducted only after the staff confirms the redemption.</p>
 </main>
 <nav class="nav"><div class="navin">
 <a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
-<a href="customer-card.html" data-nav="card"><b>▣</b>Card</a>
 <a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
+<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
 <a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
 <a href="customer-menu.html" data-nav="menu"><b>☰</b>Menu</a>
-<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
 </div></nav>
-<script src="../assets/config.js"></script>
-<script src="../assets/app.js"></script>
+<script src="../assets/config.js?v=20260926-rewards-images-fix"></script>
+<script src="../assets/app.js?v=20260926-rewards-images-fix"></script>
 
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body>
