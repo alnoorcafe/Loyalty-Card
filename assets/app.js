@@ -1,7 +1,7 @@
 
 const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
-const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
-const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
+const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "";
+const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -87,6 +87,17 @@ function bindAvatarChoices(currentUrl, profileName) {
       }
     };
   });
+}
+
+function rewardImageUrl(reward, fallback="../assets/free-drink.svg") {
+  const title = String(reward?.title || reward?.name || "").trim().toLowerCase().replace(/\s+/g, " ");
+  if (title === "hot or cold drink") return "../assets/reward-hot-cold.svg";
+  if (title === "breakfast") return "../assets/reward-breakfast.svg";
+  if (title === "breakfast + drink") return "../assets/reward-breakfast-drink.svg";
+  const raw = String(reward?.image_url || "").trim();
+  if (/^(data:image\/|https?:\/\/)/i.test(raw)) return raw;
+  if (raw) return raw;
+  return fallback;
 }
 
 function bindCustomerNav(page) {
@@ -279,7 +290,7 @@ async function loadCustomerHome() {
   if (!profile) return;
 
   document.querySelectorAll("[data-name]").forEach(e => e.textContent = profile.full_name || "Customer");
-  document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = Math.min(50, Number(profile.points || 0)));
   document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
 
   // Keep the approved avatar inside the green points panel.
@@ -433,6 +444,7 @@ async function loadCustomerRewards() {
 
   const box = $("rewards");
   if (!box) return;
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = Math.min(50, Number(profile.points || 0)));
 
   const { data, error } = await sb
     .from("rewards")
@@ -441,24 +453,27 @@ async function loadCustomerRewards() {
     .order("points_cost", { ascending: true });
 
   if (error) {
-    box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+    box.innerHTML = `<div class="card"><div class="alert">${esc(error.message)}</div></div>`;
     return;
   }
 
-  const customerPoints = Number(profile.points || 0);
+  const customerPoints = Math.min(50, Number(profile.points || 0));
   box.innerHTML = data?.length ? data.map(r => {
     const cost = Number(r.points_cost || 0);
-    const canRedeem = customerPoints >= cost;
-    const status = canRedeem ? "Available now" : `Need ${moneyPoints(cost - customerPoints)} more points`;
+    const canUse = customerPoints >= cost;
+    const status = canUse ? "Available with your points" : `Need ${moneyPoints(cost - customerPoints)} more points`;
+    const img = rewardImageUrl(r);
     return `
-    <div class="reward">
-      <img class="reward-product-image" src="${esc(r.image_url || "../assets/free-drink.svg")}" alt="${esc(r.title || r.name || "Reward")}">
-      <div class="grow">
-        <strong>${esc(r.title || r.name || "Reward")}</strong>
-        <small>${esc(r.description || "Reward available")} • ${moneyPoints(cost)} points • ${esc(status)}</small>
-      </div>
-    </div>`;
-  }).join("") : `<div class="empty">No rewards are active yet.</div>`;
+      <div class="card reward-choice-card">
+        <img class="reward-large-image" src="${esc(img)}" alt="${esc(r.title || r.name || "Reward")}">
+        <div class="reward-choice-body">
+          <strong>${esc(r.title || r.name || "Reward")}</strong>
+          <p>${esc(r.description || "Reward available")}</p>
+          <div class="reward-points">${moneyPoints(cost)} points</div>
+          <small class="reward-availability ${canUse ? "ready" : "wait"}">${esc(status)}</small>
+        </div>
+      </div>`;
+  }).join("") : `<div class="card"><div class="empty">No rewards are active yet.</div></div>`;
 }
 
 function saveStaffCustomer(customer) {
@@ -545,6 +560,11 @@ async function loadAddPoints() {
     const points = 1;
     const note = null;
 
+    if (Number(customer.points || 0) >= 50) {
+      toast("Customer has reached the maximum of 50 points.", false);
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = "Adding…";
 
@@ -584,6 +604,7 @@ async function loadStaffRedeem() {
   }
 
   renderStaffCustomer(customer);
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = Math.min(50, Number(customer.points || 0)));
 
   const box = $("rewards");
   const { data, error } = await sb
@@ -593,55 +614,103 @@ async function loadStaffRedeem() {
     .order("points_cost", { ascending: true });
 
   if (error) {
-    box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+    box.innerHTML = `<div class="card"><div class="alert">${esc(error.message)}</div></div>`;
     return;
   }
 
-  const customerPoints = Number(customer.points || 0);
+  const customerPoints = Math.min(50, Number(customer.points || 0));
   box.innerHTML = data?.length ? data.map(r => {
     const cost = Number(r.points_cost || 0);
     const canRedeem = customerPoints >= cost;
+    const img = rewardImageUrl(r);
     return `
-    <div class="reward">
-      ${r.image_url ? `<img class="reward-product-image" src="${esc(r.image_url)}" alt="${esc(r.title || r.name || "Reward")}">` : `<div class="food">★</div>`}
-      <div class="grow">
-        <strong>${esc(r.title || r.name || "Reward")}</strong>
-        <small>${esc(r.description || "Reward available")} • ${moneyPoints(cost)} points</small>
-      </div>
-      <button class="btn primary" ${canRedeem ? `` : `disabled`} onclick="redeemReward('${r.id}',${cost})">${canRedeem ? "Redeem" : `Need ${moneyPoints(cost-customerPoints)} more`}</button>
-    </div>`;
-  }).join("") : `<div class="empty">No rewards are active.</div>`;
+      <button type="button" class="card reward-choice-card staff-reward-select" data-reward-id="${esc(r.id)}" data-cost="${cost}">
+        <img class="reward-large-image" src="${esc(img)}" alt="${esc(r.title || r.name || "Reward")}">
+        <span class="reward-choice-body">
+          <strong>${esc(r.title || r.name || "Reward")}</strong>
+          <span>${esc(r.description || "Reward available")}</span>
+          <b class="reward-points">${moneyPoints(cost)} points</b>
+          <small class="reward-availability ${canRedeem ? "ready" : "wait"}">${canRedeem ? "SELECT REWARD" : `Need ${moneyPoints(cost - customerPoints)} more points`}</small>
+        </span>
+      </button>`;
+  }).join("") : `<div class="card"><div class="empty">No rewards are active.</div></div>`;
+
+  box.querySelectorAll(".staff-reward-select").forEach(btn => {
+    btn.onclick = () => openStaffRedemptionConfirm(btn.dataset.rewardId, Number(btn.dataset.cost));
+  });
 }
 
-async function redeemReward(rewardId, cost) {
+async function openStaffRedemptionConfirm(rewardId, cost) {
   const customer = getStaffCustomer();
   if (!customer) return;
-
-  if (Number(customer.points) < Number(cost)) {
-    toast("Customer does not have enough points.", false);
+  const current = Math.min(50, Number(customer.points || 0));
+  if (current < cost) {
+    toast(`Customer needs ${moneyPoints(cost - current)} more points.`, false);
     return;
   }
-
-  try {
-    const staff = await getStaffProfile();
-
-    const { data, error } = await sb.rpc("redeem_customer_coupon", {
-      p_customer_id: customer.id,
-      p_reward_id: rewardId,
-      p_location_id: staff?.location_id || null
-    });
-
-    if (error) throw error;
-
-    const result = Array.isArray(data) ? data[0] : data;
-    customer.points = result?.remaining_points ?? (customer.points - cost);
-    saveStaffCustomer(customer);
-
-    toast(`Reward redeemed. Coupon: ${result?.coupon_code || "created"}`);
-    setTimeout(() => location.href = "staff-customer.html", 700);
-  } catch (e) {
-    toast(e.message || "Could not redeem reward.", false);
-  }
+  const reward = document.querySelector(`.staff-reward-select[data-reward-id="${CSS.escape(rewardId)}"]`);
+  const title = reward?.querySelector("strong")?.textContent || "Selected Reward";
+  const confirmBox = $("redeemConfirm");
+  if (!confirmBox) return;
+  confirmBox.style.display = "block";
+  confirmBox.innerHTML = `
+    <h2 style="margin-top:0">Confirm Redemption</h2>
+    <div class="card" style="background:#f7f5ee">
+      <strong>${esc(customer.full_name || "Customer")}</strong>
+      <p style="margin:8px 0"><b>${esc(title)}</b></p>
+      <div class="grid g3" style="margin-top:12px">
+        <div><small>Points Before</small><strong>${current}</strong></div>
+        <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
+        <div><small>Points After</small><strong style="color:#2d7b55">${current-cost}</strong></div>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <button class="btn gold" id="confirmRedeemBtn">Redeem & Deduct Points</button>
+      <button class="btn soft" id="cancelRedeemBtn">Cancel</button>
+    </div>`;
+  confirmBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+  $("cancelRedeemBtn").onclick = () => { confirmBox.style.display="none"; };
+  $("confirmRedeemBtn").onclick = async () => {
+    const btn = $("confirmRedeemBtn");
+    btn.disabled = true; btn.textContent = "REDEEMING…";
+    try {
+      const staff = await getStaffProfile();
+      const { data, error } = await sb.rpc("redeem_customer_coupon", {
+        p_customer_id: customer.id,
+        p_reward_id: rewardId,
+        p_location_id: staff?.location_id || null
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      const remaining = Number(result?.remaining_points ?? (current - cost));
+      customer.points = Math.max(0, Math.min(50, remaining));
+      saveStaffCustomer(customer);
+      renderStaffCustomer(customer);
+      document.querySelectorAll("[data-points]").forEach(e => e.textContent = customer.points);
+      confirmBox.style.display = "none";
+      const resultBox = $("redeemResult");
+      if (resultBox) {
+        resultBox.style.display = "block";
+        resultBox.innerHTML = `
+          <div style="text-align:center">
+            <div style="font-size:48px">✓</div>
+            <h2 style="color:#073a2b">Reward Redeemed Successfully</h2>
+            <p>${esc(title)} has been redeemed for ${esc(customer.full_name || "Customer")}.</p>
+            <div class="grid g3" style="margin:16px 0">
+              <div><small>Points Before</small><strong>${current}</strong></div>
+              <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
+              <div><small>Points After</small><strong style="color:#2d7b55">${customer.points}</strong></div>
+            </div>
+            <button class="btn primary block" onclick="loadStaffRedeem()">Redeem Another</button>
+          </div>`;
+        resultBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+      }
+      toast("Reward redeemed and points deducted.", true);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "Redeem & Deduct Points";
+      toast(e.message || "Could not redeem reward.", false);
+    }
+  };
 }
 
 async function loadStaffHistory() {
