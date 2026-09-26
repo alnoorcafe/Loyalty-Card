@@ -91,9 +91,9 @@ function bindAvatarChoices(currentUrl, profileName) {
 
 function rewardImageUrl(reward, fallback="../assets/free-drink.svg") {
   const title = String(reward?.title || reward?.name || "").trim().toLowerCase().replace(/\s+/g, " ");
-  if (title === "hot or cold drink") return "../assets/reward-hot-cold.png";
-  if (title === "breakfast") return "../assets/reward-breakfast.png";
-  if (title === "breakfast + drink") return "../assets/reward-breakfast-drink.png";
+  if (title === "hot or cold drink") return "../assets/reward-hot-cold.svg";
+  if (title === "breakfast") return "../assets/reward-breakfast.svg";
+  if (title === "breakfast + drink") return "../assets/reward-breakfast-drink.svg";
   const raw = String(reward?.image_url || "").trim();
   if (/^(data:image\/|https?:\/\/)/i.test(raw)) return raw;
   if (raw) return raw;
