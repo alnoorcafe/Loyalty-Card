@@ -1,4 +1,4 @@
-const CACHE = "al-noor-loyalty-v5-final-repaired-20260925";
+const CACHE = "al-noor-loyalty-v5-rewards-points50-20260926";
 const SHELL = [
   "./",
   "./index.html",
@@ -8,7 +8,10 @@ const SHELL = [
   "./manifest.webmanifest",
   "./assets/al-noor-approved-logo.png",
   "./assets/icons/icon-192.png",
-  "./assets/icons/icon-512.png"
+  "./assets/icons/icon-512.png",
+  "./assets/reward-hot-cold.svg",
+  "./assets/reward-breakfast.svg",
+  "./assets/reward-breakfast-drink.svg"
 ];
 
 self.addEventListener("install", event => {
