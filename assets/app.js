@@ -1,7 +1,7 @@
 
 const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
-const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
-const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
+const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "";
+const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
@@ -42,18 +42,51 @@ async function getOwnAvatarUrl() {
     if (!uid) return null;
     const { data, error } = await sb.from("profiles").select("avatar_url").eq("id", uid).maybeSingle();
     if (error) return null;
-    return data?.avatar_url || null;
+    return data?.avatar_url || localStorage.getItem("alnoor_avatar_url") || null;
   } catch { return null; }
 }
 
 function renderAvatar(el, name, url) {
   if (!el) return;
   if (url) {
-    el.innerHTML = `<img src="${esc(url)}" alt="Profile photo" loading="eager">`;
+    el.innerHTML = `<img src="${esc(url)}" alt="Profile avatar" loading="eager">`;
     el.classList.add("avatar-photo");
   } else {
     el.textContent = initials(name);
   }
+}
+
+async function saveCustomerAvatarChoice(url) {
+  const { data: userData } = await sb.auth.getUser();
+  const uid = userData?.user?.id;
+  if (!uid) throw new Error("Please sign in again.");
+  const { error } = await sb.from("profiles").update({avatar_url:url}).eq("id",uid);
+  if (error) throw error;
+  localStorage.setItem("alnoor_avatar_url", url);
+  return url;
+}
+
+function bindAvatarChoices(currentUrl, profileName) {
+  const buttons = document.querySelectorAll(".avatar-option");
+  buttons.forEach(btn => {
+    const url = btn.dataset.avatarUrl || "";
+    if (url === currentUrl) btn.classList.add("selected");
+    btn.onclick = async () => {
+      buttons.forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      btn.disabled = true;
+      try {
+        const saved = await saveCustomerAvatarChoice(url);
+        renderAvatar($("avatar"), profileName, saved);
+        toast("Avatar updated successfully.");
+      } catch (e) {
+        btn.classList.remove("selected");
+        toast(e?.message || "Could not update avatar.", false);
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  });
 }
 
 function bindCustomerNav(page) {
@@ -79,6 +112,7 @@ async function saveCustomerPhoto(file) {
   const uid=userData?.user?.id; if(!uid) throw new Error("Please sign in again.");
   const { error } = await sb.from("profiles").update({avatar_url:compressed}).eq("id",uid);
   if(error) throw error;
+  localStorage.setItem("alnoor_avatar_url", compressed);
   return compressed;
 }
 
@@ -245,14 +279,46 @@ async function loadCustomerHome() {
   if (!profile) return;
 
   document.querySelectorAll("[data-name]").forEach(e => e.textContent = profile.full_name || "Customer");
-  document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = Math.min(50, Number(profile.points || 0)));
   document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
 
-  const avatar = $("avatar");
+  // Keep the approved avatar inside the green points panel.
   const homeAvatar = $("homeAvatar");
   const avatarUrl = await getOwnAvatarUrl();
-  renderAvatar(avatar, profile.full_name, avatarUrl);
   renderAvatar(homeAvatar, profile.full_name, avatarUrl);
+
+  // Home + Card merge: render the customer's personal QR directly below Home.
+  // Some get_my_profile versions do not return loyalty_token, so fetch it directly as a fallback.
+  const homeQr = $("homeQr");
+  if (homeQr) {
+    let loyaltyToken = profile.loyalty_token || null;
+    if (!loyaltyToken) {
+      try {
+        const session = await getSession();
+        const uid = session?.user?.id;
+        if (uid) {
+          const { data: tokenRow } = await sb.from("profiles")
+            .select("loyalty_token")
+            .eq("id", uid)
+            .maybeSingle();
+          loyaltyToken = tokenRow?.loyalty_token || null;
+        }
+      } catch {}
+    }
+    if (loyaltyToken && typeof QRCode !== "undefined") {
+      homeQr.innerHTML = "";
+      new QRCode(homeQr, {
+        text: String(loyaltyToken),
+        width: 230,
+        height: 230,
+        colorDark: "#073d2b",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } else if (!loyaltyToken) {
+      homeQr.innerHTML = '<div class="sub" style="padding:18px">QR code is unavailable for this account.</div>';
+    }
+  }
 }
 
 async function loadCustomerCard() {
@@ -302,16 +368,37 @@ async function loadCustomerProfile() {
   const avatar = $("avatar");
   const avatarUrl = await getOwnAvatarUrl();
   renderAvatar(avatar, profile.full_name, avatarUrl);
+  bindAvatarChoices(avatarUrl, profile.full_name);
   const avatarBtn=$("avatarBtn"), avatarInput=$("avatarInput");
-  if (avatarBtn && avatarInput) {
-    avatarBtn.onclick=()=>avatarInput.click();
+  const avatarEditPanel=$("avatarEditPanel");
+  const uploadAvatarBtn=$("uploadAvatarBtn");
+  const closeAvatarPanelBtn=$("closeAvatarPanelBtn");
+
+  if (avatarBtn && avatarEditPanel) {
+    avatarBtn.onclick=()=>{
+      avatarEditPanel.hidden=!avatarEditPanel.hidden;
+      if (!avatarEditPanel.hidden) avatarEditPanel.scrollIntoView({behavior:"smooth",block:"nearest"});
+    };
+  }
+
+  if (uploadAvatarBtn && avatarInput) {
+    uploadAvatarBtn.onclick=()=>avatarInput.click();
     avatarInput.onchange=async()=>{
       const file=avatarInput.files?.[0]; if(!file)return;
-      avatarBtn.disabled=true; avatarBtn.textContent="UPLOADING…";
-      try { const url=await saveCustomerPhoto(file); renderAvatar(avatar, profile.full_name, url); toast("Profile photo updated."); }
+      uploadAvatarBtn.disabled=true; uploadAvatarBtn.textContent="UPLOADING…";
+      try {
+        const url=await saveCustomerPhoto(file);
+        renderAvatar(avatar, profile.full_name, url);
+        toast("Profile photo updated.");
+        if (avatarEditPanel) avatarEditPanel.hidden=true;
+      }
       catch(e){ toast(e?.message||"Could not update photo.",false); }
-      finally { avatarBtn.disabled=false; avatarBtn.textContent="ADD / CHANGE MY PHOTO"; avatarInput.value=""; }
+      finally { uploadAvatarBtn.disabled=false; uploadAvatarBtn.textContent="UPLOAD MY PHOTO"; avatarInput.value=""; }
     };
+  }
+
+  if (closeAvatarPanelBtn && avatarEditPanel) {
+    closeAvatarPanelBtn.onclick=()=>{ avatarEditPanel.hidden=true; };
   }
 
   const btn = $("changePasswordBtn");
@@ -346,29 +433,36 @@ async function loadCustomerRewards() {
 
   const box = $("rewards");
   if (!box) return;
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = Math.min(50, Number(profile.points || 0)));
 
   const { data, error } = await sb
     .from("rewards")
-    .select("id,name,description,points_cost,is_active,image_url")
+    .select("id,title,name,description,points_cost,is_active,image_url")
     .eq("is_active", true)
-    .eq("points_cost", 10)
     .order("points_cost", { ascending: true });
 
   if (error) {
-    box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+    box.innerHTML = `<div class="card"><div class="alert">${esc(error.message)}</div></div>`;
     return;
   }
 
-  box.innerHTML = data?.length ? data.map(r => `
-    <div class="reward">
-      <img class="reward-product-image" src="${esc(r.image_url || "../assets/free-drink.svg")}" alt="${esc(r.name)}">
-      <div class="grow">
-        <strong>${esc(r.name)}</strong>
-        <small>${esc(r.description || "Free Drink • 10 visits")}</small>
-      </div>
-      <span class="badge">10 visits</span>
-    </div>
-  `).join("") : `<div class="empty">No rewards are active yet.</div>`;
+  const customerPoints = Math.min(50, Number(profile.points || 0));
+  box.innerHTML = data?.length ? data.map(r => {
+    const cost = Number(r.points_cost || 0);
+    const canUse = customerPoints >= cost;
+    const status = canUse ? "Available with your points" : `Need ${moneyPoints(cost - customerPoints)} more points`;
+    const img = r.image_url || "../assets/free-drink.svg";
+    return `
+      <div class="card reward-choice-card">
+        <img class="reward-large-image" src="${esc(img)}" alt="${esc(r.title || r.name || "Reward")}">
+        <div class="reward-choice-body">
+          <strong>${esc(r.title || r.name || "Reward")}</strong>
+          <p>${esc(r.description || "Reward available")}</p>
+          <div class="reward-points">${moneyPoints(cost)} points</div>
+          <small class="reward-availability ${canUse ? "ready" : "wait"}">${esc(status)}</small>
+        </div>
+      </div>`;
+  }).join("") : `<div class="card"><div class="empty">No rewards are active yet.</div></div>`;
 }
 
 function saveStaffCustomer(customer) {
@@ -455,6 +549,11 @@ async function loadAddPoints() {
     const points = 1;
     const note = null;
 
+    if (Number(customer.points || 0) >= 50) {
+      toast("Customer has reached the maximum of 50 points.", false);
+      return;
+    }
+
     btn.disabled = true;
     btn.textContent = "Adding…";
 
@@ -494,61 +593,113 @@ async function loadStaffRedeem() {
   }
 
   renderStaffCustomer(customer);
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = Math.min(50, Number(customer.points || 0)));
 
   const box = $("rewards");
   const { data, error } = await sb
     .from("rewards")
-    .select("id,name,description,points_cost,is_active,image_url")
+    .select("id,title,name,description,points_cost,is_active,image_url")
     .eq("is_active", true)
-    .eq("points_cost", 10)
     .order("points_cost", { ascending: true });
 
   if (error) {
-    box.innerHTML = `<div class="alert">${esc(error.message)}</div>`;
+    box.innerHTML = `<div class="card"><div class="alert">${esc(error.message)}</div></div>`;
     return;
   }
 
-  box.innerHTML = data?.length ? data.map(r => `
-    <div class="reward">
-      ${r.image_url ? `<img class="reward-product-image" src="${esc(r.image_url)}" alt="${esc(r.name)}">` : `<div class="food">★</div>`}
-      <div class="grow">
-        <strong>${esc(r.name)}</strong>
-        <small>Free Drink • 10 visits</small>
-      </div>
-      <button class="btn primary" onclick="redeemReward('${r.id}',10)">Redeem</button>
-    </div>
-  `).join("") : `<div class="empty">No rewards are active.</div>`;
+  const customerPoints = Math.min(50, Number(customer.points || 0));
+  box.innerHTML = data?.length ? data.map(r => {
+    const cost = Number(r.points_cost || 0);
+    const canRedeem = customerPoints >= cost;
+    const img = r.image_url || "../assets/free-drink.svg";
+    return `
+      <button type="button" class="card reward-choice-card staff-reward-select" data-reward-id="${esc(r.id)}" data-cost="${cost}">
+        <img class="reward-large-image" src="${esc(img)}" alt="${esc(r.title || r.name || "Reward")}">
+        <span class="reward-choice-body">
+          <strong>${esc(r.title || r.name || "Reward")}</strong>
+          <span>${esc(r.description || "Reward available")}</span>
+          <b class="reward-points">${moneyPoints(cost)} points</b>
+          <small class="reward-availability ${canRedeem ? "ready" : "wait"}">${canRedeem ? "SELECT REWARD" : `Need ${moneyPoints(cost - customerPoints)} more points`}</small>
+        </span>
+      </button>`;
+  }).join("") : `<div class="card"><div class="empty">No rewards are active.</div></div>`;
+
+  box.querySelectorAll(".staff-reward-select").forEach(btn => {
+    btn.onclick = () => openStaffRedemptionConfirm(btn.dataset.rewardId, Number(btn.dataset.cost));
+  });
 }
 
-async function redeemReward(rewardId, cost) {
+async function openStaffRedemptionConfirm(rewardId, cost) {
   const customer = getStaffCustomer();
   if (!customer) return;
-
-  if (Number(customer.points) < Number(cost)) {
-    toast("Customer does not have enough points.", false);
+  const current = Math.min(50, Number(customer.points || 0));
+  if (current < cost) {
+    toast(`Customer needs ${moneyPoints(cost - current)} more points.`, false);
     return;
   }
-
-  try {
-    const staff = await getStaffProfile();
-
-    const { data, error } = await sb.rpc("redeem_customer_coupon", {
-      p_customer_id: customer.id,
-      p_reward_id: rewardId,
-      p_location_id: staff?.location_id || null
-    });
-
-    if (error) throw error;
-
-    const result = Array.isArray(data) ? data[0] : data;
-    customer.points = result?.remaining_points ?? (customer.points - cost);
-    saveStaffCustomer(customer);
-
-    toast(`Reward redeemed. Coupon: ${result?.coupon_code || "created"}`);
-    setTimeout(() => location.href = "staff-customer.html", 700);
-  } catch (e) {
-    toast(e.message || "Could not redeem reward.", false);
-  }
+  const reward = document.querySelector(`.staff-reward-select[data-reward-id="${CSS.escape(rewardId)}"]`);
+  const title = reward?.querySelector("strong")?.textContent || "Selected Reward";
+  const confirmBox = $("redeemConfirm");
+  if (!confirmBox) return;
+  confirmBox.style.display = "block";
+  confirmBox.innerHTML = `
+    <h2 style="margin-top:0">Confirm Redemption</h2>
+    <div class="card" style="background:#f7f5ee">
+      <strong>${esc(customer.full_name || "Customer")}</strong>
+      <p style="margin:8px 0"><b>${esc(title)}</b></p>
+      <div class="grid g3" style="margin-top:12px">
+        <div><small>Points Before</small><strong>${current}</strong></div>
+        <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
+        <div><small>Points After</small><strong style="color:#2d7b55">${current-cost}</strong></div>
+      </div>
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <button class="btn gold" id="confirmRedeemBtn">Redeem & Deduct Points</button>
+      <button class="btn soft" id="cancelRedeemBtn">Cancel</button>
+    </div>`;
+  confirmBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+  $("cancelRedeemBtn").onclick = () => { confirmBox.style.display="none"; };
+  $("confirmRedeemBtn").onclick = async () => {
+    const btn = $("confirmRedeemBtn");
+    btn.disabled = true; btn.textContent = "REDEEMING…";
+    try {
+      const staff = await getStaffProfile();
+      const { data, error } = await sb.rpc("redeem_customer_coupon", {
+        p_customer_id: customer.id,
+        p_reward_id: rewardId,
+        p_location_id: staff?.location_id || null
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      const remaining = Number(result?.remaining_points ?? (current - cost));
+      customer.points = Math.max(0, Math.min(50, remaining));
+      saveStaffCustomer(customer);
+      renderStaffCustomer(customer);
+      document.querySelectorAll("[data-points]").forEach(e => e.textContent = customer.points);
+      confirmBox.style.display = "none";
+      const resultBox = $("redeemResult");
+      if (resultBox) {
+        resultBox.style.display = "block";
+        resultBox.innerHTML = `
+          <div style="text-align:center">
+            <div style="font-size:48px">✓</div>
+            <h2 style="color:#073a2b">Reward Redeemed Successfully</h2>
+            <p>${esc(title)} has been redeemed for ${esc(customer.full_name || "Customer")}.</p>
+            <div class="grid g3" style="margin:16px 0">
+              <div><small>Points Before</small><strong>${current}</strong></div>
+              <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
+              <div><small>Points After</small><strong style="color:#2d7b55">${customer.points}</strong></div>
+            </div>
+            <button class="btn primary block" onclick="loadStaffRedeem()">Redeem Another</button>
+          </div>`;
+        resultBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+      }
+      toast("Reward redeemed and points deducted.", true);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "Redeem & Deduct Points";
+      toast(e.message || "Could not redeem reward.", false);
+    }
+  };
 }
 
 async function loadStaffHistory() {
