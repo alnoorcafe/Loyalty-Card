@@ -1,4 +1,4 @@
-const CACHE = "al-noor-loyalty-v5-rewards-avatars-home-avatar-fixed";
+const CACHE = "al-noor-loyalty-v5-final-repaired-20260925";
 const SHELL = [
   "./",
   "./index.html",
