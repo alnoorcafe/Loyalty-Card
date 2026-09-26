@@ -42,7 +42,7 @@ async function getOwnAvatarUrl() {
     if (!uid) return null;
     const { data, error } = await sb.from("profiles").select("avatar_url").eq("id", uid).maybeSingle();
     if (error) return null;
-    return data?.avatar_url || null;
+    return data?.avatar_url || localStorage.getItem("alnoor_avatar_url") || null;
   } catch { return null; }
 }
 
@@ -62,6 +62,7 @@ async function saveCustomerAvatarChoice(url) {
   if (!uid) throw new Error("Please sign in again.");
   const { error } = await sb.from("profiles").update({avatar_url:url}).eq("id",uid);
   if (error) throw error;
+  localStorage.setItem("alnoor_avatar_url", url);
   return url;
 }
 
@@ -111,6 +112,7 @@ async function saveCustomerPhoto(file) {
   const uid=userData?.user?.id; if(!uid) throw new Error("Please sign in again.");
   const { error } = await sb.from("profiles").update({avatar_url:compressed}).eq("id",uid);
   if(error) throw error;
+  localStorage.setItem("alnoor_avatar_url", compressed);
   return compressed;
 }
 
@@ -280,12 +282,43 @@ async function loadCustomerHome() {
   document.querySelectorAll("[data-points]").forEach(e => e.textContent = moneyPoints(profile.points));
   document.querySelectorAll("[data-id]").forEach(e => e.textContent = profile.member_id || "—");
 
-  // Customer Home: show the selected avatar only in the dedicated area below the quick buttons.
-  // Remove any stale/legacy avatar markup that may still exist inside the points card.
-  // Keep the approved home avatar element inside the green points panel.
+  // Keep the approved avatar inside the green points panel.
   const homeAvatar = $("homeAvatar");
   const avatarUrl = await getOwnAvatarUrl();
   renderAvatar(homeAvatar, profile.full_name, avatarUrl);
+
+  // Home + Card merge: render the customer's personal QR directly below Home.
+  // Some get_my_profile versions do not return loyalty_token, so fetch it directly as a fallback.
+  const homeQr = $("homeQr");
+  if (homeQr) {
+    let loyaltyToken = profile.loyalty_token || null;
+    if (!loyaltyToken) {
+      try {
+        const session = await getSession();
+        const uid = session?.user?.id;
+        if (uid) {
+          const { data: tokenRow } = await sb.from("profiles")
+            .select("loyalty_token")
+            .eq("id", uid)
+            .maybeSingle();
+          loyaltyToken = tokenRow?.loyalty_token || null;
+        }
+      } catch {}
+    }
+    if (loyaltyToken && typeof QRCode !== "undefined") {
+      homeQr.innerHTML = "";
+      new QRCode(homeQr, {
+        text: String(loyaltyToken),
+        width: 230,
+        height: 230,
+        colorDark: "#073d2b",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } else if (!loyaltyToken) {
+      homeQr.innerHTML = '<div class="sub" style="padding:18px">QR code is unavailable for this account.</div>';
+    }
+  }
 }
 
 async function loadCustomerCard() {
