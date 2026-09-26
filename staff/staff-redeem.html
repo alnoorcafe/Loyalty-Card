@@ -16,11 +16,14 @@
 <button class="icon" onclick="logout()" title="Sign out">↪</button>
 </header>
 <main class="container">
-<h1 class="title">Redeem Reward</h1><p class="sub">Select a reward for <b data-name>Customer</b>.</p>
+<h1 class="title">Redeem Reward</h1><p class="sub">Select the reward requested by <b data-name>Customer</b>.</p>
 <div class="card">
-<div class="stat" style="margin-bottom:15px"><i>★</i><div><strong data-points>0</strong><span>Customer Points</span></div></div>
-<div id="rewards"><div class="empty">Loading rewards…</div></div>
-</div></main>
+  <div class="stat" style="margin-bottom:18px"><i>★</i><div><strong><span data-points>0</span> / 50</strong><span>Customer Points</span></div></div>
+  <div id="rewards" class="reward-grid"><div class="empty">Loading rewards…</div></div>
+</div>
+<div id="redeemConfirm" class="card" style="display:none;margin-top:16px"></div>
+<div id="redeemResult" class="card" style="display:none;margin-top:16px"></div>
+</main>
 <nav class="nav"><div class="navin"><a href="staff-scan.html" class="active"><b>⌗</b>Scan</a><a href="staff-customer.html"><b>●</b>Customer</a><a href="staff-rewards.html"><b>★</b>Rewards</a><a href="staff-history.html"><b>↺</b>History</a><a href="staff-profile.html"><b>●</b>Profile</a></div></nav>
 <script src="../assets/config.js?v=20260925-final"></script>
 <script src="../assets/app.js?v=20260925-final"></script>
