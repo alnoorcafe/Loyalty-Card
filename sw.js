@@ -1,4 +1,4 @@
-const CACHE = "al-noor-loyalty-v5-rewards-points50-20260926";
+const CACHE = "al-noor-loyalty-v5-rewards-points50-imagesfix-20260926";
 const SHELL = [
   "./",
   "./index.html",
