@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#073a2b">
 <link rel="manifest" href="../manifest.webmanifest">
 <title>Scan Customer</title>
-<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/style.css?v=20260930-final">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body data-page="staff-scan">
@@ -17,6 +17,15 @@
 </header>
 <main class="container">
 <h1 class="title">Scan Customer</h1><p class="sub">Point the camera at the customer's Al Noor QR code.</p>
+<div class="card staff-profile-mini">
+  <div class="profile-head">
+    <div id="staffAvatar" class="avatar staff-avatar-frame">AN</div>
+    <div class="grow"><strong id="staffName">Staff</strong><small>Staff Profile</small></div>
+    <input id="staffAvatarInput" type="file" accept="image/*" hidden>
+    <button id="staffAvatarBtn" class="btn soft staff-photo-btn" type="button">ADD / CHANGE PHOTO</button>
+  </div>
+  <div id="staffPhotoMsg" class="note" style="margin-top:8px"></div>
+</div>
 <div class="card">
 <div id="reader" style="width:100%;overflow:hidden;border-radius:18px"></div>
 <div id="scanResult"></div>
@@ -26,7 +35,7 @@
 </main>
 <nav class="nav"><div class="navin"><a href="staff-scan.html" class="active"><b>⌗</b>Scan</a><a href="staff-customer.html"><b>●</b>Customer</a><a href="staff-history.html"><b>↺</b>History</a><a href="staff-profile.html"><b>●</b>Profile</a></div></nav>
 <script src="../assets/config.js"></script>
-<script src="../assets/app.js"></script>
+<script src="../assets/app.js?v=20260930-final></script>
 
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body>
