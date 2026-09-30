@@ -32,6 +32,7 @@ function initials(name) {
 }
 
 function moneyPoints(n) {
+  if (n === null || n === undefined || n === "") return "—";
   return Number(n || 0).toLocaleString();
 }
 
@@ -162,7 +163,9 @@ async function guardRole(allowedRoles) {
   }
 
   const profile = await getProfile();
-  if (!profile || !allowedRoles.includes(profile.role)) {
+  const adminPortalAccess = profile?.role === "admin" &&
+    allowedRoles.some(r => r === "gm" || r === "staff");
+  if (!profile || (!allowedRoles.includes(profile.role) && !adminPortalAccess)) {
     toast("You do not have access to this portal.", false);
     await sb.auth.signOut();
     location.href = "../index.html";
@@ -772,17 +775,56 @@ async function loadStaffProfile() {
   const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
 
-  const staff = await getStaffProfile();
+  const staff = await getStaffProfile().catch(() => profile);
 
-  document.querySelectorAll("[data-name]").forEach(e => e.textContent = staff?.full_name || "Staff");
-  document.querySelectorAll("[data-email]").forEach(e => e.textContent = staff?.email || "—");
-  document.querySelectorAll("[data-role]").forEach(e => e.textContent = staff?.role || "—");
+  document.querySelectorAll("[data-name]").forEach(e => e.textContent = staff?.full_name || profile?.full_name || "Staff");
+  document.querySelectorAll("[data-email]").forEach(e => e.textContent = staff?.email || profile?.email || "—");
+  document.querySelectorAll("[data-role]").forEach(e => e.textContent = staff?.role || profile?.role || "—");
   document.querySelectorAll("[data-location]").forEach(e => e.textContent = staff?.location_name || "Not assigned");
+  await bindStaffPhoto(profile);
+}
+
+async function bindStaffPhoto(profile) {
+  const avatar = $("staffAvatar");
+  const nameEl = $("staffName");
+  const input = $("staffAvatarInput");
+  const button = $("staffAvatarBtn");
+  const msg = $("staffPhotoMsg");
+  if (!avatar || !input || !button) return;
+
+  const staff = profile?.role === "admin" ? profile : (await getStaffProfile().catch(() => profile));
+  const name = staff?.full_name || profile?.full_name || "Staff";
+  if (nameEl) nameEl.textContent = name;
+  const url = await getOwnAvatarUrl();
+  renderAvatar(avatar, name, url);
+  avatar.classList.add("staff-avatar-frame");
+
+  button.onclick = () => input.click();
+  input.onchange = async () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    button.disabled = true;
+    button.textContent = "UPLOADING…";
+    if (msg) msg.textContent = "";
+    try {
+      const saved = await saveCustomerPhoto(file);
+      renderAvatar(avatar, name, saved);
+      avatar.classList.add("staff-avatar-frame");
+      if (msg) msg.textContent = "Profile photo updated successfully.";
+    } catch (e) {
+      if (msg) msg.textContent = e?.message || "Could not update photo.";
+    } finally {
+      button.disabled = false;
+      button.textContent = "ADD / CHANGE PHOTO";
+      input.value = "";
+    }
+  };
 }
 
 async function startScanner() {
   const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
+  await bindStaffPhoto(profile);
 
   const result = $("scanResult");
   const input = $("manualToken");
@@ -830,29 +872,58 @@ async function startScanner() {
   }
 }
 
+function normalizeGmReport(data) {
+  const raw = Array.isArray(data) ? (data[0] || {}) : (data || {});
+  return {
+    total_members: Number(raw.total_members ?? raw.members ?? raw.member_count ?? 0),
+    total_points: Number(raw.total_points ?? raw.points ?? raw.points_balance ?? 0),
+    points_issued: Number(raw.points_issued ?? raw.issued ?? raw.issued_points ?? 0),
+    points_redeemed: Number(raw.points_redeemed ?? raw.redeemed ?? raw.redeemed_points ?? 0),
+    active_locations: Number(raw.active_locations ?? raw.locations ?? raw.location_count ?? 0)
+  };
+}
+
+async function getGmReport() {
+  const { data, error } = await sb.rpc("get_gm_report");
+  if (!error && data) return normalizeGmReport(data);
+
+  // Keep the dashboard truthful if the report RPC is unavailable.
+  // Members and locations can be read directly; report-only totals stay unknown
+  // instead of being replaced with fake numbers.
+  const result = normalizeGmReport(data);
+  const [{ count: members }, { count: locations }] = await Promise.all([
+    sb.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer"),
+    sb.from("locations").select("id", { count: "exact", head: true }).eq("is_active", true)
+  ]);
+  if (Number.isFinite(members)) result.total_members = members;
+  if (Number.isFinite(locations)) result.active_locations = locations;
+  result.points_issued = null;
+  result.points_redeemed = null;
+  result.total_points = null;
+  if (error) throw error;
+  return result;
+}
+
 async function loadGmDashboard() {
   const profile = await guardRole(["gm"]);
   if (!profile) return;
 
-  const { data, error } = await sb.rpc("get_gm_report");
-  if (error) {
-    toast(error.message, false);
-    return;
+  try {
+    const r = await getGmReport();
+    const map = {
+      total_members: "members",
+      total_points: "points",
+      points_issued: "issued",
+      points_redeemed: "redeemed",
+      active_locations: "locations"
+    };
+    Object.entries(map).forEach(([key,id]) => {
+      const el = $(id);
+      if (el) el.textContent = moneyPoints(r[key]);
+    });
+  } catch (e) {
+    toast(e.message || "Could not load dashboard data.", false);
   }
-
-  const r = data || {};
-  const map = {
-    total_members: "members",
-    total_points: "points",
-    points_issued: "issued",
-    points_redeemed: "redeemed",
-    active_locations: "locations"
-  };
-
-  Object.entries(map).forEach(([key,id]) => {
-    const el = $(id);
-    if (el) el.textContent = moneyPoints(r[key]);
-  });
 }
 
 async function loadGmMembers() {
@@ -930,29 +1001,48 @@ async function loadGmLocations() {
   `).join("") : `<div class="empty">No locations found.</div>`;
 }
 
+function renderGmReportChart(r) {
+  const chart = $("reportChart");
+  if (!chart) return;
+  const items = [
+    { label: "Points Issued", value: Number(r.points_issued || 0) },
+    { label: "Points Redeemed", value: Number(r.points_redeemed || 0) },
+    { label: "Members", value: Number(r.total_members || 0) },
+    { label: "Locations", value: Number(r.active_locations || 0) }
+  ];
+  const max = Math.max(1, ...items.map(x => x.value));
+  chart.innerHTML = items.map(item => {
+    const height = item.value === 0 ? 4 : Math.max(8, Math.round((item.value / max) * 150));
+    return `<div class="report-bar-wrap" title="${esc(item.label)}: ${moneyPoints(item.value)}">
+      <div class="report-bar-value">${esc(moneyPoints(item.value))}</div>
+      <div class="report-bar" style="height:${height}px" aria-label="${esc(item.label)} ${esc(moneyPoints(item.value))}"></div>
+      <div class="report-bar-label">${esc(item.label)}</div>
+    </div>`;
+  }).join("");
+}
+
 async function loadGmReports() {
   const profile = await guardRole(["gm"]);
   if (!profile) return;
 
-  const { data, error } = await sb.rpc("get_gm_report");
-  if (error) {
-    toast(error.message, false);
-    return;
+  try {
+    const r = await getGmReport();
+    ["issued","redeemed","members","locations"].forEach(k => {
+      const el = $(k);
+      if (el) {
+        const source = {
+          issued: r.points_issued,
+          redeemed: r.points_redeemed,
+          members: r.total_members,
+          locations: r.active_locations
+        }[k];
+        el.textContent = moneyPoints(source);
+      }
+    });
+    renderGmReportChart(r);
+  } catch (e) {
+    toast(e.message || "Could not load report data.", false);
   }
-
-  const r = data || {};
-  ["issued","redeemed","members","locations"].forEach(k => {
-    const el = $(k);
-    if (el) {
-      const source = {
-        issued: r.points_issued,
-        redeemed: r.points_redeemed,
-        members: r.total_members,
-        locations: r.active_locations
-      }[k];
-      el.textContent = moneyPoints(source);
-    }
-  });
 }
 
 async function loadAdminDashboard() {
@@ -986,7 +1076,8 @@ async function loadAdminRoleList(role, target) {
   const profile=await guardRole(["admin"]); if(!profile) return;
   const box=$(target); const {data,error}=await sb.from("profiles").select("id,full_name,phone,member_id,role,is_active,created_at").eq("role",role).order("created_at",{ascending:false});
   if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}
-  box.innerHTML=data?.length?data.map(u=>`<div class="row" style="padding:13px 0;border-bottom:1px solid var(--line)"><div class="avatar">${esc(initials(u.full_name))}</div><div class="grow"><strong>${esc(u.full_name||role.toUpperCase())}</strong><small>${esc(u.phone||"—")} • ${esc(u.member_id||"—")}</small></div><span class="badge">${u.is_active?"Active":"Inactive"}</span></div>`).join(""):`<div class="empty">No ${role} accounts found.</div>`;
+  const portalHref = role === "gm" ? "../gm/gm-dashboard.html" : "../staff/staff-scan.html";
+  box.innerHTML=data?.length?data.map(u=>`<a class="row admin-portal-row" href="${portalHref}" style="padding:13px 0;border-bottom:1px solid var(--line)"><div class="avatar">${esc(initials(u.full_name))}</div><div class="grow"><strong>${esc(u.full_name||role.toUpperCase())}</strong><small>${esc(u.phone||"—")} • ${esc(u.member_id||"—")}</small></div><span class="badge">${u.is_active?"Active":"Inactive"}</span></a>`).join(""):`<div class="empty">No ${role} accounts found.</div>`;
 }
 
 async function loadAdminLocations() {
