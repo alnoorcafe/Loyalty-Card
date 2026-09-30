@@ -18,8 +18,17 @@
 <main class="container">
 <h1 class="title">Settings</h1><p class="sub">Management account controls.</p>
 <div class="card">
+<div class="gm-profile-head">
+  <div id="gmAvatar" class="avatar gm-avatar-frame">GM</div>
+  <div class="grow"><strong data-gm-name>General Manager</strong><small data-gm-email>—</small></div>
+  <input id="gmAvatarInput" type="file" accept="image/*" hidden>
+  <button id="gmAvatarBtn" class="btn soft gm-photo-btn" type="button">ADD / CHANGE PHOTO</button>
+</div>
+<div id="gmPhotoMsg" class="note" style="margin-top:8px"></div>
+<div style="margin-top:14px">
 <h3>Al Noor Loyalty</h3>
 <p class="sub">Supabase-connected production foundation.</p>
+</div>
 <button class="btn danger block" onclick="logout()">Sign Out</button>
 </div>
 <div class="quick" style="margin-top:16px"><a href="gm-menu.html"><b>☰</b>Menu</a><a href="gm-offers.html"><b>◇</b>Offers</a><a href="gm-rewards.html"><b>★</b>Rewards</a></div>
@@ -30,7 +39,7 @@
 <a href="gm-reports.html"><b>▥</b>Reports</a>
 <a href="gm-settings.html"><b>⚙</b>Settings</a></div></nav>
 <script src="../assets/config.js"></script>
-<script src="../assets/app.js"></script>
+<script src="../assets/app.js?v=20260930-final"></script>
 
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body>
