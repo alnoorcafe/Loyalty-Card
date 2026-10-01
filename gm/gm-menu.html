@@ -30,6 +30,9 @@
    ["gmMenuName","gmMenuDescription","gmMenuPrice","gmMenuImage"].forEach(id=>document.getElementById(id).value="");
    await load();
  };
- load();
+ (async()=>{
+   const profile=await guardRole(["gm"]);
+   if(profile) await load();
+ })().catch(e=>{msg.textContent=e?.message||"Could not load menu."});
 })();
 </script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>

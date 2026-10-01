@@ -7,7 +7,7 @@
 <link rel="manifest" href="../manifest.webmanifest">
 <title>GM Dashboard</title>
 <link rel="stylesheet" href="../assets/style.css?v=20260930-final">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
 </head>
 <body data-page="gm-dashboard">
 
@@ -18,10 +18,11 @@
 <main class="container">
 <h1 class="title">Dashboard</h1><p class="sub">Live loyalty activity and performance.</p>
 <div class="grid g2">
+<div class="card stat"><i>♙</i><div><strong id="members">—</strong><span>Total Customers</span></div></div>
 <div class="card stat"><i>★</i><div><strong id="issued">—</strong><span>Points Issued</span></div></div>
 <div class="card stat"><i>♔</i><div><strong id="redeemed">—</strong><span>Points Redeemed</span></div></div>
-<div class="card stat"><i>♙</i><div><strong id="weekCustomers">—</strong><span>Customers This Week</span></div></div>
-<div class="card stat"><i>♙</i><div><strong id="monthCustomers">—</strong><span>Customers This Month</span></div></div>
+<div class="card stat"><i>♙</i><div><strong id="weekCustomers">—</strong><span>New Customers This Week</span></div></div>
+<div class="card stat"><i>♙</i><div><strong id="monthCustomers">—</strong><span>New Customers This Month</span></div></div>
 </div>
 <div class="card report-chart-card" style="margin-top:18px"><div class="row"><div class="grow"><h3 style="margin:0">Performance Overview</h3><p class="sub" style="margin:5px 0 0">Live figures from the loyalty database.</p></div></div><div id="reportChart" class="report-chart" aria-label="Live performance chart"></div></div>
 </main>
@@ -30,6 +31,7 @@
 <a href="gm-locations.html"><b>⌖</b>Locations</a>
 <a href="gm-settings.html"><b>⚙</b>Settings</a></div></nav>
 <script src="../assets/config.js"></script>
-<script src="../assets/app.js?v=20260930-final"serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
+<script src="../assets/app.js?v=20260930-final"></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body>
 </html>
