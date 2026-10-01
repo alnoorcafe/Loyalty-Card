@@ -963,22 +963,51 @@ async function getGmReport() {
   return result;
 }
 
+async function getCustomerPeriodCounts() {
+  const now = new Date();
+  const weekStart = new Date(now);
+  const day = weekStart.getDay();
+  const diff = day === 0 ? 6 : day - 1;
+  weekStart.setDate(weekStart.getDate() - diff);
+  weekStart.setHours(0, 0, 0, 0);
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const [{ count: weekCount }, { count: monthCount }] = await Promise.all([
+    sb.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer").gte("created_at", weekStart.toISOString()),
+    sb.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer").gte("created_at", monthStart.toISOString())
+  ]);
+
+  return {
+    week: Number.isFinite(weekCount) ? weekCount : 0,
+    month: Number.isFinite(monthCount) ? monthCount : 0
+  };
+}
+
 async function loadGmDashboard() {
   const profile = await guardRole(["gm"]);
   if (!profile) return;
 
   try {
-    const r = await getGmReport();
+    const [r, periods] = await Promise.all([getGmReport(), getCustomerPeriodCounts()]);
+
     const map = {
-      total_members: "members",
-      total_points: "points",
       points_issued: "issued",
-      points_redeemed: "redeemed",
-      active_locations: "locations"
+      points_redeemed: "redeemed"
     };
     Object.entries(map).forEach(([key,id]) => {
       const el = $(id);
       if (el) el.textContent = moneyPoints(r[key]);
+    });
+
+    const weekEl = $("weekCustomers");
+    const monthEl = $("monthCustomers");
+    if (weekEl) weekEl.textContent = moneyPoints(periods.week);
+    if (monthEl) monthEl.textContent = moneyPoints(periods.month);
+
+    renderGmReportChart({
+      ...r,
+      customers_week: periods.week,
+      customers_month: periods.month
     });
   } catch (e) {
     toast(e.message || "Could not load dashboard data.", false);
@@ -1067,8 +1096,8 @@ function renderGmReportChart(r) {
   const items = [
     { label: "Points Issued", value: Number.isFinite(r.points_issued) ? Number(r.points_issued) : null },
     { label: "Points Redeemed", value: Number.isFinite(r.points_redeemed) ? Number(r.points_redeemed) : null },
-    { label: "Members", value: Number.isFinite(r.total_members) ? Number(r.total_members) : 0 },
-    { label: "Locations", value: Number.isFinite(r.active_locations) ? Number(r.active_locations) : 0 }
+    { label: "Customers This Week", value: Number.isFinite(r.customers_week) ? Number(r.customers_week) : 0 },
+    { label: "Customers This Month", value: Number.isFinite(r.customers_month) ? Number(r.customers_month) : 0 }
   ];
   if (items[0].value === null && items[1].value === null) {
     chart.innerHTML = '<div class="empty" style="width:100%;text-align:center">Point activity is unavailable from the current report source.</div>';
@@ -1285,8 +1314,6 @@ async function init() {
       await loadGmMembers();
     } else if (page === "gm-locations") {
       await loadGmLocations();
-    } else if (page === "gm-reports") {
-      await loadGmReports();
     } else if (page === "gm-settings") {
       await bindGmSettingsProfile();
     } else if (page === "gm-menu") {
