@@ -932,13 +932,22 @@ async function getGmReport() {
 
   const result = normalizeGmReport(rpcData);
 
-  // Always verify member/location totals against the live profiles/locations tables.
-  // This prevents a stale report RPC from showing an incorrect zero.
+  // Always verify the customer total directly from the live profiles table.
+  // Do not depend on the report RPC for this card: a stale/missing RPC must not
+  // leave the Dashboard showing a dash when the customer count is available.
+  let customers = [];
   try {
-    const profiles = await getAdminProfiles();
-    const customers = profiles.filter(p => String(p.role || "").toLowerCase() === "customer");
-    if (customers.length) result.total_members = customers.length;
+    const { count, error } = await sb.from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "customer");
+    if (!error && Number.isFinite(count)) result.total_members = count;
+  } catch {}
+
+  try {
+    // Reuse the profile rows only when point totals need a transaction fallback.
     if (!Number.isFinite(result.points_issued) || !Number.isFinite(result.points_redeemed)) {
+      customers = await getAdminProfiles();
+      customers = customers.filter(p => String(p.role || "").toLowerCase() === "customer");
       const totals = await calculateGmPointsFromTransactions(customers);
       if (!Number.isFinite(result.points_issued)) result.points_issued = totals.points_issued;
       if (!Number.isFinite(result.points_redeemed)) result.points_redeemed = totals.points_redeemed;
@@ -991,6 +1000,7 @@ async function loadGmDashboard() {
     const [r, periods] = await Promise.all([getGmReport(), getCustomerPeriodCounts()]);
 
     const map = {
+      total_members: "members",
       points_issued: "issued",
       points_redeemed: "redeemed"
     };
@@ -1114,30 +1124,6 @@ function renderGmReportChart(r) {
   }).join("");
 }
 
-async function loadGmReports() {
-  const profile = await guardRole(["gm"]);
-  if (!profile) return;
-
-  try {
-    const r = await getGmReport();
-    ["issued","redeemed","members","locations"].forEach(k => {
-      const el = $(k);
-      if (el) {
-        const source = {
-          issued: r.points_issued,
-          redeemed: r.points_redeemed,
-          members: r.total_members,
-          locations: r.active_locations
-        }[k];
-        el.textContent = moneyPoints(source);
-      }
-    });
-    renderGmReportChart(r);
-  } catch (e) {
-    toast(e.message || "Could not load report data.", false);
-  }
-}
-
 async function loadAdminDashboard() {
   const profile = await guardRole(["admin"]);
   if (!profile) return;
@@ -1147,25 +1133,17 @@ async function loadAdminDashboard() {
     const roleCount = role => profiles.filter(p => String(p.role || "").toLowerCase() === role).length;
     const values = {
       adminCustomers: roleCount("customer"),
-      adminStaff: roleCount("staff"),
-      adminGm: roleCount("gm")
+      adminStaff: roleCount("staff")
     };
     Object.entries(values).forEach(([id, value]) => {
       const el = $(id);
       if (el) el.textContent = moneyPoints(value);
     });
   } catch (e) {
-    ["adminCustomers","adminStaff","adminGm"].forEach(id => { const el=$(id); if(el) el.textContent="—"; });
+    ["adminCustomers","adminStaff"].forEach(id => { const el=$(id); if(el) el.textContent="—"; });
     toast(e.message || "Could not load account counts.", false);
   }
 
-  const loc = $("adminLocations");
-  if (loc) {
-    try {
-      const { count, error } = await sb.from("locations").select("id", { count: "exact", head: true }).eq("is_active", true);
-      loc.textContent = error ? "—" : moneyPoints(count);
-    } catch { loc.textContent = "—"; }
-  }
 }
 
 async function loadAdminUsers() {
@@ -1210,13 +1188,6 @@ async function loadAdminRoleList(role, target) {
       <div class="grow"><strong>${esc(u.full_name || role.toUpperCase())}</strong><small>${esc(u.email || "—")} • ${esc(u.phone || u.member_id || "—")}</small></div>
       <span class="badge">${u.is_active ? "Active" : "Inactive"}</span>
     </a>`).join("") : `<div class="empty">No ${role.toUpperCase()} accounts found.</div>`;
-}
-
-async function loadAdminLocations() {
-  const profile=await guardRole(["admin"]); if(!profile) return; const box=$("adminLocationsList");
-  const {data,error}=await sb.from("locations").select("id,name,city,address,phone,is_active").order("name");
-  if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}
-  box.innerHTML=data?.length?data.map(l=>`<div class="card" style="margin-bottom:12px"><div class="row"><div class="avatar">AN</div><div class="grow"><strong>${esc(l.name)}</strong><small>${esc(l.city||"")} • ${esc(l.address||"Address not set")}</small></div><span class="badge">${l.is_active?"Active":"Inactive"}</span></div></div>`).join(""):`<div class="empty">No locations found.</div>`;
 }
 
 async function bindGmSettingsProfile() {
@@ -1268,8 +1239,7 @@ async function init() {
       await loadAdminDashboard();
     } else if (page === "admin-users") {
       await loadAdminUsers();
-    } else if (page === "admin-gm") {
-      await loadAdminRoleList("gm", "adminGmList");
+
     } else if (page === "admin-staff") {
       await loadAdminRoleList("staff", "adminStaffList");
     } else if (page === "admin-settings") {
