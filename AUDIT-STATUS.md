@@ -8,8 +8,8 @@
 - Customer portal includes Home, Card, Rewards, Offers, Menu, Locations, Profile.
 - Staff portal retains Scan, Customer, Add 1 Visit Point, Redeem, History, Profile.
 - Staff History uses Staff Member column.
-- GM portal includes Dashboard, Members, Reports, Settings, Menu Management, Offers Management.
-- Admin portal remains separate.
+- GM portal includes Dashboard, Members, Locations, Settings, Menu Management, Offers Management, and Rewards Management. Reports are consolidated into the Dashboard.
+- Admin portal remains separate. GM Accounts is not a separate Admin page; GM/staff management is surfaced through Users/Staff and direct portal access.
 - Reward UI is restricted to Free Drink at 10 points.
 - Add Points UI is exactly 1 visit point; duplicate prevention remains a server-side responsibility of the existing RPC/database.
 - PWA manifest, service worker, and 192/512 icons included.
