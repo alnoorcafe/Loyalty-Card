@@ -1,18 +1,55 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Menu</title><link rel="stylesheet" href="../assets/style.css?v=20260926-home-card-merge"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script></head><body data-page="customer-menu"><header class="topbar"><a class="brand brand-image" href="customer-home.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">Our Menu</h1><p class="sub">Freshly baked and carefully crafted at Al Noor.</p><div class="card"><div id="customerMenu"><div class="empty">Loading menu…</div></div></div></main><nav class="nav"><div class="navin">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b"><title>Menu</title>
+<link rel="stylesheet" href="../assets/style.css?v=20261002-menu-customer">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+</head>
+<body data-page="customer-menu">
+<header class="topbar"><a class="brand brand-image" href="customer-home.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header>
+<main class="container">
+<h1 class="title">Our Menu</h1><p class="sub">Choose a category to explore Al Noor products.</p>
+<div id="customerCategories" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:14px"></div>
+<div id="customerMenu"><div class="empty">Loading menu…</div></div>
+</main>
+<nav class="nav"><div class="navin">
 <a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
 <a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
 <a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
 <a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
-<a href="customer-menu.html" data-nav="menu"><b>☰</b>Menu</a>
-<a href="customer-profile.html" data-nav="profile"><b>●</b>My Profile</a>
-</div></nav><script src="../assets/config.js?v=20260926-home-card-merge"></script>
-<script src="../assets/app.js?v=20260930-final"></script><script>
+<a href="customer-menu.html" data-nav="menu" class="active"><b>☰</b>Menu</a>
+</div></nav>
+<script src="../assets/config.js?v=20261002-menu-customer"></script><script src="../assets/app.js?v=20261002-menu-customer"></script>
+<script>
 (async function(){
- const box=document.getElementById("customerMenu"); if(!box)return;
+ const box=document.getElementById("customerMenu"), cats=document.getElementById("customerCategories");
  const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
- const {data,error}=await sb.from("menu_items").select("name,description,price,image_url,status").eq("status","active").order("created_at",{ascending:false});
- if(error){box.innerHTML='<div class="alert">'+esc(error.message)+'</div>';return}
- box.innerHTML=data?.length?data.map(x=>'<div class="reward">'+(x.image_url?'<img class="reward-product-image" src="'+esc(x.image_url)+'" alt="'+esc(x.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(x.name)+'</strong><small>'+esc(x.description||"")+'</small></div><span class="badge">AED '+Number(x.price||0).toFixed(2)+'</span></div>').join(""):'<div class="empty">No active menu items.</div>';
+ const profile=await guardRole(["customer"]); if(!profile)return;
+ const {data:categories,error:ce}=await sb.from("menu_categories").select("id,name,icon").eq("is_active",true).order("sort_order",{ascending:true});
+ if(ce){cats.innerHTML='<div class="alert">'+esc(ce.message)+'</div>';return;}
+ const {data:items,error}=await sb.from("menu_items").select("id,name,description,price,image_url,status,category_id").eq("status","active").order("created_at",{ascending:true});
+ if(error){box.innerHTML='<div class="alert">'+esc(error.message)+'</div>';return;}
+ const grouped=new Map((categories||[]).map(c=>[c.id,{...c,items:[]}]));
+ (items||[]).forEach(x=>{if(grouped.has(x.category_id))grouped.get(x.category_id).items.push(x);});
+ const active=[...grouped.values()].filter(c=>c.items.length);
+ cats.innerHTML=active.map(c=>`<button class="card" data-cat="${esc(c.id)}" style="border:1px solid #ddd;text-align:center;padding:14px;cursor:pointer;background:#fff">
+   <div style="font-size:28px">${esc(c.icon||"•")}</div><strong>${esc(c.name)}</strong><small style="display:block;margin-top:4px">${c.items.length} items</small>
+ </button>`).join("");
+ function render(selected){
+   const shown=selected?active.filter(c=>c.id===selected):active;
+   box.innerHTML=shown.map(c=>`<section class="card" id="cat-${esc(c.id)}" style="margin-bottom:14px">
+      <h2 style="margin:0 0 12px">${esc(c.icon||"•")} ${esc(c.name)}</h2>
+      ${c.items.map(x=>`<div class="reward" style="margin-top:8px">
+       ${x.image_url?`<img class="reward-product-image" src="${esc(x.image_url)}" alt="${esc(x.name)}">`:`<div class="food">${esc(c.icon||"☕")}</div>`}
+       <div class="grow"><strong>${esc(x.name)}</strong><small>${esc(x.description||"")}</small></div>
+       <span class="badge">AED ${Number(x.price||0).toFixed(2)}</span>
+      </div>`).join("")}
+   </section>`).join("");
+ }
+ document.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{render(b.dataset.cat);document.getElementById("cat-"+b.dataset.cat)?.scrollIntoView({behavior:"smooth",block:"start"});});
+ render(null);
 })();
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
+</body></html>
