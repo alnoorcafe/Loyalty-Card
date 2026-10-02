@@ -181,20 +181,3 @@ button.reward-choice-card:hover{transform:translateY(-1px)}
 .reward-availability.wait{color:#9b6955}
 .reward-balance-card{margin-bottom:16px}
 @media(max-width:560px){.reward-large-image{width:92px;height:74px;flex-basis:92px}.reward-choice-body strong{font-size:16px}}
-
-
-/* Final requested staff profile + live reports additions. */
-.staff-profile-mini{margin-bottom:14px;padding:14px 16px;}
-.staff-avatar-frame{width:58px;height:58px;border-radius:50%;overflow:hidden;border:3px solid var(--green);background:#e9eee5;flex:0 0 auto;}
-.staff-avatar-frame img{width:100%;height:100%;object-fit:cover;display:block;}
-.staff-photo-btn{font-size:11px;padding:10px 12px;white-space:nowrap;}
-.report-chart{height:220px;display:flex;align-items:flex-end;justify-content:space-around;gap:14px;padding:20px 8px 4px;border-top:1px solid var(--line);margin-top:16px;}
-.report-bar-wrap{height:190px;flex:1;max-width:110px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:0;}
-.report-bar-value{font-size:11px;font-weight:900;color:var(--green);margin-bottom:6px;min-height:14px;}
-.report-bar{width:min(56px,70%);min-height:4px;border-radius:10px 10px 4px 4px;background:var(--green);box-shadow:0 5px 12px rgba(19,48,37,.10);transition:height .25s ease;}
-.report-bar-label{font-size:10px;font-weight:800;color:var(--muted);text-align:center;line-height:1.2;margin-top:8px;max-width:90px;}
-.admin-portal-row{color:inherit;text-decoration:none;cursor:pointer;}
-.admin-portal-row:hover{background:#fbf8f1;}
-@media(max-width:560px){.staff-profile-mini .profile-head{align-items:center;}.staff-photo-btn{font-size:10px;padding:9px 10px;}.report-chart{gap:7px;padding-left:2px;padding-right:2px;}.report-bar-label{font-size:9px;}.report-bar{width:42px;}}
-
-.gm-profile-head{display:flex;align-items:center;gap:12px;margin-bottom:4px}.gm-avatar-frame{width:58px;height:58px;border-radius:50%;overflow:hidden;border:3px solid var(--green);background:#e9eee5;flex:0 0 auto}.gm-avatar-frame img{width:100%;height:100%;object-fit:cover;display:block}.gm-photo-btn{font-size:11px;padding:10px 12px;white-space:nowrap}@media(max-width:560px){.gm-photo-btn{font-size:10px;padding:9px 10px}}

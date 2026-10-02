@@ -32,7 +32,6 @@ function initials(name) {
 }
 
 function moneyPoints(n) {
-  if (n === null || n === undefined || n === "") return "—";
   return Number(n || 0).toLocaleString();
 }
 
@@ -163,9 +162,7 @@ async function guardRole(allowedRoles) {
   }
 
   const profile = await getProfile();
-  const adminPortalAccess = profile?.role === "admin" &&
-    allowedRoles.some(r => r === "gm" || r === "staff");
-  if (!profile || (!allowedRoles.includes(profile.role) && !adminPortalAccess)) {
+  if (!profile || !allowedRoles.includes(profile.role)) {
     toast("You do not have access to this portal.", false);
     await sb.auth.signOut();
     location.href = "../index.html";
@@ -775,56 +772,17 @@ async function loadStaffProfile() {
   const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
 
-  const staff = await getStaffProfile().catch(() => profile);
+  const staff = await getStaffProfile();
 
-  document.querySelectorAll("[data-name]").forEach(e => e.textContent = staff?.full_name || profile?.full_name || "Staff");
-  document.querySelectorAll("[data-email]").forEach(e => e.textContent = staff?.email || profile?.email || "—");
-  document.querySelectorAll("[data-role]").forEach(e => e.textContent = staff?.role || profile?.role || "—");
+  document.querySelectorAll("[data-name]").forEach(e => e.textContent = staff?.full_name || "Staff");
+  document.querySelectorAll("[data-email]").forEach(e => e.textContent = staff?.email || "—");
+  document.querySelectorAll("[data-role]").forEach(e => e.textContent = staff?.role || "—");
   document.querySelectorAll("[data-location]").forEach(e => e.textContent = staff?.location_name || "Not assigned");
-  await bindStaffPhoto(profile);
-}
-
-async function bindStaffPhoto(profile) {
-  const avatar = $("staffAvatar");
-  const nameEl = $("staffName");
-  const input = $("staffAvatarInput");
-  const button = $("staffAvatarBtn");
-  const msg = $("staffPhotoMsg");
-  if (!avatar || !input || !button) return;
-
-  const staff = profile?.role === "admin" ? profile : (await getStaffProfile().catch(() => profile));
-  const name = staff?.full_name || profile?.full_name || "Staff";
-  if (nameEl) nameEl.textContent = name;
-  const url = await getOwnAvatarUrl();
-  renderAvatar(avatar, name, url);
-  avatar.classList.add("staff-avatar-frame");
-
-  button.onclick = () => input.click();
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    button.disabled = true;
-    button.textContent = "UPLOADING…";
-    if (msg) msg.textContent = "";
-    try {
-      const saved = await saveCustomerPhoto(file);
-      renderAvatar(avatar, name, saved);
-      avatar.classList.add("staff-avatar-frame");
-      if (msg) msg.textContent = "Profile photo updated successfully.";
-    } catch (e) {
-      if (msg) msg.textContent = e?.message || "Could not update photo.";
-    } finally {
-      button.disabled = false;
-      button.textContent = "ADD / CHANGE PHOTO";
-      input.value = "";
-    }
-  };
 }
 
 async function startScanner() {
   const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
-  await bindStaffPhoto(profile);
 
   const result = $("scanResult");
   const input = $("manualToken");
@@ -872,156 +830,29 @@ async function startScanner() {
   }
 }
 
-function normalizeGmReport(data) {
-  const raw = Array.isArray(data) ? (data[0] || {}) : (data || {});
-  return {
-    total_members: Number(raw.total_members ?? raw.members ?? raw.member_count ?? 0),
-    total_points: raw.total_points == null && raw.points == null && raw.points_balance == null ? null : Number(raw.total_points ?? raw.points ?? raw.points_balance),
-    points_issued: raw.points_issued == null && raw.issued == null && raw.issued_points == null ? null : Number(raw.points_issued ?? raw.issued ?? raw.issued_points),
-    points_redeemed: raw.points_redeemed == null && raw.redeemed == null && raw.redeemed_points == null ? null : Number(raw.points_redeemed ?? raw.redeemed ?? raw.redeemed_points),
-    active_locations: Number(raw.active_locations ?? raw.locations ?? raw.location_count ?? 0)
-  };
-}
-
-async function getAdminProfiles() {
-  const { data, error } = await sb.from("profiles")
-    .select("id,full_name,email,phone,member_id,role,points,is_active,created_at,avatar_url")
-    .order("created_at", { ascending: false })
-    .limit(1000);
-  if (error) throw error;
-  return Array.isArray(data) ? data : [];
-}
-
-async function calculateGmPointsFromTransactions(customers) {
-  if (!customers?.length) return { points_issued: 0, points_redeemed: 0, total_points: 0 };
-  let issued = 0;
-  let redeemed = 0;
-  let total = 0;
-  const batchSize = 8;
-  for (let i = 0; i < customers.length; i += batchSize) {
-    const batch = customers.slice(i, i + batchSize);
-    const results = await Promise.all(batch.map(async customer => {
-      try {
-        const { data, error } = await sb.rpc("get_customer_transactions", { p_customer_id: customer.id });
-        if (error || !Array.isArray(data)) return [];
-        return data;
-      } catch { return []; }
-    }));
-    results.flat().forEach(t => {
-      const n = Math.abs(Number(t?.points || 0));
-      if (!n) return;
-      const type = String(t?.type || t?.transaction_type || "").toLowerCase();
-      if (type.includes("redeem") || type.includes("coupon") || type.includes("reward")) redeemed += n;
-      else issued += n;
-    });
-  }
-  total = Math.max(0, issued - redeemed);
-  return { points_issued: issued, points_redeemed: redeemed, total_points: total };
-}
-
-async function getGmReport() {
-  let rpcData = null;
-  let rpcError = null;
-  try {
-    const result = await sb.rpc("get_gm_report");
-    rpcData = result.data;
-    rpcError = result.error;
-  } catch (e) {
-    rpcError = e;
-  }
-
-  const result = normalizeGmReport(rpcData);
-
-  // Always verify the customer total directly from the live profiles table.
-  // Do not depend on the report RPC for this card: a stale/missing RPC must not
-  // leave the Dashboard showing a dash when the customer count is available.
-  let customers = [];
-  try {
-    const { count, error } = await sb.from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "customer");
-    if (!error && Number.isFinite(count)) result.total_members = count;
-  } catch {}
-
-  try {
-    // Reuse the profile rows only when point totals need a transaction fallback.
-    if (!Number.isFinite(result.points_issued) || !Number.isFinite(result.points_redeemed)) {
-      customers = await getAdminProfiles();
-      customers = customers.filter(p => String(p.role || "").toLowerCase() === "customer");
-      const totals = await calculateGmPointsFromTransactions(customers);
-      if (!Number.isFinite(result.points_issued)) result.points_issued = totals.points_issued;
-      if (!Number.isFinite(result.points_redeemed)) result.points_redeemed = totals.points_redeemed;
-      if (!Number.isFinite(result.total_points)) result.total_points = totals.total_points;
-    }
-  } catch {}
-
-  try {
-    const { count } = await sb.from("locations").select("id", { count: "exact", head: true }).eq("is_active", true);
-    if (Number.isFinite(count)) result.active_locations = count;
-  } catch {}
-
-  // If the report RPC supplies valid point totals, keep them. Otherwise do not
-  // invent values; show an unavailable marker instead of a fake zero.
-  if (!Number.isFinite(result.points_issued)) result.points_issued = null;
-  if (!Number.isFinite(result.points_redeemed)) result.points_redeemed = null;
-  if (!Number.isFinite(result.total_points)) result.total_points = null;
-
-  if (rpcError && result.total_members === 0 && result.active_locations === 0) {
-    throw rpcError;
-  }
-  return result;
-}
-
-async function getCustomerPeriodCounts() {
-  const now = new Date();
-  const weekStart = new Date(now);
-  const day = weekStart.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  weekStart.setDate(weekStart.getDate() - diff);
-  weekStart.setHours(0, 0, 0, 0);
-
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const [{ count: weekCount }, { count: monthCount }] = await Promise.all([
-    sb.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer").gte("created_at", weekStart.toISOString()),
-    sb.from("profiles").select("id", { count: "exact", head: true }).eq("role", "customer").gte("created_at", monthStart.toISOString())
-  ]);
-
-  return {
-    week: Number.isFinite(weekCount) ? weekCount : 0,
-    month: Number.isFinite(monthCount) ? monthCount : 0
-  };
-}
-
 async function loadGmDashboard() {
   const profile = await guardRole(["gm"]);
   if (!profile) return;
 
-  try {
-    const [r, periods] = await Promise.all([getGmReport(), getCustomerPeriodCounts()]);
-
-    const map = {
-      total_members: "members",
-      points_issued: "issued",
-      points_redeemed: "redeemed"
-    };
-    Object.entries(map).forEach(([key,id]) => {
-      const el = $(id);
-      if (el) el.textContent = moneyPoints(r[key]);
-    });
-
-    const weekEl = $("weekCustomers");
-    const monthEl = $("monthCustomers");
-    if (weekEl) weekEl.textContent = moneyPoints(periods.week);
-    if (monthEl) monthEl.textContent = moneyPoints(periods.month);
-
-    renderGmReportChart({
-      ...r,
-      customers_week: periods.week,
-      customers_month: periods.month
-    });
-  } catch (e) {
-    toast(e.message || "Could not load dashboard data.", false);
+  const { data, error } = await sb.rpc("get_gm_report");
+  if (error) {
+    toast(error.message, false);
+    return;
   }
+
+  const r = data || {};
+  const map = {
+    total_members: "members",
+    total_points: "points",
+    points_issued: "issued",
+    points_redeemed: "redeemed",
+    active_locations: "locations"
+  };
+
+  Object.entries(map).forEach(([key,id]) => {
+    const el = $(id);
+    if (el) el.textContent = moneyPoints(r[key]);
+  });
 }
 
 async function loadGmMembers() {
@@ -1074,7 +905,6 @@ async function loadGmLocations() {
   if (!profile) return;
 
   const box = $("locations");
-  if (!box) return;
   const { data, error } = await sb
     .from("locations")
     .select("id,name,city,address,phone,is_active,created_at")
@@ -1100,133 +930,70 @@ async function loadGmLocations() {
   `).join("") : `<div class="empty">No locations found.</div>`;
 }
 
-function renderGmReportChart(r) {
-  const chart = $("reportChart");
-  if (!chart) return;
-  const items = [
-    { label: "Points Issued", value: Number.isFinite(r.points_issued) ? Number(r.points_issued) : null },
-    { label: "Points Redeemed", value: Number.isFinite(r.points_redeemed) ? Number(r.points_redeemed) : null },
-    { label: "Customers This Week", value: Number.isFinite(r.customers_week) ? Number(r.customers_week) : 0 },
-    { label: "Customers This Month", value: Number.isFinite(r.customers_month) ? Number(r.customers_month) : 0 }
-  ];
-  if (items[0].value === null && items[1].value === null) {
-    chart.innerHTML = '<div class="empty" style="width:100%;text-align:center">Point activity is unavailable from the current report source.</div>';
+async function loadGmReports() {
+  const profile = await guardRole(["gm"]);
+  if (!profile) return;
+
+  const { data, error } = await sb.rpc("get_gm_report");
+  if (error) {
+    toast(error.message, false);
     return;
   }
-  const max = Math.max(1, ...items.map(x => x.value));
-  chart.innerHTML = items.map(item => {
-    const height = item.value === null ? 4 : (item.value === 0 ? 4 : Math.max(8, Math.round((item.value / max) * 150)));
-    return `<div class="report-bar-wrap" title="${esc(item.label)}: ${moneyPoints(item.value)}">
-      <div class="report-bar-value">${esc(moneyPoints(item.value))}</div>
-      <div class="report-bar" style="height:${height}px" aria-label="${esc(item.label)} ${esc(moneyPoints(item.value))}"></div>
-      <div class="report-bar-label">${esc(item.label)}</div>
-    </div>`;
-  }).join("");
+
+  const r = data || {};
+  ["issued","redeemed","members","locations"].forEach(k => {
+    const el = $(k);
+    if (el) {
+      const source = {
+        issued: r.points_issued,
+        redeemed: r.points_redeemed,
+        members: r.total_members,
+        locations: r.active_locations
+      }[k];
+      el.textContent = moneyPoints(source);
+    }
+  });
 }
 
 async function loadAdminDashboard() {
   const profile = await guardRole(["admin"]);
   if (!profile) return;
-
-  try {
-    const profiles = await getAdminProfiles();
-    const roleCount = role => profiles.filter(p => String(p.role || "").toLowerCase() === role).length;
-    const values = {
-      adminCustomers: roleCount("customer"),
-      adminStaff: roleCount("staff")
-    };
-    Object.entries(values).forEach(([id, value]) => {
-      const el = $(id);
-      if (el) el.textContent = moneyPoints(value);
-    });
-  } catch (e) {
-    ["adminCustomers","adminStaff"].forEach(id => { const el=$(id); if(el) el.textContent="—"; });
-    toast(e.message || "Could not load account counts.", false);
+  const counts = { customer: "adminCustomers", staff: "adminStaff", gm: "adminGm" };
+  for (const [role,id] of Object.entries(counts)) {
+    const el = $(id);
+    if (!el) continue;
+    const { count, error } = await sb.from("profiles").select("id", { count: "exact", head: true }).eq("role", role);
+    el.textContent = error ? "—" : moneyPoints(count);
   }
-
+  const loc = $("adminLocations");
+  if (loc) { const { count, error } = await sb.from("locations").select("id", { count: "exact", head: true }).eq("is_active", true); loc.textContent = error ? "—" : moneyPoints(count); }
 }
 
 async function loadAdminUsers() {
   const profile = await guardRole(["admin"]); if (!profile) return;
-  const box = $("adminUsers"), search = $("adminSearch");
-  async function render() {
-    const q = search.value.trim().toLowerCase();
-    let data;
-    try {
-      data = (await getAdminProfiles()).filter(u => String(u.role || "").toLowerCase() !== "customer");
-    } catch (e) {
-      box.innerHTML = `<div class="alert">${esc(e.message)}</div>`;
-      return;
-    }
-    if (q) {
-      data = data.filter(u => [u.full_name,u.phone,u.member_id,u.role,u.email].some(v => String(v || "").toLowerCase().includes(q)));
-    }
-    box.innerHTML = data.length ? data.map(u => `
-      <div class="row" style="padding:13px 0;border-bottom:1px solid var(--line)">
-        <div class="avatar">${esc(initials(u.full_name))}</div>
-        <div class="grow"><strong>${esc(u.full_name || "User")}</strong><small>${esc(u.member_id || "—")} • ${esc(u.phone || u.email || "—")}</small></div>
-        <span class="badge">${esc(String(u.role || "—").toLowerCase())}</span>
-      </div>`).join("") : `<div class="empty">No staff or management accounts found.</div>`;
+  const box=$("adminUsers"), search=$("adminSearch");
+  async function render(){
+    const q=search.value.trim();
+    let query=sb.from("profiles").select("id,full_name,phone,member_id,role,points,is_active,created_at").order("created_at",{ascending:false}).limit(200);
+    if(q) query=query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%,member_id.ilike.%${q}%,role.ilike.%${q}%`);
+    const {data,error}=await query; if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}
+    box.innerHTML=data?.length?data.map(u=>`<div class="row" style="padding:13px 0;border-bottom:1px solid var(--line)"><div class="avatar">${esc(initials(u.full_name))}</div><div class="grow"><strong>${esc(u.full_name||"User")}</strong><small>${esc(u.member_id||"—")} • ${esc(u.phone||"—")}</small></div><span class="badge">${esc(u.role||"—")}</span></div>`).join(""):`<div class="empty">No users found.</div>`;
   }
-  search.oninput = render; await render();
+  search.oninput=render; await render();
 }
 
 async function loadAdminRoleList(role, target) {
-  const profile = await guardRole(["admin"]); if (!profile) return;
-  const box = $(target);
-  let data;
-  try {
-    data = (await getAdminProfiles()).filter(u => String(u.role || "").toLowerCase() === role);
-  } catch (e) {
-    box.innerHTML = `<div class="alert">${esc(e.message)}</div>`;
-    return;
-  }
-  const portalHref = role === "gm" ? "../gm/gm-dashboard.html" : "../staff/staff-scan.html";
-  box.innerHTML = data.length ? data.map(u => `
-    <a class="row admin-portal-row" href="${portalHref}" style="padding:13px 0;border-bottom:1px solid var(--line)">
-      <div class="avatar">${esc(initials(u.full_name))}</div>
-      <div class="grow"><strong>${esc(u.full_name || role.toUpperCase())}</strong><small>${esc(u.email || "—")} • ${esc(u.phone || u.member_id || "—")}</small></div>
-      <span class="badge">${u.is_active ? "Active" : "Inactive"}</span>
-    </a>`).join("") : `<div class="empty">No ${role.toUpperCase()} accounts found.</div>`;
+  const profile=await guardRole(["admin"]); if(!profile) return;
+  const box=$(target); const {data,error}=await sb.from("profiles").select("id,full_name,phone,member_id,role,is_active,created_at").eq("role",role).order("created_at",{ascending:false});
+  if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}
+  box.innerHTML=data?.length?data.map(u=>`<div class="row" style="padding:13px 0;border-bottom:1px solid var(--line)"><div class="avatar">${esc(initials(u.full_name))}</div><div class="grow"><strong>${esc(u.full_name||role.toUpperCase())}</strong><small>${esc(u.phone||"—")} • ${esc(u.member_id||"—")}</small></div><span class="badge">${u.is_active?"Active":"Inactive"}</span></div>`).join(""):`<div class="empty">No ${role} accounts found.</div>`;
 }
 
-async function bindGmSettingsProfile() {
-  const profile = await guardRole(["gm"]);
-  if (!profile) return;
-
-  document.querySelectorAll("[data-gm-name]").forEach(e => e.textContent = profile.full_name || "General Manager");
-  document.querySelectorAll("[data-gm-email]").forEach(e => e.textContent = profile.email || "—");
-
-  const avatar = $("gmAvatar");
-  const input = $("gmAvatarInput");
-  const button = $("gmAvatarBtn");
-  const msg = $("gmPhotoMsg");
-  if (!avatar || !input || !button) return;
-
-  const url = await getOwnAvatarUrl();
-  renderAvatar(avatar, profile.full_name || "General Manager", url);
-  avatar.classList.add("gm-avatar-frame");
-
-  button.onclick = () => input.click();
-  input.onchange = async () => {
-    const file = input.files?.[0];
-    if (!file) return;
-    button.disabled = true;
-    button.textContent = "UPLOADING…";
-    if (msg) msg.textContent = "";
-    try {
-      const saved = await saveCustomerPhoto(file);
-      renderAvatar(avatar, profile.full_name || "General Manager", saved);
-      avatar.classList.add("gm-avatar-frame");
-      if (msg) msg.textContent = "Profile photo updated successfully.";
-    } catch (e) {
-      if (msg) msg.textContent = e?.message || "Could not update photo.";
-    } finally {
-      button.disabled = false;
-      button.textContent = "ADD / CHANGE PHOTO";
-      input.value = "";
-    }
-  };
+async function loadAdminLocations() {
+  const profile=await guardRole(["admin"]); if(!profile) return; const box=$("adminLocationsList");
+  const {data,error}=await sb.from("locations").select("id,name,city,address,phone,is_active").order("name");
+  if(error){box.innerHTML=`<div class="alert">${esc(error.message)}</div>`;return;}
+  box.innerHTML=data?.length?data.map(l=>`<div class="card" style="margin-bottom:12px"><div class="row"><div class="avatar">AN</div><div class="grow"><strong>${esc(l.name)}</strong><small>${esc(l.city||"")} • ${esc(l.address||"Address not set")}</small></div><span class="badge">${l.is_active?"Active":"Inactive"}</span></div></div>`).join(""):`<div class="empty">No locations found.</div>`;
 }
 
 async function init() {
@@ -1239,9 +1006,12 @@ async function init() {
       await loadAdminDashboard();
     } else if (page === "admin-users") {
       await loadAdminUsers();
-
+    } else if (page === "admin-gm") {
+      await loadAdminRoleList("gm", "adminGmList");
     } else if (page === "admin-staff") {
       await loadAdminRoleList("staff", "adminStaffList");
+    } else if (page === "admin-locations") {
+      await loadAdminLocations();
     } else if (page === "admin-settings") {
       await guardRole(["admin"]);
     } else if (page === "customer-login") {
@@ -1284,8 +1054,10 @@ async function init() {
       await loadGmMembers();
     } else if (page === "gm-locations") {
       await loadGmLocations();
+    } else if (page === "gm-reports") {
+      await loadGmReports();
     } else if (page === "gm-settings") {
-      await bindGmSettingsProfile();
+      await guardRole(["gm"]);
     } else if (page === "gm-menu") {
       await guardRole(["gm"]);
     } else if (page === "gm-offers") {
