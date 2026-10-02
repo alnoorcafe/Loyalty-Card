@@ -1,168 +1,38 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#073a2b"><title>Menu Management</title>
-<link rel="stylesheet" href="../assets/style.css?v=20261002-menu-gm">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
-</head>
-<body data-page="gm-menu">
-<header class="topbar">
-  <a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a>
-  <button class="icon" onclick="logout()" title="Sign out">↪</button>
-</header>
-<main class="container">
-  <h1 class="title">Menu Management</h1>
-  <p class="sub">GM controls categories, products, prices, images, and availability.</p>
-
-  <div class="card">
-    <h3 id="formTitle">Add New Menu Item</h3>
-    <div class="field"><label>Product Name</label><input class="input" id="gmMenuName" placeholder="e.g. Spanish Latte"></div>
-    <div class="field"><label>Category</label><select class="input" id="gmMenuCategory"></select></div>
-    <div class="field"><label>Description</label><textarea class="input" id="gmMenuDescription" rows="3" placeholder="Short product description"></textarea></div>
-    <div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div>
-    <div class="field"><label>Image URL (optional)</label><input class="input" id="gmMenuImage" placeholder="https://..."></div>
-    <div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-    <div style="display:flex;gap:10px">
-      <button class="btn primary block" id="saveMenuBtn">SAVE MENU ITEM</button>
-      <button class="btn block" id="cancelEditBtn" style="display:none">CANCEL</button>
-    </div>
-    <div id="menuMsg" class="note">Only GM accounts can manage the menu.</div>
-  </div>
-
-  <div class="card">
-    <h3>Categories</h3>
-    <div style="display:flex;gap:8px;align-items:center">
-      <input class="input" id="newCategoryName" placeholder="New category name" style="flex:1">
-      <input class="input" id="newCategoryIcon" placeholder="☕" maxlength="4" style="max-width:75px;text-align:center">
-      <button class="btn primary" id="addCategoryBtn">ADD</button>
-    </div>
-    <div id="categoryList" style="margin-top:12px"><div class="empty">Loading categories…</div></div>
-  </div>
-
-  <div class="card">
-    <h3>Current Menu</h3>
-    <div id="gmMenuList"><div class="empty">Loading menu…</div></div>
-  </div>
-</main>
-<nav class="nav"><div class="navin">
-<a href="gm-dashboard.html"><b>⌂</b>Dashboard</a>
-<a href="gm-members.html"><b>●</b>Members</a>
-<a href="gm-reports.html"><b>▤</b>Reports</a>
-<a href="gm-menu.html" class="active"><b>✦</b>Menu</a>
-<a href="gm-settings.html"><b>⚙</b>More</a>
-</div></nav>
-<script src="../assets/config.js?v=20261002-menu-gm"></script>
-<script src="../assets/app.js?v=20261002-menu-gm"></script>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()">↪</button></header><main class="container"><h1 class="title">Menu Management</h1><p class="sub">Manage menu items, prices, availability, and additions.</p>
+<div class="card"><h3>Add / Edit Menu Item</h3>
+<div class="field"><label>Item Name</label><input class="input" id="gmMenuName" placeholder="e.g. Spanish Latte"></div>
+<div class="field"><label>Description</label><input class="input" id="gmMenuDescription" placeholder="Short product description"></div>
+<div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div>
+<div class="field"><label>Image URL (optional)</label><input class="input" id="gmMenuImage" placeholder="https://..."></div>
+<div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+<button class="btn primary block" id="saveMenuBtn">SAVE MENU ITEM</button><div id="menuMsg" class="note">Menu items are saved in the GM menu database.</div></div>
+<div class="card"><h3>Current Menu</h3><div id="gmMenuList"><div class="empty">Loading menu…</div></div></div>
+</main><nav class="nav"><div class="navin"><a href="gm-dashboard.html"><b>⌂</b>Dashboard</a><a href="gm-members.html"><b>●</b>Customers</a><a href="gm-menu.html" class="active"><b>✦</b>Menu</a><a href="gm-settings.html"><b>⚙</b>More</a></div></nav>
+<script src="../assets/config.js"></script><script src="../assets/app.js?v=20260930-final"></script>
 <script>
-(async function(){
-  const $=id=>document.getElementById(id);
-  const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
-  let editingId=null, categories=[];
-
-  async function guard(){
-    const p=await guardRole(["gm"]);
-    return p;
-  }
-
-  async function loadCategories(){
-    const {data,error}=await sb.from("menu_categories").select("id,name,icon,sort_order,is_active").order("sort_order",{ascending:true}).order("name");
-    if(error){$("categoryList").innerHTML='<div class="alert">'+esc(error.message)+'</div>'; return;}
-    categories=data||[];
-    $("gmMenuCategory").innerHTML='<option value="">Select category</option>'+categories.filter(c=>c.is_active).map(c=>`<option value="${esc(c.id)}">${esc(c.icon)} ${esc(c.name)}</option>`).join("");
-    $("categoryList").innerHTML=categories.length?categories.map(c=>`<div class="reward" style="margin-top:8px">
-      <div class="food">${esc(c.icon||"•")}</div><div class="grow"><strong>${esc(c.name)}</strong><small>${c.is_active?"Active":"Inactive"}</small></div>
-      <button class="btn" data-toggle-cat="${esc(c.id)}">${c.is_active?"Disable":"Enable"}</button>
-    </div>`).join(""):'<div class="empty">No categories yet.</div>';
-    document.querySelectorAll("[data-toggle-cat]").forEach(b=>b.onclick=async()=>{
-      const id=b.dataset.toggleCat, c=categories.find(x=>x.id===id);
-      const {error}=await sb.from("menu_categories").update({is_active:!c.is_active}).eq("id",id);
-      if(error) return toast(error.message,false);
-      await loadCategories();
-    });
-  }
-
-  async function loadMenu(){
-    const {data,error}=await sb.from("menu_items").select("id,name,description,price,image_url,status,created_at,category_id,menu_categories(name,icon)").order("created_at",{ascending:false});
-    if(error){$("gmMenuList").innerHTML='<div class="alert">'+esc(error.message)+'</div>';return;}
-    $("gmMenuList").innerHTML=data?.length?data.map(r=>{
-      const cat=r.menu_categories;
-      return `<div class="reward" style="margin-top:8px">
-        ${r.image_url?`<img class="reward-product-image" src="${esc(r.image_url)}" alt="${esc(r.name)}">`:`<div class="food">${esc(cat?.icon||"☕")}</div>`}
-        <div class="grow"><strong>${esc(r.name)}</strong><small>${esc(cat?.name||"No category")}<br>${esc(r.description||"")}<br>AED ${Number(r.price||0).toFixed(2)}</small></div>
-        <span class="badge">${esc(r.status)}</span>
-        <button class="btn" data-edit="${esc(r.id)}">Edit</button>
-        <button class="btn" data-delete="${esc(r.id)}">Delete</button>
-      </div>`;
-    }).join(""):'<div class="empty">No menu items yet.</div>';
-
-    document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>startEdit(b.dataset.edit,data));
-    document.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>deleteItem(b.dataset.delete));
-  }
-
-  function startEdit(id,data){
-    const r=data.find(x=>x.id===id); if(!r)return;
-    editingId=id;
-    $("formTitle").textContent="Edit Menu Item";
-    $("gmMenuName").value=r.name||"";
-    $("gmMenuCategory").value=r.category_id||"";
-    $("gmMenuDescription").value=r.description||"";
-    $("gmMenuPrice").value=r.price??"";
-    $("gmMenuImage").value=r.image_url||"";
-    $("gmMenuStatus").value=r.status||"active";
-    $("saveMenuBtn").textContent="UPDATE MENU ITEM";
-    $("cancelEditBtn").style.display="block";
-    window.scrollTo({top:0,behavior:"smooth"});
-  }
-
-  function resetForm(){
-    editingId=null;$("formTitle").textContent="Add New Menu Item";
-    ["gmMenuName","gmMenuDescription","gmMenuPrice","gmMenuImage"].forEach(id=>$(id).value="");
-    $("gmMenuCategory").value="";$("gmMenuStatus").value="active";
-    $("saveMenuBtn").textContent="SAVE MENU ITEM";$("cancelEditBtn").style.display="none";
-  }
-
-  async function deleteItem(id){
-    if(!confirm("Delete this menu item?"))return;
-    const {error}=await sb.from("menu_items").delete().eq("id",id);
-    if(error){toast(error.message,false);return;}
-    toast("Menu item deleted.");
-    if(editingId===id)resetForm();
-    await loadMenu();
-  }
-
-  $("saveMenuBtn").onclick=async()=>{
-    const name=$("gmMenuName").value.trim(), category_id=$("gmMenuCategory").value,
-      description=$("gmMenuDescription").value.trim(), price=Number($("gmMenuPrice").value),
-      image_url=$("gmMenuImage").value.trim(), status=$("gmMenuStatus").value;
-    if(!name)return $("menuMsg").textContent="Product name is required.";
-    if(!category_id)return $("menuMsg").textContent="Select a category.";
-    if(!Number.isFinite(price)||price<0)return $("menuMsg").textContent="Enter a valid price.";
-    const profile=await guard(); if(!profile)return;
-    const payload={name,category_id,description:description||null,price,image_url:image_url||null,status};
-    let result;
-    if(editingId) result=await sb.from("menu_items").update(payload).eq("id",editingId);
-    else result=await sb.from("menu_items").insert({...payload,created_by:profile.id});
-    if(result.error){$("menuMsg").textContent=result.error.message;return;}
-    $("menuMsg").textContent=editingId?"Menu item updated successfully.":"Menu item added successfully.";
-    resetForm(); await loadMenu();
-  };
-
-  $("cancelEditBtn").onclick=resetForm;
-
-  $("addCategoryBtn").onclick=async()=>{
-    const name=$("newCategoryName").value.trim(), icon=$("newCategoryIcon").value.trim()||"•";
-    if(!name)return;
-    const max=Math.max(0,...categories.map(c=>Number(c.sort_order)||0));
-    const {error}=await sb.from("menu_categories").insert({name,icon,sort_order:max+1,is_active:true});
-    if(error){toast(error.message,false);return;}
-    $("newCategoryName").value="";$("newCategoryIcon").value="";
-    toast("Category added."); await loadCategories();
-  };
-
-  const profile=await guard(); if(!profile)return;
-  await loadCategories(); await loadMenu();
+(function(){
+ const msg=document.getElementById("menuMsg"),list=document.getElementById("gmMenuList");
+ const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+ async function load(){
+   const {data,error}=await sb.from("menu_items").select("id,name,description,price,image_url,status,created_at").order("created_at",{ascending:false});
+   if(error){list.innerHTML='<div class="alert">'+esc(error.message)+'</div>';return}
+   list.innerHTML=data?.length?data.map(r=>'<div class="reward">'+(r.image_url?'<img class="reward-product-image" src="'+esc(r.image_url)+'" alt="'+esc(r.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(r.name)+'</strong><small>'+esc(r.description||"")+'<br>AED '+Number(r.price||0).toFixed(2)+'</small></div><span class="badge">'+esc(r.status)+'</span></div>').join(""):'<div class="empty">No menu items yet.</div>';
+ }
+ document.getElementById("saveMenuBtn").onclick=async()=>{
+   const name=document.getElementById("gmMenuName").value.trim(),description=document.getElementById("gmMenuDescription").value.trim(),price=Number(document.getElementById("gmMenuPrice").value),image_url=document.getElementById("gmMenuImage").value.trim(),status=document.getElementById("gmMenuStatus").value;
+   if(!name){msg.textContent="Item name is required.";return}
+   if(!Number.isFinite(price)||price<0){msg.textContent="Enter a valid price.";return}
+   const profile=await getProfile();
+   if(!profile||profile.role!=="gm"){msg.textContent="GM access is required.";return}
+   const {error}=await sb.from("menu_items").insert({name,description,price,image_url:image_url||null,status,created_by:profile.id});
+   if(error){msg.textContent=error.message;return}
+   msg.textContent="Menu item saved successfully.";
+   ["gmMenuName","gmMenuDescription","gmMenuPrice","gmMenuImage"].forEach(id=>document.getElementById(id).value="");
+   await load();
+ };
+ (async()=>{
+   const profile=await guardRole(["gm"]);
+   if(profile) await load();
+ })().catch(e=>{msg.textContent=e?.message||"Could not load menu."});
 })();
-</script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
-</body></html>
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
