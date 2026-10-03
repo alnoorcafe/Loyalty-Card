@@ -1,9 +1,12 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><meta name="description" content="AL NOOR GM Menu Management"><link rel="manifest" href="../manifest.webmanifest"><title>AL NOOR — Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()">↪</button></header><main class="container"><h1 class="title">Menu Management</h1><p class="sub">Manage categories, products, prices, images, availability, and official menu import.</p>
 <div class="card"><h3>Category</h3>
 <div class="field"><label>Category</label><select class="input" id="gmMenuCategory"><option value="">Loading categories…</option></select></div>
-<div id="gmCategoryPreview" class="note">Category image is built into the menu and does not require a database column.</div>
+<div class="field"><label>Category Image</label><input class="input" id="gmCategoryImageFile" type="file" accept="image/*"><small class="sub">Choose a different image for this category.</small></div>
+<div class="field"><label>Category Image URL (optional)</label><input class="input" id="gmCategoryImage" placeholder="https://..."></div>
+<button class="btn primary block" id="saveCategoryBtn">SAVE CATEGORY</button>
+<div id="gmCategoryPreview" class="note">Select a category to edit its image.</div>
 </div>
-<div class="card"><h3>Add / Edit Menu Item</h3><input type="hidden" id="gmMenuId"><div class="field"><label>Category</label><select class="input" id="gmItemCategory"><option value="">Loading categories…</option></select></div><div class="field"><label>Item Name</label><input class="input" id="gmMenuName" placeholder="e.g. Spanish Latte"></div><div class="field"><label>Description</label><input class="input" id="gmMenuDescription" placeholder="Short product description"></div><div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div><div class="field"><label>Image URL (optional)</label><input class="input" id="gmMenuImage" placeholder="https://..."></div><div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button class="btn primary block" id="saveMenuBtn">SAVE MENU ITEM</button><button class="btn block" id="cancelEditBtn" style="display:none;margin-top:8px">CANCEL EDIT</button><div id="menuMsg" class="note">Use IMPORT OFFICIAL AL NOOR MENU to load the official 87-item menu.</div></div>
+<div class="card"><h3>Add / Edit Menu Item</h3><input type="hidden" id="gmMenuId"><div class="field"><label>Category</label><select class="input" id="gmItemCategory"><option value="">Loading categories…</option></select></div><div class="field"><label>Item Name</label><input class="input" id="gmMenuName" placeholder="e.g. Spanish Latte"></div><div class="field"><label>Description</label><input class="input" id="gmMenuDescription" placeholder="Short product description"></div><div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div><div class="field"><label>Item Image</label><input class="input" id="gmMenuImageFile" type="file" accept="image/*"><small class="sub">Choose a different image for this menu item.</small></div><div class="field"><label>Image URL (optional)</label><input class="input" id="gmMenuImage" placeholder="https://..."></div><div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button class="btn primary block" id="saveMenuBtn">SAVE MENU ITEM</button><button class="btn block" id="cancelEditBtn" style="display:none;margin-top:8px">CANCEL EDIT</button><div id="menuMsg" class="note">Use IMPORT OFFICIAL AL NOOR MENU to load the official 87-item menu.</div></div>
 <div class="card"><h3>Official Menu Import</h3><p class="sub">Creates/updates the 14 official categories and imports the 87 official menu items. Category IDs are resolved from the database by category name, so no fake IDs are inserted into UUID columns.</p><button class="btn primary block" id="importOfficialBtn">IMPORT OFFICIAL AL NOOR MENU</button><div id="importMsg" class="note"></div></div>
 <div class="card"><h3>Current Menu</h3><div id="gmMenuList"><div class="empty">Loading menu…</div></div></div></main><nav class="nav"><div class="navin"><a href="gm-dashboard.html"><b>⌂</b>Dashboard</a><a href="gm-members.html"><b>●</b>Customers</a><a href="gm-menu.html" class="active"><b>✦</b>Menu</a><a href="gm-settings.html"><b>⚙</b>More</a></div></nav>
 <script src="../assets/config.js"></script><script src="../assets/app.js?v=20260930-final"></script><script src="../assets/official-menu-data.js"></script>
@@ -35,17 +38,31 @@
    updateCategoryPreview();
  }
  function updateCategoryPreview(){
-   const name=$("gmMenuCategory").value;
-   const src=categoryImageMap[name];
+   const id=$("gmMenuCategory").value;
+   const cat=categories.find(c=>c.id===id);
+   const src=cat?.image_url || categoryImageMap[cat?.name] || "";
+   $("gmCategoryImage").value=cat?.image_url||"";
    $("gmCategoryPreview").innerHTML=src
-     ? '<img src="'+esc(src)+'" alt="'+esc(name)+'" style="width:100%;max-height:170px;object-fit:cover;border-radius:16px;margin-top:8px"><div class="note">'+esc(name)+'</div>'
-     : 'Category image is built into the menu and does not require a database column.';
+     ? '<img src="'+esc(src)+'" alt="'+esc(cat?.name||"")+'" style="width:100%;max-height:170px;object-fit:cover;border-radius:16px;margin-top:8px"><div class="note">'+esc(cat?.name||"")+'</div>'
+     : 'No category image selected yet.';
+ }
+
+ async function uploadMenuImage(file, folder){
+   if(!file) return null;
+   const profile=await getProfile();
+   if(!profile||!['gm','admin'].includes(profile.role)) throw new Error('GM access is required.');
+   const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg';
+   const path=folder+'/'+profile.id+'/'+Date.now()+'-'+Math.random().toString(36).slice(2,8)+'.'+ext;
+   const up=await sb.storage.from('menu-images').upload(path,file,{upsert:false,contentType:file.type||'image/jpeg'});
+   if(up.error) throw up.error;
+   const pub=sb.storage.from('menu-images').getPublicUrl(path);
+   return pub.data.publicUrl;
  }
 
  async function loadCategories(){
    // Use only columns that exist in the current menu_categories schema.
    const {data,error}=await sb.from("menu_categories")
-     .select("id,name,icon,sort_order,is_active")
+     .select("id,name,icon,sort_order,is_active,image_url")
      .order("sort_order",{ascending:true});
    if(error){
      $("menuMsg").textContent=error.message;
@@ -99,6 +116,7 @@
  function clearForm(){
    $("gmMenuId").value="";
    ["gmMenuName","gmMenuDescription","gmMenuPrice","gmMenuImage"].forEach(id=>$(id).value="");
+   $("gmMenuImageFile").value="";
    $("gmItemCategory").value="";
    $("gmMenuStatus").value="active";
    $("cancelEditBtn").style.display="none";
@@ -114,13 +132,33 @@
 
  $("gmMenuCategory").onchange=updateCategoryPreview;
 
+ $("saveCategoryBtn").onclick=async()=>{
+   const id=$("gmMenuCategory").value;
+   const url=$("gmCategoryImage").value.trim();
+   const file=$("gmCategoryImageFile").files?.[0];
+   if(!id){$("menuMsg").textContent="Select a category first.";return}
+   try{
+     const profile=await getProfile();
+     if(!profile||!['gm','admin'].includes(profile.role)){$("menuMsg").textContent="GM access is required.";return}
+     const image_url=file ? await uploadMenuImage(file,'categories') : (url||null);
+     const result=await sb.from('menu_categories').update({image_url}).eq('id',id);
+     if(result.error) throw result.error;
+     $("menuMsg").textContent="Category image saved successfully.";
+     $("gmCategoryImageFile").value="";
+     await loadCategories();
+     $("gmMenuCategory").value=id;
+     updateCategoryPreview();
+   }catch(e){$("menuMsg").textContent=e?.message||"Could not save category image.";}
+ };
+
  $("saveMenuBtn").onclick=async()=>{
    const id=$("gmMenuId").value.trim();
    const category_id=$("gmItemCategory").value;
    const name=$("gmMenuName").value.trim();
    const description=$("gmMenuDescription").value.trim();
    const price=Number($("gmMenuPrice").value);
-   const image_url=$("gmMenuImage").value.trim();
+   let image_url=$("gmMenuImage").value.trim();
+   const imageFile=$("gmMenuImageFile").files?.[0];
    const status=$("gmMenuStatus").value;
 
    if(!category_id){$("menuMsg").textContent="Select a category.";return}
@@ -132,6 +170,7 @@
      $("menuMsg").textContent="GM access is required.";return
    }
 
+   if(imageFile) image_url=await uploadMenuImage(imageFile,'items');
    const payload={category_id,name,description:description||null,price,image_url:image_url||null,status};
    let result=id
      ? await sb.from("menu_items").update(payload).eq("id",id)
@@ -214,4 +253,5 @@
    await loadItems();
  })();
 })();
-</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html  $("gmMenuCategory").addEventListener("change", updateCategoryPreview);
+>
