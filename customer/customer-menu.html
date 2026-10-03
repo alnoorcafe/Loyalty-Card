@@ -46,6 +46,7 @@
 
 <script src="../assets/config.js?v=20261003-customer-menu"></script>
 <script src="../assets/app.js?v=20260930-final"></script>
+<script src="../assets/menu-data.js?v=20261003-menu"></script>
 
 <style>
 :root{--menu-cream:#f7f1e7;--menu-gold:#c9ae70;--menu-green:#073a2b}
@@ -205,6 +206,20 @@
 
     categories=normalizeCategoryRows(Array.isArray(categoryResult.data)?categoryResult.data:[]);
     items=Array.isArray(itemResult.data)?itemResult.data:[];
+    // If the database is empty, show the official AL NOOR menu catalog immediately.
+    // Once GM imports/saves the catalog into Supabase, the live database becomes the source of truth.
+    if(items.length===0 && Array.isArray(window.AL_NOOR_MENU_CATALOG)){
+      items=window.AL_NOOR_MENU_CATALOG.map((item,i)=>({
+        id:'catalog-'+i,
+        name:item.name,
+        category_name:item.category,
+        description:item.description||'',
+        price:item.price,
+        image_url:null,
+        status:'active',
+        created_at:null
+      }));
+    }
     renderCategories();
   }
 
