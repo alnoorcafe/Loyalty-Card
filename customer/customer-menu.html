@@ -1,18 +1,43 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Menu</title><link rel="stylesheet" href="../assets/style.css?v=20260926-home-card-merge"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script></head><body data-page="customer-menu"><header class="topbar"><a class="brand brand-image" href="customer-home.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">Our Menu</h1><p class="sub">Freshly baked and carefully crafted at Al Noor.</p><div class="card"><div id="customerMenu"><div class="empty">Loading menu…</div></div></div></main><nav class="nav"><div class="navin">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Menu</title><link rel="stylesheet" href="../assets/style.css?v=20260926-home-card-merge"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script></head><body data-page="customer-menu"><header class="topbar"><a class="brand brand-image" href="customer-home.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">Our Menu</h1><p class="sub">Choose a category to view the available items.</p><div class="card"><div id="customerMenu"><div class="empty">Loading menu…</div></div></div></main><nav class="nav"><div class="navin">
 <a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
 <a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
 <a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
 <a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
-<a href="customer-menu.html" data-nav="menu"><b>☰</b>Menu</a>
+<a href="customer-menu.html" data-nav="menu" class="active"><b>☰</b>Menu</a>
 <a href="customer-profile.html" data-nav="profile"><b>●</b>My Profile</a>
 </div></nav><script src="../assets/config.js?v=20260926-home-card-merge"></script>
-<script src="../assets/app.js?v=20260930-final"></script><script>
+<script src="../assets/app.js?v=20260930-final"></script><style>
+.menu-categories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.menu-category{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:18px 12px;min-height:132px;text-align:center;color:var(--green);box-shadow:0 8px 22px rgba(19,48,37,.06);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;cursor:pointer}.menu-category:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(19,48,37,.10);border-color:#d4c79f}.menu-category-icon{width:62px;height:62px;margin:0 auto 10px;border-radius:18px;background:#f3eadb;display:grid;place-items:center;font-size:31px}.menu-category-name{font-weight:900;font-size:13px;line-height:1.25}.menu-category-count{display:block;margin-top:6px;color:var(--muted);font-size:10px;font-weight:700}.menu-items-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}.menu-items-header h2{margin:0;font-size:22px;line-height:1.2}.menu-back{width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);background:#edf2eb;color:var(--green);border-radius:13px;font-size:20px;font-weight:900}.menu-items{display:grid;gap:2px}.menu-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.menu-item:last-child{border-bottom:0}.menu-item-image,.menu-item-placeholder{width:72px;height:72px;flex:0 0 72px;border-radius:16px;border:1px solid rgba(7,58,43,.12);background:#f4eee3;object-fit:cover}.menu-item-placeholder{display:grid;place-items:center;font-size:27px}.menu-item-name{display:block;color:var(--green);font-weight:900;font-size:15px;line-height:1.3}.menu-item-description{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}.menu-item-price{margin-left:auto;white-space:nowrap;background:#edf4ed;color:var(--green);padding:7px 10px;border-radius:999px;font-size:11px;font-weight:900}.menu-empty{padding:28px 10px;text-align:center;color:var(--muted)}
+@media(max-width:700px){.menu-categories{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:420px){.menu-category{min-height:120px;padding:16px 8px}.menu-category-icon{width:56px;height:56px;font-size:28px}.menu-category-name{font-size:12px}.menu-item-image,.menu-item-placeholder{width:62px;height:62px;flex-basis:62px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px;padding:6px 8px}}
+</style>
+<script>
 (async function(){
- const box=document.getElementById("customerMenu"); if(!box)return;
+ const box=document.getElementById("customerMenu");if(!box)return;
  const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
- const {data,error}=await sb.from("menu_items").select("name,description,price,image_url,status").eq("status","active").order("created_at",{ascending:false});
- if(error){box.innerHTML='<div class="alert">'+esc(error.message)+'</div>';return}
- box.innerHTML=data?.length?data.map(x=>'<div class="reward">'+(x.image_url?'<img class="reward-product-image" src="'+esc(x.image_url)+'" alt="'+esc(x.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(x.name)+'</strong><small>'+esc(x.description||"")+'</small></div><span class="badge">AED '+Number(x.price||0).toFixed(2)+'</span></div>').join(""):'<div class="empty">No active menu items.</div>';
+ let categories=[],items=[];
+ function renderCategories(){
+   const counts={};items.forEach(item=>{if(item.category_id)counts[item.category_id]=(counts[item.category_id]||0)+1});
+   const visible=categories.filter(c=>counts[c.id]>0);
+   box.innerHTML=visible.length?'<div class="menu-categories">'+visible.map(c=>`<button class="menu-category" type="button" data-category="${esc(c.id)}"><div class="menu-category-icon">${esc(c.icon||"☕")}</div><div class="menu-category-name">${esc(c.name)}</div><span class="menu-category-count">${counts[c.id]} item${counts[c.id]===1?"":"s"}</span></button>`).join("")+'</div>':'<div class="menu-empty">No active menu items.</div>';
+   box.querySelectorAll("[data-category]").forEach(btn=>btn.addEventListener("click",()=>renderItems(btn.dataset.category)));
+ }
+ function renderItems(categoryId){
+   const category=categories.find(c=>c.id===categoryId),filtered=items.filter(item=>item.category_id===categoryId);
+   const rows=filtered.map(item=>{
+     const image=item.image_url?`<img class="menu-item-image" src="${esc(item.image_url)}" alt="${esc(item.name)}" loading="lazy">`:`<div class="menu-item-placeholder">${esc(category?.icon||"☕")}</div>`;
+     const description=item.description?`<small class="menu-item-description">${esc(item.description)}</small>`:"";
+     return `<div class="menu-item">${image}<div class="grow"><strong class="menu-item-name">${esc(item.name)}</strong>${description}</div><span class="menu-item-price">AED ${Number(item.price??0).toFixed(2)}</span></div>`;
+   }).join("");
+   box.innerHTML=`<div class="menu-items-header"><button class="menu-back" type="button" aria-label="Back to menu categories">‹</button><div><h2>${esc(category?.name||"Menu")}</h2><span class="menu-category-count">${filtered.length} item${filtered.length===1?"":"s"}</span></div></div><div class="menu-items">${rows||'<div class="menu-empty">No active items in this category.</div>'}</div>`;
+   box.querySelector(".menu-back").addEventListener("click",renderCategories);
+ }
+ try{
+   const [{data:catData,error:catError},{data:itemData,error:itemError}]=await Promise.all([
+     sb.from("menu_categories").select("id,name,icon,sort_order,is_active").eq("is_active",true).order("sort_order",{ascending:true}),
+     sb.from("menu_items").select("name,description,price,image_url,status,category_id,created_at").eq("status","active").order("created_at",{ascending:false})
+   ]);
+   if(catError)throw catError;if(itemError)throw itemError;
+   categories=Array.isArray(catData)?catData:[];items=Array.isArray(itemData)?itemData:[];renderCategories();
+ }catch(e){box.innerHTML='<div class="alert">'+esc(e?.message||"Could not load menu.")+'</div>'}
 })();
-</script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}))}</script></body></html>
