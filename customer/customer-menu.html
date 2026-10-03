@@ -1,43 +1,225 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Menu</title><link rel="stylesheet" href="../assets/style.css?v=20260926-home-card-merge"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script><script src="https://unpkg.com/html5-qrcode"></script></head><body data-page="customer-menu"><header class="topbar"><a class="brand brand-image" href="customer-home.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">Our Menu</h1><p class="sub">Choose a category to view the available items.</p><div class="card"><div id="customerMenu"><div class="empty">Loading menu…</div></div></div></main><nav class="nav"><div class="navin">
-<a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
-<a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
-<a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
-<a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
-<a href="customer-menu.html" data-nav="menu" class="active"><b>☰</b>Menu</a>
-<a href="customer-profile.html" data-nav="profile"><b>●</b>My Profile</a>
-</div></nav><script src="../assets/config.js?v=20260926-home-card-merge"></script>
-<script src="../assets/app.js?v=20260930-final"></script><style>
-.menu-categories{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.menu-category{border:1px solid var(--line);background:var(--paper);border-radius:20px;padding:18px 12px;min-height:132px;text-align:center;color:var(--green);box-shadow:0 8px 22px rgba(19,48,37,.06);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;cursor:pointer}.menu-category:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(19,48,37,.10);border-color:#d4c79f}.menu-category-icon{width:62px;height:62px;margin:0 auto 10px;border-radius:18px;background:#f3eadb;display:grid;place-items:center;font-size:31px}.menu-category-name{font-weight:900;font-size:13px;line-height:1.25}.menu-category-count{display:block;margin-top:6px;color:var(--muted);font-size:10px;font-weight:700}.menu-items-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}.menu-items-header h2{margin:0;font-size:22px;line-height:1.2}.menu-back{width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);background:#edf2eb;color:var(--green);border-radius:13px;font-size:20px;font-weight:900}.menu-items{display:grid;gap:2px}.menu-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}.menu-item:last-child{border-bottom:0}.menu-item-image,.menu-item-placeholder{width:72px;height:72px;flex:0 0 72px;border-radius:16px;border:1px solid rgba(7,58,43,.12);background:#f4eee3;object-fit:cover}.menu-item-placeholder{display:grid;place-items:center;font-size:27px}.menu-item-name{display:block;color:var(--green);font-weight:900;font-size:15px;line-height:1.3}.menu-item-description{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}.menu-item-price{margin-left:auto;white-space:nowrap;background:#edf4ed;color:var(--green);padding:7px 10px;border-radius:999px;font-size:11px;font-weight:900}.menu-empty{padding:28px 10px;text-align:center;color:var(--muted)}
-@media(max-width:700px){.menu-categories{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:420px){.menu-category{min-height:120px;padding:16px 8px}.menu-category-icon{width:56px;height:56px;font-size:28px}.menu-category-name{font-size:12px}.menu-item-image,.menu-item-placeholder{width:62px;height:62px;flex-basis:62px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px;padding:6px 8px}}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<meta name="description" content="AL NOOR Bakery & Cafe customer menu">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>AL NOOR Menu</title>
+<link rel="stylesheet" href="../assets/style.css?v=20261003-customer-menu">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+</head>
+<body data-page="customer-menu">
+<header class="topbar">
+  <a class="brand brand-image" href="customer-home.html" aria-label="AL NOOR Home">
+    <img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE">
+  </a>
+  <button class="icon" onclick="logout()" title="Sign out" aria-label="Sign out">↪</button>
+</header>
+
+<main class="container menu-page">
+  <div class="menu-hero">
+    <p class="eyebrow">AL NOOR BAKERY & CAFE</p>
+    <h1 class="title">Our Menu</h1>
+    <p class="sub">Choose a category to view the available items.</p>
+  </div>
+
+  <section class="menu-panel card" aria-label="Menu">
+    <div id="menuCategoriesView">
+      <div class="menu-loading">Loading menu…</div>
+    </div>
+    <div id="menuItemsView" hidden></div>
+  </section>
+</main>
+
+<nav class="nav" aria-label="Customer navigation">
+  <div class="navin">
+    <a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
+    <a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
+    <a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
+    <a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
+    <a href="customer-menu.html" data-nav="menu" class="active"><b>☰</b>Menu</a>
+    <a href="customer-profile.html" data-nav="profile"><b>●</b>My Profile</a>
+  </div>
+</nav>
+
+<script src="../assets/config.js?v=20261003-customer-menu"></script>
+<script src="../assets/app.js?v=20260930-final"></script>
+
+<style>
+:root{--menu-cream:#f7f1e7;--menu-gold:#c9ae70;--menu-green:#073a2b}
+.menu-page{padding-bottom:110px}
+.menu-hero{margin-bottom:18px}
+.eyebrow{margin:0 0 5px;color:var(--gold,#a78a52);font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
+.menu-panel{padding:18px}
+.menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.menu-category{appearance:none;width:100%;border:1px solid rgba(7,58,43,.10);background:var(--menu-cream);border-radius:22px;padding:17px 11px 15px;text-align:center;color:var(--menu-green);cursor:pointer;min-height:142px;box-shadow:0 8px 22px rgba(19,48,37,.05);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.menu-category:hover,.menu-category:focus-visible{transform:translateY(-2px);box-shadow:0 12px 28px rgba(19,48,37,.09);border-color:rgba(167,138,82,.55);outline:none}
+.menu-icon{width:62px;height:62px;margin:0 auto 10px;border-radius:18px;display:grid;place-items:center;background:#efe4d1;font-size:30px;line-height:1}
+.menu-name{display:block;font-size:13px;font-weight:900;line-height:1.25}
+.menu-count{display:block;margin-top:6px;color:var(--muted);font-size:10px;font-weight:800}
+.menu-head{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
+.menu-back{width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);background:#edf2eb;border-radius:13px;color:var(--menu-green);font-size:23px;font-weight:900;cursor:pointer}
+.menu-head-icon{width:42px;height:42px;border-radius:13px;background:#efe4d1;display:grid;place-items:center;font-size:21px;flex:0 0 42px}
+.menu-head-copy{min-width:0}
+.menu-head h2{margin:0;color:var(--menu-green);font-size:20px;line-height:1.2}
+.menu-head p{margin:3px 0 0;color:var(--muted);font-size:10px;font-weight:800}
+.menu-list{display:grid;gap:0}
+.menu-item{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--line)}
+.menu-item:last-child{border-bottom:0}
+.menu-item-image,.menu-placeholder{width:76px;height:76px;flex:0 0 76px;border-radius:17px;border:1px solid rgba(7,58,43,.10);background:#f4eee3;object-fit:cover}
+.menu-placeholder{display:grid;place-items:center;font-size:29px}
+.menu-item-copy{min-width:0;flex:1}
+.menu-item-name{display:block;color:var(--menu-green);font-size:15px;line-height:1.3;font-weight:900}
+.menu-item-description{display:block;color:var(--muted);font-size:11px;line-height:1.45;margin-top:4px}
+.menu-item-price{display:inline-flex;align-items:center;justify-content:center;margin-top:7px;padding:6px 10px;border-radius:999px;background:#edf4ed;color:var(--menu-green);font-size:11px;font-weight:900;white-space:nowrap}
+.menu-empty,.menu-loading{padding:28px 10px;text-align:center;color:var(--muted);font-weight:700}
+.menu-error{padding:22px 14px;border-radius:16px;background:#fff7f5;border:1px solid #ead2cc;color:#8b3a31;font-size:12px;line-height:1.5}
+.menu-small-note{margin:0 0 10px;color:var(--muted);font-size:10px;font-weight:700}
+@media(max-width:420px){.menu-panel{padding:14px}.menu-grid{gap:10px}.menu-category{min-height:130px;padding:14px 8px}.menu-icon{width:56px;height:56px;font-size:27px}.menu-name{font-size:12px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
 </style>
+
 <script>
-(async function(){
- const box=document.getElementById("customerMenu");if(!box)return;
- const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
- let categories=[],items=[];
- function renderCategories(){
-   const counts={};items.forEach(item=>{if(item.category_id)counts[item.category_id]=(counts[item.category_id]||0)+1});
-   const visible=categories.filter(c=>counts[c.id]>0);
-   box.innerHTML=visible.length?'<div class="menu-categories">'+visible.map(c=>`<button class="menu-category" type="button" data-category="${esc(c.id)}"><div class="menu-category-icon">${esc(c.icon||"☕")}</div><div class="menu-category-name">${esc(c.name)}</div><span class="menu-category-count">${counts[c.id]} item${counts[c.id]===1?"":"s"}</span></button>`).join("")+'</div>':'<div class="menu-empty">No active menu items.</div>';
-   box.querySelectorAll("[data-category]").forEach(btn=>btn.addEventListener("click",()=>renderItems(btn.dataset.category)));
- }
- function renderItems(categoryId){
-   const category=categories.find(c=>c.id===categoryId),filtered=items.filter(item=>item.category_id===categoryId);
-   const rows=filtered.map(item=>{
-     const image=item.image_url?`<img class="menu-item-image" src="${esc(item.image_url)}" alt="${esc(item.name)}" loading="lazy">`:`<div class="menu-item-placeholder">${esc(category?.icon||"☕")}</div>`;
-     const description=item.description?`<small class="menu-item-description">${esc(item.description)}</small>`:"";
-     return `<div class="menu-item">${image}<div class="grow"><strong class="menu-item-name">${esc(item.name)}</strong>${description}</div><span class="menu-item-price">AED ${Number(item.price??0).toFixed(2)}</span></div>`;
-   }).join("");
-   box.innerHTML=`<div class="menu-items-header"><button class="menu-back" type="button" aria-label="Back to menu categories">‹</button><div><h2>${esc(category?.name||"Menu")}</h2><span class="menu-category-count">${filtered.length} item${filtered.length===1?"":"s"}</span></div></div><div class="menu-items">${rows||'<div class="menu-empty">No active items in this category.</div>'}</div>`;
-   box.querySelector(".menu-back").addEventListener("click",renderCategories);
- }
- try{
-   const [{data:catData,error:catError},{data:itemData,error:itemError}]=await Promise.all([
-     sb.from("menu_categories").select("id,name,icon,sort_order,is_active").eq("is_active",true).order("sort_order",{ascending:true}),
-     sb.from("menu_items").select("name,description,price,image_url,status,category_id,created_at").eq("status","active").order("created_at",{ascending:false})
-   ]);
-   if(catError)throw catError;if(itemError)throw itemError;
-   categories=Array.isArray(catData)?catData:[];items=Array.isArray(itemData)?itemData:[];renderCategories();
- }catch(e){box.innerHTML='<div class="alert">'+esc(e?.message||"Could not load menu.")+'</div>'}
+(function(){
+  const categoriesView=document.getElementById('menuCategoriesView');
+  const itemsView=document.getElementById('menuItemsView');
+
+  const FALLBACK_CATEGORIES=[
+    {key:'classic-coffee',name:'Classic Coffee',icon:'☕',order:1},
+    {key:'craft-pour-over-v60',name:'Craft Pour-Over (V60)',icon:'☕',order:2},
+    {key:'iced-coffee',name:'Iced Coffee',icon:'🧊',order:3},
+    {key:'matcha',name:'Matcha',icon:'🍵',order:4},
+    {key:'breakfast',name:'Breakfast',icon:'🍳',order:5},
+    {key:'paninis-wraps-toast',name:'Paninis, Wraps & Toast',icon:'🥪',order:6},
+    {key:'fresh-salads',name:'Fresh Salads',icon:'🥗',order:7},
+    {key:'artisanal-pizzas',name:'Artisanal Pizzas',icon:'🍕',order:8},
+    {key:'traditional-oven-manakish',name:'Traditional Oven Manakish',icon:'🫓',order:9},
+    {key:'bakery-croissants',name:'Bakery & Croissants',icon:'🥐',order:10},
+    {key:'cakes-pastries',name:'Cakes & Pastries',icon:'🍰',order:11},
+    {key:'fresh-juices-wellness',name:'Fresh Juices & Wellness',icon:'🧃',order:12},
+    {key:'acai',name:'Acai',icon:'🥭',order:13},
+    {key:'mojitos-iced-teas',name:'Mojitos & Iced Teas',icon:'🍹',order:14}
+  ];
+
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const slug=v=>String(v??'').trim().toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+
+  let categories=[];
+  let items=[];
+
+  function normalizeCategoryRows(rows){
+    const result=[];
+    const byName={};
+    FALLBACK_CATEGORIES.forEach(c=>byName[slug(c.name)]=c);
+    (rows||[]).forEach((r,i)=>{
+      const base=byName[slug(r.name)]||FALLBACK_CATEGORIES.find(c=>c.key===slug(r.name))||null;
+      result.push({
+        id:r.id,
+        name:r.name||base?.name||'Menu',
+        icon:r.icon||base?.icon||'☕',
+        order:Number(r.sort_order??base?.order??(100+i)),
+        active:r.is_active!==false
+      });
+    });
+    if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true}));
+    const existing=new Set(result.map(c=>slug(c.name)));
+    FALLBACK_CATEGORIES.forEach(c=>{
+      if(!existing.has(slug(c.name))) result.push({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true});
+    });
+    return result.filter(c=>c.active).sort((a,b)=>a.order-b.order);
+  }
+
+  function isActiveItem(item){
+    if(item==null)return false;
+    if(item.is_active===false)return false;
+    if(typeof item.active==='boolean' && item.active===false)return false;
+    if(typeof item.status==='string' && item.status.trim().toLowerCase()==='inactive')return false;
+    return true;
+  }
+
+  function categoryForItem(item){
+    if(item.category_id){
+      const exact=categories.find(c=>c.id===item.category_id);
+      if(exact)return exact;
+    }
+    const n=slug(item.category_name||item.category);
+    if(n){
+      return categories.find(c=>slug(c.name)===n) || FALLBACK_CATEGORIES.find(c=>slug(c.name)===n) || null;
+    }
+    return null;
+  }
+
+  function countForCategory(cat){
+    return items.filter(item=>isActiveItem(item) && categoryForItem(item)?.name===cat.name).length;
+  }
+
+  function renderCategories(){
+    itemsView.hidden=true;
+    categoriesView.hidden=false;
+    categoriesView.innerHTML='<div class="menu-grid">'+categories.map(cat=>{
+      const count=countForCategory(cat);
+      return '<button class="menu-category" type="button" data-category="'+esc(cat.name)+'">'
+        +'<div class="menu-icon" aria-hidden="true">'+esc(cat.icon)+'</div>'
+        +'<span class="menu-name">'+esc(cat.name)+'</span>'
+        +'<span class="menu-count">'+count+' item'+(count===1?'':'s')+'</span>'
+        +'</button>';
+    }).join('')+'</div>';
+    categoriesView.querySelectorAll('[data-category]').forEach(btn=>btn.addEventListener('click',()=>renderItems(btn.dataset.category)));
+  }
+
+  function renderItems(name){
+    const cat=categories.find(c=>c.name===name) || FALLBACK_CATEGORIES.find(c=>c.name===name);
+    const filtered=items.filter(item=>isActiveItem(item) && categoryForItem(item)?.name===name);
+    itemsView.hidden=false;
+    categoriesView.hidden=true;
+
+    const rows=filtered.length?filtered.map(item=>{
+      const image=item.image_url
+        ? '<img class="menu-item-image" src="'+esc(item.image_url)+'" alt="'+esc(item.name||'Menu item')+'" loading="lazy">'
+        : '<div class="menu-placeholder" aria-hidden="true">'+esc(cat?.icon||'☕')+'</div>';
+      const desc=item.description?'<small class="menu-item-description">'+esc(item.description)+'</small>':'';
+      const rawPrice=Number(item.price);
+      const price=Number.isFinite(rawPrice)?'AED '+rawPrice.toFixed(2):'';
+      return '<article class="menu-item">'+image+'<div class="menu-item-copy"><strong class="menu-item-name">'+esc(item.name||'Menu item')+'</strong>'+desc+(price?'<span class="menu-item-price">'+price+'</span>':'')+'</div></article>';
+    }).join(''):'<div class="menu-empty">No items in this category yet.</div>';
+
+    itemsView.innerHTML='<div class="menu-head">'
+      +'<button class="menu-back" type="button" aria-label="Back to categories">‹</button>'
+      +'<div class="menu-head-icon" aria-hidden="true">'+esc(cat?.icon||'☕')+'</div>'
+      +'<div class="menu-head-copy"><h2>'+esc(name)+'</h2><p>'+filtered.length+' item'+(filtered.length===1?'':'s')+'</p></div>'
+      +'</div>'
+      +'<p class="menu-small-note">Tap the back arrow to return to all categories.</p>'
+      +'<div class="menu-list">'+rows+'</div>';
+    itemsView.querySelector('.menu-back').addEventListener('click',renderCategories);
+  }
+
+  async function loadMenu(){
+    if(!window.sb) throw new Error('Supabase configuration is not available.');
+
+    const categoryResult=await sb.from('menu_categories').select('*').order('sort_order',{ascending:true});
+    if(categoryResult.error) throw categoryResult.error;
+
+    const itemResult=await sb.from('menu_items').select('*').order('created_at',{ascending:true});
+    if(itemResult.error) throw itemResult.error;
+
+    categories=normalizeCategoryRows(Array.isArray(categoryResult.data)?categoryResult.data:[]);
+    items=Array.isArray(itemResult.data)?itemResult.data:[];
+    renderCategories();
+  }
+
+  loadMenu().catch(err=>{
+    categories=FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true}));
+    items=[];
+    categoriesView.hidden=false;
+    itemsView.hidden=true;
+    categoriesView.innerHTML='<div class="menu-error"><strong>Menu could not be loaded from the database.</strong><br>'+esc(err?.message||'Please try again later.')+'</div>';
+  });
 })();
-</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}))}</script></body></html>
+</script>
+
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('../sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
