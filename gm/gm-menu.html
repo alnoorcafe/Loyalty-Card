@@ -1,38 +1,84 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()">↪</button></header><main class="container"><h1 class="title">Menu Management</h1><p class="sub">Manage menu items, prices, availability, and additions.</p>
-<div class="card"><h3>Add / Edit Menu Item</h3>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()">↪</button></header>
+<main class="container"><h1 class="title">Menu Management</h1><p class="sub">Add, edit, delete, categorize, and control menu items.</p>
+<div class="card"><div class="menu-form-head"><div><h3 id="formTitle">Add Menu Item</h3><p class="form-note">Changes here are reflected in the customer menu.</p></div><button class="btn secondary small" id="newMenuBtn" type="button">NEW ITEM</button></div>
 <div class="field"><label>Item Name</label><input class="input" id="gmMenuName" placeholder="e.g. Spanish Latte"></div>
-<div class="field"><label>Description</label><input class="input" id="gmMenuDescription" placeholder="Short product description"></div>
+<div class="field"><label>Category</label><select class="input" id="gmMenuCategory"><option value="">Loading categories…</option></select></div>
+<div class="field"><label>Description</label><textarea class="input" id="gmMenuDescription" rows="3" placeholder="Short product description"></textarea></div>
 <div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div>
 <div class="field"><label>Image URL (optional)</label><input class="input" id="gmMenuImage" placeholder="https://..."></div>
 <div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-<button class="btn primary block" id="saveMenuBtn">SAVE MENU ITEM</button><div id="menuMsg" class="note">Menu items are saved in the GM menu database.</div></div>
-<div class="card"><h3>Current Menu</h3><div id="gmMenuList"><div class="empty">Loading menu…</div></div></div>
+<button class="btn primary block" id="saveMenuBtn" type="button">SAVE MENU ITEM</button><div id="menuMsg" class="note">GM can add, edit, delete, categorize, activate, or deactivate menu items.</div></div>
+<div class="card"><div class="list-head"><div><h3>Current Menu</h3><p class="form-note">Use Edit or Delete on any existing item.</p></div><span class="badge" id="menuCount">0 items</span></div><div id="gmMenuList"><div class="empty">Loading menu…</div></div></div>
 </main><nav class="nav"><div class="navin"><a href="gm-dashboard.html"><b>⌂</b>Dashboard</a><a href="gm-members.html"><b>●</b>Customers</a><a href="gm-menu.html" class="active"><b>✦</b>Menu</a><a href="gm-settings.html"><b>⚙</b>More</a></div></nav>
 <script src="../assets/config.js"></script><script src="../assets/app.js?v=20260930-final"></script>
+<style>
+.menu-form-head,.list-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.menu-form-head h3,.list-head h3{margin:0}.form-note{margin:4px 0 0;color:var(--muted);font-size:11px}.btn.small{padding:8px 11px;font-size:10px}.menu-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.menu-row:last-child{border-bottom:0}.menu-row img,.menu-row-placeholder{width:62px;height:62px;flex:0 0 62px;border-radius:15px;object-fit:cover;background:#f4eee3;border:1px solid rgba(7,58,43,.12)}.menu-row-placeholder{display:grid;place-items:center;font-size:26px}.menu-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}.menu-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.action-btn{border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:10px;font-weight:900;background:var(--paper);color:var(--green);cursor:pointer}.action-btn.delete{color:#a33d35;background:#fff8f6}.category-chip{background:#edf4ed;color:var(--green)}
+@media(max-width:650px){.menu-row{align-items:flex-start}.menu-actions{flex-direction:column}.action-btn{width:72px}.menu-form-head,.list-head{align-items:flex-start}}
+</style>
 <script>
 (function(){
- const msg=document.getElementById("menuMsg"),list=document.getElementById("gmMenuList");
+ const msg=document.getElementById("menuMsg"),list=document.getElementById("gmMenuList"),count=document.getElementById("menuCount");
+ const nameEl=document.getElementById("gmMenuName"),catEl=document.getElementById("gmMenuCategory"),descEl=document.getElementById("gmMenuDescription"),priceEl=document.getElementById("gmMenuPrice"),imageEl=document.getElementById("gmMenuImage"),statusEl=document.getElementById("gmMenuStatus"),saveBtn=document.getElementById("saveMenuBtn"),newBtn=document.getElementById("newMenuBtn"),formTitle=document.getElementById("formTitle");
  const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
- async function load(){
-   const {data,error}=await sb.from("menu_items").select("id,name,description,price,image_url,status,created_at").order("created_at",{ascending:false});
-   if(error){list.innerHTML='<div class="alert">'+esc(error.message)+'</div>';return}
-   list.innerHTML=data?.length?data.map(r=>'<div class="reward">'+(r.image_url?'<img class="reward-product-image" src="'+esc(r.image_url)+'" alt="'+esc(r.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(r.name)+'</strong><small>'+esc(r.description||"")+'<br>AED '+Number(r.price||0).toFixed(2)+'</small></div><span class="badge">'+esc(r.status)+'</span></div>').join(""):'<div class="empty">No menu items yet.</div>';
+ const state={profile:null,categories:[],items:[],editingId:null};
+ const catMap=()=>Object.fromEntries(state.categories.map(c=>[c.id,c]));
+ function resetForm(){state.editingId=null;formTitle.textContent="Add Menu Item";saveBtn.textContent="SAVE MENU ITEM";nameEl.value="";descEl.value="";priceEl.value="";imageEl.value="";statusEl.value="active";catEl.value="";msg.textContent="GM can add, edit, delete, categorize, activate, or deactivate menu items."}
+ function fillCategories(){catEl.innerHTML='<option value="">Select category</option>'+state.categories.map(c=>`<option value="${esc(c.id)}">${esc(c.icon)} ${esc(c.name)}</option>`).join("")}
+ async function loadCategories(){
+   const {data,error}=await sb.from("menu_categories").select("id,name,icon,sort_order,is_active").eq("is_active",true).order("sort_order",{ascending:true});
+   if(error) throw error; state.categories=Array.isArray(data)?data:[]; fillCategories();
  }
- document.getElementById("saveMenuBtn").onclick=async()=>{
-   const name=document.getElementById("gmMenuName").value.trim(),description=document.getElementById("gmMenuDescription").value.trim(),price=Number(document.getElementById("gmMenuPrice").value),image_url=document.getElementById("gmMenuImage").value.trim(),status=document.getElementById("gmMenuStatus").value;
-   if(!name){msg.textContent="Item name is required.";return}
-   if(!Number.isFinite(price)||price<0){msg.textContent="Enter a valid price.";return}
-   const profile=await getProfile();
-   if(!profile||profile.role!=="gm"){msg.textContent="GM access is required.";return}
-   const {error}=await sb.from("menu_items").insert({name,description,price,image_url:image_url||null,status,created_by:profile.id});
+ function renderList(){
+   const cm=catMap(); count.textContent=`${state.items.length} item${state.items.length===1?"":"s"}`;
+   if(!state.items.length){list.innerHTML='<div class="empty">No menu items yet.</div>';return}
+   list.innerHTML=state.items.map(r=>{
+     const cat=cm[r.category_id];
+     const icon=cat?.icon||"☕";
+     const image=r.image_url?`<img src="${esc(r.image_url)}" alt="${esc(r.name)}" loading="lazy">`:`<div class="menu-row-placeholder">${esc(icon)}</div>`;
+     return `<div class="menu-row"><div>${image}</div><div class="grow"><strong>${esc(r.name)}</strong><small>${esc(r.description||"")}${r.description?"<br>":""}AED ${Number(r.price??0).toFixed(2)}</small><div class="menu-meta"><span class="badge category-chip">${esc(icon)} ${esc(cat?.name||"Uncategorized")}</span><span class="badge">${esc(r.status||"inactive")}</span></div></div><div class="menu-actions"><button class="action-btn" type="button" data-edit="${esc(r.id)}">EDIT</button><button class="action-btn delete" type="button" data-delete="${esc(r.id)}">DELETE</button></div></div>`;
+   }).join("");
+   list.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>startEdit(b.dataset.edit));
+   list.querySelectorAll("[data-delete]").forEach(b=>b.onclick=()=>deleteItem(b.dataset.delete));
+ }
+ async function loadItems(){
+   const {data,error}=await sb.from("menu_items").select("id,name,description,price,image_url,status,category_id,created_at").order("created_at",{ascending:false});
+   if(error) throw error; state.items=Array.isArray(data)?data:[]; renderList();
+ }
+ function startEdit(id){
+   const r=state.items.find(x=>x.id===id); if(!r)return;
+   state.editingId=id; formTitle.textContent="Edit Menu Item"; saveBtn.textContent="UPDATE MENU ITEM"; nameEl.value=r.name||"";catEl.value=r.category_id||"";descEl.value=r.description||"";priceEl.value=r.price??"";imageEl.value=r.image_url||"";statusEl.value=r.status||"inactive";msg.textContent=`Editing: ${r.name||"Menu Item"}`;window.scrollTo({top:0,behavior:"smooth"});
+ }
+ async function deleteItem(id){
+   const r=state.items.find(x=>x.id===id); if(!r)return;
+   if(!confirm(`Delete "${r.name||"this item"}" from the menu?`))return;
+   msg.textContent="Deleting…";
+   const {error}=await sb.from("menu_items").delete().eq("id",id);
    if(error){msg.textContent=error.message;return}
-   msg.textContent="Menu item saved successfully.";
-   ["gmMenuName","gmMenuDescription","gmMenuPrice","gmMenuImage"].forEach(id=>document.getElementById(id).value="");
-   await load();
+   msg.textContent="Menu item deleted successfully."; if(state.editingId===id)resetForm(); await loadItems();
+ }
+ saveBtn.onclick=async()=>{
+   const name=nameEl.value.trim(),category_id=catEl.value,description=descEl.value.trim(),price=Number(priceEl.value),image_url=imageEl.value.trim(),status=statusEl.value;
+   if(!name){msg.textContent="Item name is required.";return}
+   if(!category_id){msg.textContent="Select a category.";return}
+   if(!Number.isFinite(price)||price<0){msg.textContent="Enter a valid price.";return}
+   const profile=state.profile||await getProfile(); if(!profile||profile.role!=="gm"){msg.textContent="GM access is required.";return}
+   saveBtn.disabled=true;
+   try{
+     if(state.editingId){
+       const {error}=await sb.from("menu_items").update({name,description,price,image_url:image_url||null,status,category_id}).eq("id",state.editingId);
+       if(error)throw error; msg.textContent="Menu item updated successfully.";
+     }else{
+       const {error}=await sb.from("menu_items").insert({name,description,price,image_url:image_url||null,status,category_id,created_by:profile.id});
+       if(error)throw error; msg.textContent="Menu item added successfully.";
+     }
+     resetForm(); await loadItems();
+   }catch(e){msg.textContent=e?.message||"Could not save menu item."}
+   finally{saveBtn.disabled=false}
  };
+ newBtn.onclick=resetForm;
  (async()=>{
-   const profile=await guardRole(["gm"]);
-   if(profile) await load();
- })().catch(e=>{msg.textContent=e?.message||"Could not load menu."});
+   state.profile=await guardRole(["gm"]); if(!state.profile)return;
+   await loadCategories(); await loadItems(); resetForm();
+ })().catch(e=>{msg.textContent=e?.message||"Could not load menu.";list.innerHTML='<div class="alert">'+esc(e?.message||"Could not load menu.")+'</div>'});
 })();
 </script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
