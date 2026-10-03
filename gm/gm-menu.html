@@ -7,26 +7,39 @@
 <div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div>
 <div class="field"><label>Image URL (optional)</label><input class="input" id="gmMenuImage" placeholder="https://..."></div>
 <div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
-<button class="btn primary block" id="saveMenuBtn" type="button">SAVE MENU ITEM</button><div id="menuMsg" class="note">GM can add, edit, delete, categorize, activate, or deactivate menu items.</div></div>
+<button class="btn primary block" id="saveMenuBtn" type="button">SAVE MENU ITEM</button><button class="btn secondary block" id="importOfficialMenuBtn" type="button">IMPORT OFFICIAL AL NOOR MENU</button><div id="menuMsg" class="note">GM can add, edit, delete, categorize, activate, or deactivate menu items.</div></div>
 <div class="card"><div class="list-head"><div><h3>Current Menu</h3><p class="form-note">Use Edit or Delete on any existing item.</p></div><span class="badge" id="menuCount">0 items</span></div><div id="gmMenuList"><div class="empty">Loading menu…</div></div></div>
 </main><nav class="nav"><div class="navin"><a href="gm-dashboard.html"><b>⌂</b>Dashboard</a><a href="gm-members.html"><b>●</b>Customers</a><a href="gm-menu.html" class="active"><b>✦</b>Menu</a><a href="gm-settings.html"><b>⚙</b>More</a></div></nav>
 <script src="../assets/config.js"></script><script src="../assets/app.js?v=20260930-final"></script>
+<script src="../assets/menu-data.js?v=20261003-menu"></script>
 <style>
 .menu-form-head,.list-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.menu-form-head h3,.list-head h3{margin:0}.form-note{margin:4px 0 0;color:var(--muted);font-size:11px}.btn.small{padding:8px 11px;font-size:10px}.menu-row{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}.menu-row:last-child{border-bottom:0}.menu-row img,.menu-row-placeholder{width:62px;height:62px;flex:0 0 62px;border-radius:15px;object-fit:cover;background:#f4eee3;border:1px solid rgba(7,58,43,.12)}.menu-row-placeholder{display:grid;place-items:center;font-size:26px}.menu-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px}.menu-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.action-btn{border:1px solid var(--line);border-radius:10px;padding:7px 9px;font-size:10px;font-weight:900;background:var(--paper);color:var(--green);cursor:pointer}.action-btn.delete{color:#a33d35;background:#fff8f6}.category-chip{background:#edf4ed;color:var(--green)}
 @media(max-width:650px){.menu-row{align-items:flex-start}.menu-actions{flex-direction:column}.action-btn{width:72px}.menu-form-head,.list-head{align-items:flex-start}}
 </style>
 <script>
 (function(){
- const msg=document.getElementById("menuMsg"),list=document.getElementById("gmMenuList"),count=document.getElementById("menuCount");
+ const msg=document.getElementById("menuMsg"),list=document.getElementById("gmMenuList"),count=document.getElementById("menuCount"),importBtn=document.getElementById("importOfficialMenuBtn");
  const nameEl=document.getElementById("gmMenuName"),catEl=document.getElementById("gmMenuCategory"),descEl=document.getElementById("gmMenuDescription"),priceEl=document.getElementById("gmMenuPrice"),imageEl=document.getElementById("gmMenuImage"),statusEl=document.getElementById("gmMenuStatus"),saveBtn=document.getElementById("saveMenuBtn"),newBtn=document.getElementById("newMenuBtn"),formTitle=document.getElementById("formTitle");
  const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
  const state={profile:null,categories:[],items:[],editingId:null};
+ const FALLBACK_CATEGORIES=[
+  {name:'Classic Coffee',icon:'☕',sort_order:1},{name:'Craft Pour-Over (V60)',icon:'☕',sort_order:2},
+  {name:'Iced Coffee',icon:'🧊',sort_order:3},{name:'Matcha',icon:'🍵',sort_order:4},
+  {name:'Breakfast',icon:'🍳',sort_order:5},{name:'Paninis, Wraps & Toast',icon:'🥪',sort_order:6},
+  {name:'Fresh Salads',icon:'🥗',sort_order:7},{name:'Artisanal Pizzas',icon:'🍕',sort_order:8},
+  {name:'Traditional Oven Manakish',icon:'🫓',sort_order:9},{name:'Bakery & Croissants',icon:'🥐',sort_order:10},
+  {name:'Cakes & Pastries',icon:'🍰',sort_order:11},{name:'Fresh Juices & Wellness',icon:'🧃',sort_order:12},
+  {name:'Acai',icon:'🥭',sort_order:13},{name:'Mojitos & Iced Teas',icon:'🍹',sort_order:14}
+ ];
  const catMap=()=>Object.fromEntries(state.categories.map(c=>[c.id,c]));
  function resetForm(){state.editingId=null;formTitle.textContent="Add Menu Item";saveBtn.textContent="SAVE MENU ITEM";nameEl.value="";descEl.value="";priceEl.value="";imageEl.value="";statusEl.value="active";catEl.value="";msg.textContent="GM can add, edit, delete, categorize, activate, or deactivate menu items."}
  function fillCategories(){catEl.innerHTML='<option value="">Select category</option>'+state.categories.map(c=>`<option value="${esc(c.id)}">${esc(c.icon)} ${esc(c.name)}</option>`).join("")}
  async function loadCategories(){
    const {data,error}=await sb.from("menu_categories").select("id,name,icon,sort_order,is_active").eq("is_active",true).order("sort_order",{ascending:true});
-   if(error) throw error; state.categories=Array.isArray(data)?data:[]; fillCategories();
+   if(error) throw error;
+   state.categories=Array.isArray(data)?data:[];
+   if(!state.categories.length) state.categories=FALLBACK_CATEGORIES.map((c,i)=>({...c,id:'catalog-cat-'+i,is_active:true}));
+   fillCategories();
  }
  function renderList(){
    const cm=catMap(); count.textContent=`${state.items.length} item${state.items.length===1?"":"s"}`;
@@ -56,6 +69,41 @@
    if(error){msg.textContent=error.message;return}
    msg.textContent="Menu item deleted successfully."; if(state.editingId===id)resetForm(); await loadItems();
  }
+ async function importOfficialMenu(){
+   const profile=state.profile||await getProfile();
+   if(!profile||profile.role!=="gm"){msg.textContent="GM access is required.";return}
+   if(!Array.isArray(window.AL_NOOR_MENU_CATALOG)||!window.AL_NOOR_MENU_CATALOG.length){msg.textContent="Official menu catalog is not available.";return}
+   if(!confirm("Import the official AL NOOR menu: 14 categories and 87 items? Existing items with the same name will not be duplicated."))return;
+   importBtn.disabled=true; msg.textContent="Importing official AL NOOR menu…";
+   try{
+     const catResult=await sb.from("menu_categories").select("id,name");
+     if(catResult.error)throw catResult.error;
+     const existingCats=Array.isArray(catResult.data)?catResult.data:[];
+     const catByName=new Map(existingCats.map(c=>[String(c.name).trim().toLowerCase(),c]));
+     const missingCats=FALLBACK_CATEGORIES.filter(c=>!catByName.has(c.name.toLowerCase()));
+     if(missingCats.length){
+       const {data,error}=await sb.from("menu_categories").insert(missingCats.map(c=>({name:c.name,icon:c.icon,sort_order:c.sort_order,is_active:true}))).select("id,name");
+       if(error)throw error;
+       (data||[]).forEach(c=>catByName.set(String(c.name).trim().toLowerCase(),c));
+     }
+     const allCats=await sb.from("menu_categories").select("id,name");
+     if(allCats.error)throw allCats.error;
+     const finalCatByName=new Map((allCats.data||[]).map(c=>[String(c.name).trim().toLowerCase(),c]));
+     const existingItemsResult=await sb.from("menu_items").select("id,name");
+     if(existingItemsResult.error)throw existingItemsResult.error;
+     const existingNames=new Set((existingItemsResult.data||[]).map(x=>String(x.name).trim().toLowerCase()));
+     const rows=window.AL_NOOR_MENU_CATALOG.filter(x=>!existingNames.has(String(x.name).trim().toLowerCase())).map(x=>({
+       name:x.name,description:x.description||"",price:x.price,image_url:null,status:"active",category_id:finalCatByName.get(String(x.category).trim().toLowerCase())?.id,created_by:profile.id
+     })).filter(x=>x.category_id);
+     if(rows.length){
+       const {error}=await sb.from("menu_items").insert(rows); if(error)throw error;
+     }
+     msg.textContent=`Official menu imported successfully. ${rows.length} new items added.`;
+     await loadCategories(); await loadItems();
+   }catch(e){msg.textContent=e?.message||"Could not import the official menu."}
+   finally{importBtn.disabled=false}
+ }
+ importBtn.onclick=importOfficialMenu;
  saveBtn.onclick=async()=>{
    const name=nameEl.value.trim(),category_id=catEl.value,description=descEl.value.trim(),price=Number(priceEl.value),image_url=imageEl.value.trim(),status=statusEl.value;
    if(!name){msg.textContent="Item name is required.";return}
