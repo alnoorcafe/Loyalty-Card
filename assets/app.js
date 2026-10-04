@@ -270,13 +270,6 @@ async function registerCustomer() {
   setTimeout(() => location.href = "customer-home.html", 500);
 }
 
-async function customerLogout() {
-  try { await sb.auth.signOut(); } catch (e) {}
-  localStorage.removeItem(KEYS.customerToken);
-  localStorage.removeItem(KEYS.staffCustomer);
-  location.href = "customer-login.html";
-}
-
 async function logout() {
   await sb.auth.signOut();
   localStorage.removeItem(KEYS.customerToken);
@@ -593,824 +586,123 @@ async function loadAddPoints() {
 }
 
 async function loadStaffRedeem() {
-  const profile = await guardRole(["staff", "gm"]);
+  const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
-
   if (!customer) {
     location.href = "staff-scan.html";
     return;
   }
 
   renderStaffCustomer(customer);
-
-  const customerPoints = Math.min(
-    50,
-    Number(customer.points || 0)
-  );
-
-  document
-    .querySelectorAll("[data-points]")
-    .forEach(el => {
-      el.textContent = customerPoints;
-    });
+  document.querySelectorAll("[data-points]").forEach(e => e.textContent = Math.min(50, Number(customer.points || 0)));
 
   const box = $("rewards");
-
-  if (!box) return;
-
-  /*
-   * Get all active rewards.
-   * The points_cost comes from the reward itself.
-   */
   const { data, error } = await sb
     .from("rewards")
-    .select(`
-      id,
-      title,
-      name,
-      description,
-      points_cost,
-      is_active,
-      image_url
-    `)
+    .select("id,title,name,description,points_cost,is_active,image_url")
     .eq("is_active", true)
-    .order("points_cost", {
-      ascending: true
-    });
+    .order("points_cost", { ascending: true });
 
   if (error) {
-    box.innerHTML = `
-      <div class="card">
-        <div class="alert">
-          ${esc(error.message)}
-        </div>
-      </div>
-    `;
+    box.innerHTML = `<div class="card"><div class="alert">${esc(error.message)}</div></div>`;
     return;
   }
 
-  const rewards = Array.isArray(data) ? data : [];
-
-  /*
-   * Save rewards globally so the confirmation
-   * window can let Staff choose the reward/value.
-   */
-  window.staffRedeemRewards = rewards;
-
-  if (!rewards.length) {
-    box.innerHTML = `
-      <div class="card">
-        <div class="empty">
-          No rewards are active.
-        </div>
-      </div>
-    `;
-    return;
-  }
-
-  /*
-   * Display rewards.
-   */
-  box.innerHTML = rewards.map(reward => {
-
-    const cost = Number(
-      reward.points_cost || 0
-    );
-
-    const canRedeem =
-      customerPoints >= cost;
-
-    const image =
-      reward.image_url ||
-      "../assets/free-drink.svg";
-
-    const title =
-      reward.title ||
-      reward.name ||
-      "Reward";
-
-    const description =
-      reward.description ||
-      "Reward available";
-
+  const customerPoints = Math.min(50, Number(customer.points || 0));
+  box.innerHTML = data?.length ? data.map(r => {
+    const cost = Number(r.points_cost || 0);
+    const canRedeem = customerPoints >= cost;
+    const img = r.image_url || "../assets/free-drink.svg";
     return `
-      <button
-        type="button"
-        class="card reward-choice-card staff-reward-select"
-        data-reward-id="${esc(reward.id)}"
-        data-cost="${cost}"
-        ${!canRedeem ? "disabled" : ""}
-      >
-
-        <img
-          class="reward-large-image"
-          src="${esc(image)}"
-          alt="${esc(title)}"
-        >
-
+      <button type="button" class="card reward-choice-card staff-reward-select" data-reward-id="${esc(r.id)}" data-cost="${cost}">
+        <img class="reward-large-image" src="${esc(img)}" alt="${esc(r.title || r.name || "Reward")}">
         <span class="reward-choice-body">
-
-          <strong>
-            ${esc(title)}
-          </strong>
-
-          <span>
-            ${esc(description)}
-          </span>
-
-          <b class="reward-points">
-            ${moneyPoints(cost)} points
-          </b>
-
-          <small
-            class="
-              reward-availability
-              ${canRedeem ? "ready" : "wait"}
-            "
-          >
-            ${
-              canRedeem
-                ? "SELECT REWARD"
-                : `Need ${moneyPoints(
-                    cost - customerPoints
-                  )} more points`
-            }
-          </small>
-
+          <strong>${esc(r.title || r.name || "Reward")}</strong>
+          <span>${esc(r.description || "Reward available")}</span>
+          <b class="reward-points">${moneyPoints(cost)} points</b>
+          <small class="reward-availability ${canRedeem ? "ready" : "wait"}">${canRedeem ? "SELECT REWARD" : `Need ${moneyPoints(cost - customerPoints)} more points`}</small>
         </span>
+      </button>`;
+  }).join("") : `<div class="card"><div class="empty">No rewards are active.</div></div>`;
 
-      </button>
-    `;
-
-  }).join("");
-
-  /*
-   * When Staff clicks a reward,
-   * open the selection/confirmation screen.
-   */
-  box
-    .querySelectorAll(".staff-reward-select")
-    .forEach(button => {
-
-      button.onclick = () => {
-
-        const rewardId =
-          button.dataset.rewardId;
-
-        const cost =
-          Number(button.dataset.cost || 0);
-
-        openStaffRedemptionConfirm(
-          rewardId,
-          cost
-        );
-      };
-
-    });
+  box.querySelectorAll(".staff-reward-select").forEach(btn => {
+    btn.onclick = () => openStaffRedemptionConfirm(btn.dataset.rewardId, Number(btn.dataset.cost));
+  });
 }
 
-
-/*
- * Staff redemption confirmation.
- *
- * Staff can choose WHICH reward/value
- * will be deducted from the customer's points.
- */
-async function openStaffRedemptionConfirm(
-  rewardId,
-  cost
-) {
-
+async function openStaffRedemptionConfirm(rewardId, cost) {
   const customer = getStaffCustomer();
-
   if (!customer) return;
-
-  const current = Math.min(
-    50,
-    Number(customer.points || 0)
-  );
-
-  const rewards =
-    Array.isArray(window.staffRedeemRewards)
-      ? window.staffRedeemRewards
-      : [];
-
-  /*
-   * Only show rewards that:
-   * 1. Are valid
-   * 2. Have a points cost
-   * 3. Customer has enough points
-   */
-  const selectableRewards = rewards
-    .map(reward => {
-
-      return {
-        id: String(reward.id),
-
-        title:
-          reward.title ||
-          reward.name ||
-          "Reward",
-
-        cost:
-          Number(
-            reward.points_cost || 0
-          ),
-
-        description:
-          reward.description || ""
-      };
-
-    })
-    .filter(reward => {
-
-      return (
-        reward.cost > 0 &&
-        current >= reward.cost
-      );
-
-    });
-
-  let selectedRewardId =
-    String(rewardId);
-
-  let selectedCost =
-    Number(cost || 0);
-
-  let selectedReward =
-    selectableRewards.find(
-      reward =>
-        reward.id === selectedRewardId
-    );
-
-  /*
-   * If the selected reward isn't available,
-   * choose another available reward.
-   */
-  if (!selectedReward) {
-
-    selectedReward =
-      selectableRewards.find(
-        reward =>
-          reward.cost === selectedCost
-      ) ||
-      selectableRewards[0];
-
-    if (selectedReward) {
-
-      selectedRewardId =
-        selectedReward.id;
-
-      selectedCost =
-        selectedReward.cost;
-    }
-  }
-
-  /*
-   * Customer doesn't have enough points.
-   */
-  if (
-    !selectedReward ||
-    current < selectedCost
-  ) {
-
-    const needed =
-      Math.max(
-        0,
-        selectedCost - current
-      );
-
-    toast(
-      `Customer needs ${moneyPoints(
-        needed
-      )} more points.`,
-      false
-    );
-
+  const current = Math.min(50, Number(customer.points || 0));
+  if (current < cost) {
+    toast(`Customer needs ${moneyPoints(cost - current)} more points.`, false);
     return;
   }
-
-  const confirmBox =
-    $("redeemConfirm");
-
+  const reward = document.querySelector(`.staff-reward-select[data-reward-id="${CSS.escape(rewardId)}"]`);
+  const title = reward?.querySelector("strong")?.textContent || "Selected Reward";
+  const confirmBox = $("redeemConfirm");
   if (!confirmBox) return;
-
-
-  /*
-   * Render confirmation screen.
-   */
-  const renderConfirm = () => {
-
-    const chosen =
-      selectableRewards.find(
-        reward =>
-          reward.id === selectedRewardId
-      ) ||
-      selectedReward;
-
-    const title =
-      chosen?.title ||
-      "Selected Reward";
-
-    selectedCost =
-      Number(
-        chosen?.cost ||
-        selectedCost ||
-        0
-      );
-
-    confirmBox.style.display =
-      "block";
-
-    confirmBox.innerHTML = `
-
-      <h2 style="margin-top:0">
-        Redeem Rewards
-      </h2>
-
-      <div
-        class="card"
-        style="background:#f7f5ee"
-      >
-
-        <strong>
-          ${esc(
-            customer.full_name ||
-            "Customer"
-          )}
-        </strong>
-
-
-        <label
-          style="
-            display:block;
-            margin:14px 0 6px;
-            font-weight:700
-          "
-        >
-          Select Points to Deduct
-        </label>
-
-
-        <select
-          id="staffRedeemRewardSelect"
-          class="input"
-          style="
-            width:100%;
-            padding:12px;
-            border-radius:12px
-          "
-        >
-
-          ${selectableRewards.map(
-            reward => `
-
-              <option
-                value="${esc(reward.id)}"
-                ${
-                  reward.id ===
-                  selectedRewardId
-                    ? "selected"
-                    : ""
-                }
-              >
-                ${esc(
-                  reward.title
-                )}
-                —
-                ${moneyPoints(
-                  reward.cost
-                )}
-                points
-              </option>
-
-            `
-          ).join("")}
-
-        </select>
-
-
-        <p style="margin:10px 0 0">
-
-          <b>
-            ${esc(title)}
-          </b>
-
-        </p>
-
-
-        <div
-          class="grid g3"
-          style="margin-top:12px"
-        >
-
-          <div>
-            <small>
-              Points Before
-            </small>
-
-            <strong>
-              ${current}
-            </strong>
-          </div>
-
-
-          <div>
-
-            <small>
-              Points Used
-            </small>
-
-            <strong
-              id="redeemUsedPoints"
-              style="color:#a85d45"
-            >
-              -${selectedCost}
-            </strong>
-
-          </div>
-
-
-          <div>
-
-            <small>
-              Points After
-            </small>
-
-            <strong
-              id="redeemAfterPoints"
-              style="color:#2d7b55"
-            >
-              ${current - selectedCost}
-            </strong>
-
-          </div>
-
-        </div>
-
+  confirmBox.style.display = "block";
+  confirmBox.innerHTML = `
+    <h2 style="margin-top:0">Confirm Redemption</h2>
+    <div class="card" style="background:#f7f5ee">
+      <strong>${esc(customer.full_name || "Customer")}</strong>
+      <p style="margin:8px 0"><b>${esc(title)}</b></p>
+      <div class="grid g3" style="margin-top:12px">
+        <div><small>Points Before</small><strong>${current}</strong></div>
+        <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
+        <div><small>Points After</small><strong style="color:#2d7b55">${current-cost}</strong></div>
       </div>
-
-
-      <div
-        class="grid g2"
-        style="margin-top:14px"
-      >
-
-        <button
-          class="btn gold"
-          id="confirmRedeemBtn"
-        >
-          Redeem & Deduct Points
-        </button>
-
-
-        <button
-          class="btn soft"
-          id="cancelRedeemBtn"
-        >
-          Cancel
-        </button>
-
-      </div>
-    `;
-
-
-    confirmBox.scrollIntoView({
-      behavior: "smooth",
-      block: "nearest"
-    });
-
-
-    /*
-     * Staff changes the reward/value.
-     */
-    const rewardSelect =
-      $("staffRedeemRewardSelect");
-
-    if (rewardSelect) {
-
-      rewardSelect.onchange =
-        event => {
-
-          selectedRewardId =
-            String(
-              event.target.value
-            );
-
-          selectedReward =
-            selectableRewards.find(
-              reward =>
-                reward.id ===
-                selectedRewardId
-            );
-
-          selectedCost =
-            Number(
-              selectedReward?.cost ||
-              0
-            );
-
-          renderConfirm();
-        };
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <button class="btn gold" id="confirmRedeemBtn">Redeem & Deduct Points</button>
+      <button class="btn soft" id="cancelRedeemBtn">Cancel</button>
+    </div>`;
+  confirmBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+  $("cancelRedeemBtn").onclick = () => { confirmBox.style.display="none"; };
+  $("confirmRedeemBtn").onclick = async () => {
+    const btn = $("confirmRedeemBtn");
+    btn.disabled = true; btn.textContent = "REDEEMING…";
+    try {
+      const staff = await getStaffProfile();
+      const { data, error } = await sb.rpc("redeem_customer_coupon", {
+        p_customer_id: customer.id,
+        p_reward_id: rewardId,
+        p_location_id: staff?.location_id || null
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      const remaining = Number(result?.remaining_points ?? (current - cost));
+      customer.points = Math.max(0, Math.min(50, remaining));
+      saveStaffCustomer(customer);
+      renderStaffCustomer(customer);
+      document.querySelectorAll("[data-points]").forEach(e => e.textContent = customer.points);
+      confirmBox.style.display = "none";
+      const resultBox = $("redeemResult");
+      if (resultBox) {
+        resultBox.style.display = "block";
+        resultBox.innerHTML = `
+          <div style="text-align:center">
+            <div style="font-size:48px">✓</div>
+            <h2 style="color:#073a2b">Reward Redeemed Successfully</h2>
+            <p>${esc(title)} has been redeemed for ${esc(customer.full_name || "Customer")}.</p>
+            <div class="grid g3" style="margin:16px 0">
+              <div><small>Points Before</small><strong>${current}</strong></div>
+              <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
+              <div><small>Points After</small><strong style="color:#2d7b55">${customer.points}</strong></div>
+            </div>
+            <button class="btn primary block" onclick="loadStaffRedeem()">Redeem Another</button>
+          </div>`;
+        resultBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+      }
+      toast("Reward redeemed and points deducted.", true);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "Redeem & Deduct Points";
+      toast(e.message || "Could not redeem reward.", false);
     }
-
-
-    /*
-     * Cancel.
-     */
-    const cancelButton =
-      $("cancelRedeemBtn");
-
-    if (cancelButton) {
-
-      cancelButton.onclick =
-        () => {
-
-          confirmBox.style.display =
-            "none";
-        };
-    }
-
-
-    /*
-     * Confirm redemption.
-     */
-    const confirmButton =
-      $("confirmRedeemBtn");
-
-    if (!confirmButton) return;
-
-
-    confirmButton.onclick =
-      async () => {
-
-        confirmButton.disabled =
-          true;
-
-        confirmButton.textContent =
-          "REDEEMING…";
-
-
-        try {
-
-          const staff =
-            await getStaffProfile();
-
-
-          /*
-           * IMPORTANT:
-           *
-           * The selected reward ID is sent
-           * to Supabase.
-           *
-           * The database function must use
-           * rewards.points_cost for this
-           * selected reward.
-           */
-          const {
-            data,
-            error
-          } = await sb.rpc(
-            "redeem_customer_coupon",
-            {
-
-              p_customer_id:
-                customer.id,
-
-              p_reward_id:
-                selectedRewardId,
-
-              p_location_id:
-                staff?.location_id ||
-                null
-            }
-          );
-
-
-          if (error) {
-            throw error;
-          }
-
-
-          /*
-           * Supabase may return:
-           * object OR array.
-           */
-          const result =
-            Array.isArray(data)
-              ? data[0]
-              : data;
-
-
-          /*
-           * Prefer the actual remaining
-           * balance returned by the DB.
-           */
-          const remaining =
-            Number(
-              result?.remaining_points ??
-              (
-                current -
-                selectedCost
-              )
-            );
-
-
-          customer.points =
-            Math.max(
-              0,
-              Math.min(
-                50,
-                remaining
-              )
-            );
-
-
-          saveStaffCustomer(
-            customer
-          );
-
-
-          renderStaffCustomer(
-            customer
-          );
-
-
-          document
-            .querySelectorAll(
-              "[data-points]"
-            )
-            .forEach(el => {
-
-              el.textContent =
-                customer.points;
-
-            });
-
-
-          confirmBox.style.display =
-            "none";
-
-
-          /*
-           * Success message.
-           */
-          const resultBox =
-            $("redeemResult");
-
-
-          if (resultBox) {
-
-            resultBox.style.display =
-              "block";
-
-
-            resultBox.innerHTML = `
-
-              <div
-                style="text-align:center"
-              >
-
-                <div
-                  style="
-                    font-size:48px
-                  "
-                >
-                  ✓
-                </div>
-
-
-                <h2
-                  style="
-                    color:#073a2b
-                  "
-                >
-                  Reward Redeemed Successfully
-                </h2>
-
-
-                <p>
-
-                  ${esc(
-                    selectedReward?.title ||
-                    "Selected Reward"
-                  )}
-
-                  has been redeemed for
-
-                  ${esc(
-                    customer.full_name ||
-                    "Customer"
-                  )}.
-
-                </p>
-
-
-                <div
-                  class="grid g3"
-                  style="
-                    margin:16px 0
-                  "
-                >
-
-                  <div>
-
-                    <small>
-                      Points Before
-                    </small>
-
-                    <strong>
-                      ${current}
-                    </strong>
-
-                  </div>
-
-
-                  <div>
-
-                    <small>
-                      Points Used
-                    </small>
-
-                    <strong
-                      style="
-                        color:#a85d45
-                      "
-                    >
-                      -${selectedCost}
-                    </strong>
-
-                  </div>
-
-
-                  <div>
-
-                    <small>
-                      Points After
-                    </small>
-
-                    <strong
-                      style="
-                        color:#2d7b55
-                      "
-                    >
-                      ${customer.points}
-                    </strong>
-
-                  </div>
-
-                </div>
-
-
-                <button
-                  class="btn primary block"
-                  onclick="loadStaffRedeem()"
-                >
-                  Redeem Another
-                </button>
-
-              </div>
-
-            `;
-
-
-            resultBox.scrollIntoView({
-              behavior: "smooth",
-              block: "nearest"
-            });
-
-          }
-
-
-          toast(
-            "Reward redeemed and points deducted.",
-            true
-          );
-
-
-        } catch (e) {
-
-          confirmButton.disabled =
-            false;
-
-          confirmButton.textContent =
-            "Redeem & Deduct Points";
-
-
-          toast(
-            e.message ||
-            "Could not redeem reward.",
-            false
-          );
-        }
-
-      };
   };
-
-
-  renderConfirm();
 }
 
 async function loadStaffHistory() {
