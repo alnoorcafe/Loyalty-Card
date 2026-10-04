@@ -1,0 +1,28 @@
+{
+  "name": "AL NOOR LOYALTY",
+  "short_name": "AL NOOR",
+  "id": "./",
+  "start_url": "./customer-login.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": [
+    "standalone"
+  ],
+  "background_color": "#f5efe2",
+  "theme_color": "#0b4a36",
+  "description": "AL NOOR BAKERY & CAFE Customer Loyalty",
+  "icons": [
+    {
+      "src": "../assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "../assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
