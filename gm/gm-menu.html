@@ -71,7 +71,8 @@
      fillCategories();
      return false;
    }
-   categories=(data||[]).filter(c=>c.is_active!==false).map(c=>({
+   const REMOVED_CATEGORIES=new Set(["Paninis, Wraps & Toast","Fresh Salads","Artisanal Pizzas","Traditional Oven Manakish"]);
+   categories=(data||[]).filter(c=>c.is_active!==false && !REMOVED_CATEGORIES.has(c.name)).map(c=>({
      ...c,
      image:(typeof (c.image_url||c.image||c.icon) === "string" && /^(https?:|data:|\.\.?\/)/.test(c.image_url||c.image||c.icon)) ? (c.image_url||c.image||c.icon) : null
    }));
@@ -208,7 +209,6 @@
      let createdCats=0;
      for(const [index,name] of [
        "Classic Coffee","Craft Pour-Over (V60)","Iced Coffee","Matcha","Breakfast",
-       "Paninis, Wraps & Toast","Fresh Salads","Artisanal Pizzas","Traditional Oven Manakish",
        "Bakery & Croissants","Cakes & Pastries","Fresh Juices & Wellness","Acai","Mojitos & Iced Teas"
      ].entries()){
        let {data,error}=await sb.from("menu_categories").select("id,name").eq("name",name).maybeSingle();
@@ -253,7 +253,7 @@
        }
      }
      await loadItems();
-     msg.textContent='Official menu imported successfully: 14 categories, '+added+' added, '+updated+' updated.';
+     msg.textContent='Official menu imported successfully: 10 categories, '+added+' added, '+updated+' updated.';
    }catch(e){
      msg.textContent=e?.message||"Import failed.";
    }finally{btn.disabled=false;}
