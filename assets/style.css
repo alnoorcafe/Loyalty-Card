@@ -1,17 +1,3 @@
-.customer-signout-btn{
-  border:1px solid #b48b4a;
-  background:#fff;
-  color:#073a2b;
-  border-radius:10px;
-  padding:9px 13px;
-  font-size:12px;
-  font-weight:800;
-  cursor:pointer;
-  white-space:nowrap;
-}
-.customer-signout-btn:active{transform:translateY(1px);}
-.customer-signout-btn:disabled{opacity:.65;cursor:wait;}
-
 [hidden]{display:none!important}
 
 :root{
