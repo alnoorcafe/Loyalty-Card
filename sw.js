@@ -1,21 +1,18 @@
-const CACHE = "al-noor-loyalty-v3-customer";
+const CACHE = "al-noor-loyalty-v4-menu-final";
 const SHELL = [
-  "./customer/customer-login.html",
-  "./customer/customer-register.html",
-  "./customer/customer-home.html",
-  "./customer/customer-card.html",
-  "./customer/customer-rewards.html",
-  "./customer/customer-locations.html",
-  "./customer/customer-offers.html",
-  "./customer/customer-menu.html",
-  "./customer/customer-profile.html",
+  "./",
+  "./index.html",
   "./assets/style.css",
   "./assets/app.js",
   "./assets/config.js",
   "./manifest.webmanifest",
   "./assets/al-noor-approved-logo.png",
   "./assets/icons/icon-192.png",
-  "./assets/icons/icon-512.png"
+  "./assets/icons/icon-512.png",
+  "./assets/official-menu-data.js",
+  "./assets/menu-data.js",
+  "./assets/menu-items/espresso-avocado.png",
+  "./assets/menu-categories/paninis-wraps-toast.png"
 ];
 
 self.addEventListener("install", event => {
@@ -48,7 +45,7 @@ self.addEventListener("fetch", event => {
       })
       .catch(() =>
         caches.match(event.request).then(response =>
-          response || caches.match("./customer/customer-login.html")
+          response || caches.match("./index.html")
         )
       )
   );

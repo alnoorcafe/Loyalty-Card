@@ -1,13 +1,12 @@
 {
-  "id": "./customer/",
-  "name": "AL NOOR LOYALTY",
+  "name": "AL NOOR BAKERY & CAFE Loyalty",
   "short_name": "AL NOOR",
-  "start_url": "./customer/customer-login.html",
-  "scope": "./customer/",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f5efe2",
   "theme_color": "#0b4a36",
-  "description": "AL NOOR BAKERY & CAFE customer loyalty app.",
+  "description": "AL NOOR BAKERY & CAFE customer, staff, GM and admin loyalty system.",
   "icons": [
     {
       "src": "assets/icons/icon-192.png",
