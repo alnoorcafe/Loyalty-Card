@@ -15,15 +15,19 @@
   const selects=[$("gmMenuCategory"),$("gmItemCategory")];
   selects.forEach(s=>{if(s)s.innerHTML='<option value="">Loading categories…</option>';});
   try{
-    let result=await sb.from("menu_categories").select("id,name,image_url,status,sort_order").order("sort_order",{ascending:true});
-    // Fallback for databases where optional category columns are not present yet.
-    if(result.error){
-      result=await sb.from("menu_categories").select("id,name,status").order("name",{ascending:true});
-      if(!result.error){
-        result.data=(result.data||[]).map(c=>({...c,image_url:null,sort_order:0}));
-      }
-    }
+    // Use the smallest guaranteed category schema first. Some deployed databases
+    // contain only id/name (while image_url/status/sort_order may not exist).
+    let result=await sb.from("menu_categories").select("id,name").order("name",{ascending:true});
     if(result.error) throw result.error;
+    categories=(result.data||[]).map(c=>({...c,image_url:null,status:"active",sort_order:0}));
+
+    // Enrich with optional columns when they exist, but never let that break loading.
+    const rich=await sb.from("menu_categories").select("id,name,image_url,status,sort_order").order("sort_order",{ascending:true});
+    if(!rich.error && Array.isArray(rich.data)){
+      const byId=new Map(rich.data.map(c=>[c.id,c]));
+      categories=categories.map(c=>({...c,...(byId.get(c.id)||{})}));
+      categories.sort((a,b)=>Number(a.sort_order||0)-Number(b.sort_order||0) || String(a.name||"").localeCompare(String(b.name||"")));
+    }
     categories=result.data||[];
     fillCategories();
     if(!categories.length){
