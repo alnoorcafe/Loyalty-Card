@@ -15,7 +15,7 @@
   <a class="brand brand-image" href="customer-home.html" aria-label="AL NOOR Home">
     <img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE">
   </a>
-  
+  <button class="icon" onclick="customerLogout()" title="Sign out" aria-label="Sign out">↪</button>
 </header>
 
 <main class="container menu-page">
@@ -137,7 +137,7 @@
         icon:r.icon||base?.icon||'☕',
         order:Number(r.sort_order??base?.order??(100+i)),
         active:r.is_active!==false,
-        image:(typeof r.icon==='string' && /^(https?:|data:|\.\.?\/)/.test(r.icon)) ? r.icon : (categoryImageMap[r.name||base?.name||'']||null)
+        image:(typeof (r.image_url||r.image||r.icon)==='string' && /^(https?:|data:|\.\.?\/)/.test(r.image_url||r.image||r.icon)) ? (r.image_url||r.image||r.icon) : (categoryImageMap[r.name||base?.name||'']||null)
       });
     });
     if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image:categoryImageMap[c.name]||null}));
