@@ -45,7 +45,7 @@
 </nav>
 
 <script src="../assets/config.js?v=20261003-customer-menu"></script>
-<script src="../assets/app.js?v=20261004-menu-image-fix"></script>
+<script src="../assets/app.js?v=20260930-final"></script>
 <script src="../assets/menu-data.js?v=20261003-menu"></script>
 
 <style>
@@ -69,7 +69,7 @@
 .menu-list{display:grid;gap:0}
 .menu-item{display:flex;align-items:center;gap:12px;padding:15px 0;border-bottom:1px solid var(--line)}
 .menu-item:last-child{border-bottom:0}
-.menu-placeholder{width:76px;height:76px;flex:0 0 76px;border-radius:17px;border:1px solid rgba(7,58,43,.10);background:#f4eee3;object-fit:cover;display:block}.menu-image-fallback{width:76px;height:76px;flex:0 0 76px;border-radius:17px;border:1px solid rgba(7,58,43,.10);background:#f4eee3;display:grid;place-items:center;font-size:29px}
+.menu-placeholder{width:76px;height:76px;flex:0 0 76px;border-radius:17px;border:1px solid rgba(7,58,43,.10);background:#f4eee3;object-fit:cover}
 .menu-placeholder{display:grid;place-items:center;font-size:29px}
 .menu-item-copy{min-width:0;flex:1}
 .menu-item-name{display:block;color:var(--menu-green);font-size:15px;line-height:1.3;font-weight:900}
@@ -85,6 +85,7 @@
 (function(){
   const categoriesView=document.getElementById('menuCategoriesView');
   const itemsView=document.getElementById('menuItemsView');
+  const REMOVED_CATEGORIES=new Set(["Paninis, Wraps & Toast","Fresh Salads","Artisanal Pizzas","Traditional Oven Manakish"]);
 
   const FALLBACK_CATEGORIES=[
     {key:'classic-coffee',name:'Classic Coffee',icon:'☕',order:1},
@@ -101,7 +102,7 @@
     {key:'fresh-juices-wellness',name:'Fresh Juices & Wellness',icon:'🧃',order:12},
     {key:'acai',name:'Acai',icon:'🥭',order:13},
     {key:'mojitos-iced-teas',name:'Mojitos & Iced Teas',icon:'🍹',order:14}
-  ];
+  ].filter(c=>!REMOVED_CATEGORIES.has(c.name));
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const slug=v=>String(v??'').trim().toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -129,7 +130,7 @@
     const result=[];
     const byName={};
     FALLBACK_CATEGORIES.forEach(c=>byName[slug(c.name)]=c);
-    (rows||[]).forEach((r,i)=>{
+    (rows||[]).filter(r=>!REMOVED_CATEGORIES.has(r.name)).forEach((r,i)=>{
       const base=byName[slug(r.name)]||FALLBACK_CATEGORIES.find(c=>c.key===slug(r.name))||null;
       result.push({
         id:r.id,
@@ -145,7 +146,7 @@
     FALLBACK_CATEGORIES.forEach(c=>{
       if(!existing.has(slug(c.name))) result.push({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image:categoryImageMap[c.name]||null});
     });
-    return result.filter(c=>c.active).sort((a,b)=>a.order-b.order);
+    return result.filter(c=>c.active && !REMOVED_CATEGORIES.has(c.name)).sort((a,b)=>a.order-b.order);
   }
 
   function isActiveItem(item){
@@ -194,11 +195,9 @@
     categoriesView.hidden=true;
 
     const rows=filtered.length?filtered.map(item=>{
-      const imageUrl=(typeof item.image_url==='string' && /^(https?:|data:|\.\.?\/)/.test(item.image_url.trim())) ? item.image_url.trim() : '';
-      const fallbackIcon=esc(cat?.icon||'☕');
-      const image=imageUrl
-        ? '<img class="menu-placeholder" src="'+esc(imageUrl)+'" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.outerHTML=\'<div class=\"menu-image-fallback\" aria-hidden=\"true\">'+fallbackIcon+'\</div>\'">'
-        : '<div class="menu-image-fallback" aria-hidden="true">'+fallbackIcon+'</div>';
+      const image=item.image_url
+        ? '<img class="menu-placeholder" src="'+esc(item.image_url)+'" alt="'+esc(item.name||'')+'" loading="lazy">'
+        : '<div class="menu-placeholder" aria-hidden="true">'+esc(cat?.icon||'☕')+'</div>';
       const desc=item.description?'<small class="menu-item-description">'+esc(item.description)+'</small>':'';
       const rawPrice=Number(item.price);
       const price=Number.isFinite(rawPrice)?'AED '+rawPrice.toFixed(2):'';
