@@ -1,7 +1,7 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><meta name="description" content="AL NOOR GM Menu Management"><link rel="manifest" href="../manifest.webmanifest"><title>AL NOOR — Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()">↪</button></header><main class="container"><h1 class="title">Menu Management</h1><p class="sub">Manage categories, products, prices, images, availability, and official menu import.</p>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><meta name="description" content="AL NOOR GM Menu Management"><link rel="manifest" href="../manifest.webmanifest"><title>AL NOOR — Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a></header><main class="container"><h1 class="title">Menu Management</h1><p class="sub">Manage categories, products, prices, images, availability, and official menu import.</p>
 <div class="card"><h3>Category</h3>
 <div class="field"><label>Category</label><select class="input" id="gmMenuCategory"><option value="">Loading categories…</option></select></div>
-<div class="field"><label>Category Image</label><input class="input" id="gmCategoryImageFile" type="file" accept="image/*"><small class="sub">Choose a different image for this category.</small></div>
+<div class="field"><label>Category Image</label><input class="input" id="gmCategoryImageFile" type="file" accept="image/*"><small class="sub">Choose the image you want for this category. The selected image is used for customers too.</small></div>
 <div class="field"><label>Category Image URL (optional)</label><input class="input" id="gmCategoryImage" placeholder="https://..."></div>
 <button class="btn primary block" id="saveCategoryBtn">SAVE CATEGORY</button>
 <div id="gmCategoryPreview" class="note">Select a category to edit its image.</div>
@@ -40,8 +40,9 @@
  function updateCategoryPreview(){
    const id=$("gmMenuCategory").value;
    const cat=categories.find(c=>c.id===id);
-   const src=cat?.image_url || categoryImageMap[cat?.name] || "";
-   $("gmCategoryImage").value=cat?.image_url||"";
+   const persistedImage=(cat?.image && /^(https?:|data:|\.\.?\/)/.test(cat.image)) ? cat.image : "";
+   const src=persistedImage || categoryImageMap[cat?.name] || "";
+   $("gmCategoryImage").value=persistedImage||"";
    $("gmCategoryPreview").innerHTML=src
      ? '<img src="'+esc(src)+'" alt="'+esc(cat?.name||"")+'" style="width:100%;max-height:170px;object-fit:cover;border-radius:16px;margin-top:8px"><div class="note">'+esc(cat?.name||"")+'</div>'
      : 'No category image selected yet.';
@@ -62,7 +63,7 @@
  async function loadCategories(){
    // Use only columns that exist in the current menu_categories schema.
    const {data,error}=await sb.from("menu_categories")
-     .select("id,name,icon,sort_order,is_active,image_url")
+     .select("*")
      .order("sort_order",{ascending:true});
    if(error){
      $("menuMsg").textContent=error.message;
@@ -70,7 +71,10 @@
      fillCategories();
      return false;
    }
-   categories=(data||[]).filter(c=>c.is_active!==false);
+   categories=(data||[]).filter(c=>c.is_active!==false).map(c=>({
+     ...c,
+     image:(typeof (c.image_url||c.image||c.icon) === "string" && /^(https?:|data:|\.\.?\/)/.test(c.image_url||c.image||c.icon)) ? (c.image_url||c.image||c.icon) : null
+   }));
    fillCategories();
    return true;
  }
@@ -140,9 +144,19 @@
    try{
      const profile=await getProfile();
      if(!profile||!['gm','admin'].includes(profile.role)){$("menuMsg").textContent="GM access is required.";return}
-     const image_url=file ? await uploadMenuImage(file,'categories') : (url||null);
-     const result=await sb.from('menu_categories').update({image_url}).eq('id',id);
-     if(result.error) throw result.error;
+     const current=categories.find(c=>c.id===id);
+     const currentImage=(current?.image && /^(https?:|data:|\.\.?\/)/.test(current.image)) ? current.image : null;
+     const image_url=file ? await uploadMenuImage(file,'categories') : (url||currentImage);
+     const nextImage=image_url||current?.icon||null;
+     // Save the selected category image in the existing `icon` field.
+     // Use the normal table update first so this works without requiring a custom RPC.
+     let result=await sb.from('menu_categories').update({icon:nextImage}).eq('id',id);
+     if(result.error){
+       // Backward-compatible fallback for projects that already installed the helper RPC.
+       const rpc=await sb.rpc('save_menu_category_image',{p_category_id:id,p_image_url:nextImage});
+       if(rpc.error) throw result.error;
+       if(rpc.data!==true && rpc.data!==null) throw new Error('Category image was not saved.');
+     }
      $("menuMsg").textContent="Category image saved successfully.";
      $("gmCategoryImageFile").value="";
      await loadCategories();
@@ -224,8 +238,7 @@
            name:item,
            description:desc||null,
            price:Number(price),
-           status:"active",
-           image_url:null
+           status:"active"
          };
 
          if(existing.data){
@@ -233,7 +246,7 @@
            if(u.error)throw u.error;
            updated++;
          }else{
-           const ins=await sb.from("menu_items").insert({...payload,created_by:profile.id});
+           const ins=await sb.from("menu_items").insert({...payload,created_by:profile.id,image_url:null});
            if(ins.error)throw ins.error;
            added++;
          }
