@@ -270,6 +270,13 @@ async function registerCustomer() {
   setTimeout(() => location.href = "customer-home.html", 500);
 }
 
+async function customerLogout() {
+  try { await sb.auth.signOut(); } catch (e) {}
+  localStorage.removeItem(KEYS.customerToken);
+  localStorage.removeItem(KEYS.staffCustomer);
+  location.href = "customer-login.html";
+}
+
 async function logout() {
   await sb.auth.signOut();
   localStorage.removeItem(KEYS.customerToken);
