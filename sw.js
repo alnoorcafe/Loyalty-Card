@@ -1,7 +1,14 @@
-const CACHE = "al-noor-loyalty-v2";
+const CACHE = "al-noor-loyalty-v3-customer";
 const SHELL = [
-  "./",
-  "./index.html",
+  "./customer/customer-login.html",
+  "./customer/customer-register.html",
+  "./customer/customer-home.html",
+  "./customer/customer-card.html",
+  "./customer/customer-rewards.html",
+  "./customer/customer-locations.html",
+  "./customer/customer-offers.html",
+  "./customer/customer-menu.html",
+  "./customer/customer-profile.html",
   "./assets/style.css",
   "./assets/app.js",
   "./assets/config.js",
@@ -41,7 +48,7 @@ self.addEventListener("fetch", event => {
       })
       .catch(() =>
         caches.match(event.request).then(response =>
-          response || caches.match("./index.html")
+          response || caches.match("./customer/customer-login.html")
         )
       )
   );
