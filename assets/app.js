@@ -271,36 +271,10 @@ async function registerCustomer() {
 }
 
 async function logout() {
-  try {
-    await Promise.race([
-      sb.auth.signOut({ scope: "local" }),
-      new Promise(resolve => setTimeout(resolve, 1500))
-    ]);
-  } catch (e) {
-    console.warn("Customer sign out warning:", e);
-  }
+  await sb.auth.signOut();
   localStorage.removeItem(KEYS.customerToken);
   localStorage.removeItem(KEYS.staffCustomer);
-  localStorage.removeItem("alnoor_avatar_url");
-  sessionStorage.clear();
-  const page = document.body?.dataset?.page || "";
-  if (page.startsWith("customer-")) window.location.replace("customer-register.html");
-  else window.location.replace("../index.html");
-}
-
-async function customerProfileSignOut() {
-  const btn = document.getElementById("customerProfileSignOutBtn");
-  if (btn) { btn.disabled = true; btn.textContent = "Signing Out…"; }
-  await logout();
-}
-window.customerProfileSignOut = customerProfileSignOut;
-
-function addCustomerSignOut(page) {
-  if (page !== "customer-profile") return;
-  const btn = document.getElementById("customerProfileSignOutBtn");
-  if (!btn || btn.dataset.bound === "1") return;
-  btn.dataset.bound = "1";
-  btn.onclick = customerProfileSignOut;
+  location.href = "../index.html";
 }
 
 async function loadCustomerHome() {
@@ -1258,7 +1232,6 @@ async function bindGmSettingsProfile() {
 async function init() {
   const page = document.body.dataset.page;
   bindCustomerNav(page);
-  addCustomerSignOut(page);
   try {
     if (page === "admin-login") {
       $("loginBtn").onclick = () => login("admin");
