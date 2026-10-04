@@ -11,7 +11,35 @@
  let categories=[], items=[];
  function fillCategories(){ const selects=[$("gmMenuCategory"),$("gmItemCategory")]; selects.forEach(s=>{s.innerHTML='<option value="">Select category</option>'+categories.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")}); }
  function syncCategoryImage(){const id=$("gmMenuCategory").value;const c=categories.find(x=>x.id===id);$("gmCategoryImage").value=c?.image_url||categoryImageMap[c?.name]||"";}
- async function loadCategories(){ const {data,error}=await sb.from("menu_categories").select("id,name,image_url,status,sort_order").order("sort_order",{ascending:true}); if(error){$("menuMsg").textContent=error.message;return false} categories=data||[]; fillCategories(); return true; }
+ async function loadCategories(){
+  const selects=[$("gmMenuCategory"),$("gmItemCategory")];
+  selects.forEach(s=>{if(s)s.innerHTML='<option value="">Loading categories…</option>';});
+  try{
+    let result=await sb.from("menu_categories").select("id,name,image_url,status,sort_order").order("sort_order",{ascending:true});
+    // Fallback for databases where optional category columns are not present yet.
+    if(result.error){
+      result=await sb.from("menu_categories").select("id,name,status").order("name",{ascending:true});
+      if(!result.error){
+        result.data=(result.data||[]).map(c=>({...c,image_url:null,sort_order:0}));
+      }
+    }
+    if(result.error) throw result.error;
+    categories=result.data||[];
+    fillCategories();
+    if(!categories.length){
+      $("categoryMsg").textContent="No categories found. Use IMPORT OFFICIAL AL NOOR MENU to create the official 14 categories.";
+    } else {
+      $("categoryMsg").textContent=`${categories.length} categories loaded.`;
+    }
+    return true;
+  }catch(e){
+    const msg=e?.message||"Could not load categories.";
+    selects.forEach(s=>{if(s)s.innerHTML='<option value="">Categories unavailable</option>';});
+    $("categoryMsg").innerHTML=esc(msg)+`<br><button type="button" class="btn" id="retryCategoriesBtn" style="margin-top:8px">↻ RETRY CATEGORIES</button>`;
+    $("retryCategoriesBtn")?.addEventListener("click",()=>loadCategories());
+    return false;
+  }
+}
  async function loadItems(){ const {data,error}=await sb.from("menu_items").select("id,name,description,price,price_display,image_url,status,category_id,created_at").order("created_at",{ascending:false}); if(error){$("gmMenuList").innerHTML='<div class="alert">'+esc(error.message)+'</div>';return} items=data||[]; $("gmMenuList").innerHTML=items.length?items.map(r=>'<div class="reward">'+(r.image_url?'<img class="reward-product-image" src="'+esc(r.image_url)+'" alt="'+esc(r.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(r.name)+'</strong><small>'+esc((categories.find(c=>c.id===r.category_id)||{}).name||"No category")+'<br>'+esc(r.description||"")+'<br>'+(r.price_display?esc(r.price_display):'AED '+Number(r.price||0).toFixed(2))+'</small></div><span class="badge">'+esc(r.status||"")+'</span><div style="display:flex;gap:6px;margin-left:8px"><button class="btn" data-edit="'+esc(r.id)+'">EDIT</button><button class="btn" data-delete="'+esc(r.id)+'">DELETE</button></div></div>').join(""):'<div class="empty">No menu items yet.</div>'; $("gmMenuList").querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editItem(b.dataset.edit)); $("gmMenuList").querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteItem(b.dataset.delete)); }
  function editItem(id){const r=items.find(x=>x.id===id);if(!r)return; $("gmMenuId").value=r.id;$("gmItemCategory").value=r.category_id||"";$("gmMenuName").value=r.name||"";$("gmMenuDescription").value=r.description||"";$("gmMenuPrice").value=r.price??"";$("gmMenuPriceDisplay").value=r.price_display||"";$("gmMenuImage").value=r.image_url||"";$("gmMenuStatus").value=r.status||"active";$("cancelEditBtn").style.display="block";window.scrollTo({top:0,behavior:"smooth"});}
  function clearForm(){$("gmMenuId").value="";["gmMenuName","gmMenuDescription","gmMenuPrice","gmMenuPriceDisplay","gmMenuImage"].forEach(id=>$(id).value="");$("gmItemCategory").value="";$("gmMenuStatus").value="active";$("cancelEditBtn").style.display="none";}
@@ -23,6 +51,18 @@
  $("saveMenuBtn").onclick=async()=>{const id=$("gmMenuId").value.trim(),category_id=$("gmItemCategory").value,name=$("gmMenuName").value.trim(),description=$("gmMenuDescription").value.trim(),price=Number($("gmMenuPrice").value),price_display=$("gmMenuPriceDisplay").value.trim(),image_url=$("gmMenuImage").value.trim(),status=$("gmMenuStatus").value;if(!category_id){$("menuMsg").textContent="Select a category.";return}if(!name){$("menuMsg").textContent="Item name is required.";return}if(!Number.isFinite(price)||price<0){$("menuMsg").textContent="Enter a valid price.";return}const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role)){$("menuMsg").textContent="GM access is required.";return}const payload={category_id,name,description:description||null,price,price_display:price_display||null,image_url:image_url||null,status};let result;if(id)result=await sb.from("menu_items").update(payload).eq("id",id);else result=await sb.from("menu_items").insert({...payload,created_by:profile.id});if(result.error){$("menuMsg").textContent=result.error.message;return}$("menuMsg").textContent=id?"Menu item updated successfully.":"Menu item saved successfully.";clearForm();await loadItems();};
  $("cancelEditBtn").onclick=clearForm;
  $("importOfficialBtn").onclick=async()=>{const btn=$("importOfficialBtn"),msg=$("importMsg");btn.disabled=true;msg.textContent="Importing official menu…";try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");let createdCats=0;for(const name of Object.keys(AL_NOOR_OFFICIAL_MENU)){let {data,error}=await sb.from("menu_categories").select("id,name").eq("name",name).maybeSingle();if(error)throw error;if(!data){const ins=await sb.from("menu_categories").insert({name,image_url:categoryImageMap[name]||null,status:"active"}).select("id,name").single();if(ins.error)throw ins.error;data=ins.data;createdCats++;}else if(!data.id)throw new Error("Category '+name+' has no UUID id.");}await loadCategories();let added=0,updated=0;for(const [name,list] of Object.entries(AL_NOOR_OFFICIAL_MENU)){const cat=categories.find(c=>c.name===name);if(!cat?.id)throw new Error("Could not resolve UUID for category: "+name);for(const [item,price,desc] of list){const existing=await sb.from("menu_items").select("id").eq("name",item).eq("category_id",cat.id).maybeSingle();if(existing.error)throw existing.error;const payload={category_id:cat.id,name:item,description:(item==='Espresso Avocado'?'Vanilla ice cream with espresso':(desc||null)),price,price_display:(item==='Butter Croissant'?'8 / 10 AED':item==='Milkshakes (Vanilla / Choco / Fruit)'?'20-22 AED':null),image_url:(item==='Espresso Avocado'?'../assets/menu-items/espresso-avocado.png':null),status:"active"};if(existing.data){const u=await sb.from("menu_items").update(payload).eq("id",existing.data.id);if(u.error)throw u.error;updated++;}else{const ins=await sb.from("menu_items").insert({...payload,created_by:profile.id});if(ins.error)throw ins.error;added++;}}}await loadItems();msg.textContent='Official menu imported successfully: 14 categories, '+added+' added, '+updated+' updated.';}catch(e){msg.textContent=e?.message||"Import failed.";}finally{btn.disabled=false;}};
- (async()=>{const profile=await guardRole(["gm"]);if(!profile)return;await loadCategories();await loadItems();})();
+ (async()=>{
+  try{
+    const profile=await guardRole(["gm"]);
+    if(!profile)return;
+    await loadCategories();
+    await loadItems();
+  }catch(e){
+    const msg=e?.message||"Unable to initialize Menu Management.";
+    $("menuMsg").textContent=msg;
+    $("categoryMsg").textContent=msg;
+    console.error("GM Menu initialization error:",e);
+  }
+})();
 })();
 </script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
