@@ -271,10 +271,48 @@ async function registerCustomer() {
 }
 
 async function logout() {
-  await sb.auth.signOut();
+  try {
+    // Do not make the customer wait forever for the network during logout.
+    await Promise.race([
+      sb.auth.signOut({ scope: "local" }),
+      new Promise(resolve => setTimeout(resolve, 1500))
+    ]);
+  } catch (e) {
+    console.warn("Customer sign out warning:", e);
+  }
+
   localStorage.removeItem(KEYS.customerToken);
   localStorage.removeItem(KEYS.staffCustomer);
-  location.href = "../index.html";
+  localStorage.removeItem("alnoor_avatar_url");
+  sessionStorage.clear();
+
+  // customer-profile.html is inside /customer, so this always goes to
+  // the customer registration page — never to the main role selector.
+  window.location.replace("customer-register.html");
+}
+
+async function customerProfileSignOut() {
+  const btn = document.getElementById("customerProfileSignOutBtn");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Signing Out…";
+  }
+  await logout();
+}
+
+window.customerProfileSignOut = customerProfileSignOut;
+
+function addCustomerSignOut(page) {
+  // Sign Out exists ONLY inside Customer Profile.
+  if (page !== "customer-profile") return;
+
+  const btn = document.getElementById("customerProfileSignOutBtn");
+  if (!btn || btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
+
+  // Direct handler plus the global function makes the button reliable even
+  // when a cached PWA script is involved.
+  btn.onclick = customerProfileSignOut;
 }
 
 async function loadCustomerHome() {
@@ -1232,6 +1270,7 @@ async function bindGmSettingsProfile() {
 async function init() {
   const page = document.body.dataset.page;
   bindCustomerNav(page);
+  addCustomerSignOut(page);
   try {
     if (page === "admin-login") {
       $("loginBtn").onclick = () => login("admin");
