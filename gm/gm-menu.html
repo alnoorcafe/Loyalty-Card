@@ -16,7 +16,7 @@
 
  async function loadCategories(){
    // Keep the original working database query. Do not synthesize categories here.
-   const {data,error}=await sb.from("menu_categories").select("id,name,image_url,status").order("name");
+   const {data,error}=await sb.from("menu_categories").select("*").order("name");
    if(error){
      const msg=error.message||"Unable to load categories.";
      $("gmMenuCategory").innerHTML='<option value="">Unable to load categories</option>';
@@ -58,7 +58,7 @@
  }
 
  async function loadItems(){
-   const {data,error}=await sb.from("menu_items").select("id,name,description,price,image_url,status,category_id,created_at").order("created_at",{ascending:false});
+   const {data,error}=await sb.from("menu_items").select("*").order("created_at",{ascending:false});
    if(error){$("gmMenuList").innerHTML='<div class="alert">'+esc(error.message)+'</div>';return;}
    items=data||[];
    $("gmMenuList").innerHTML=items.length?items.map(r=>'<div class="reward">'+(r.image_url?'<img class="reward-product-image" src="'+esc(r.image_url)+'" alt="'+esc(r.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(r.name)+'</strong><small>'+esc((categories.find(c=>c.id===r.category_id)||{}).name||"No category")+'<br>'+esc(r.description||"")+'<br>AED '+Number(r.price||0).toFixed(2)+'</small></div><span class="badge">'+esc(r.status||"")+'</span><div style="display:flex;gap:6px;margin-left:8px"><button class="btn" data-edit="'+esc(r.id)+'">EDIT</button><button class="btn" data-delete="'+esc(r.id)+'">DELETE</button></div></div>').join(""):'<div class="empty">No menu items yet.</div>';
