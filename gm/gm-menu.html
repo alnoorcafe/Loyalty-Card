@@ -1,28 +1,139 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><meta name="description" content="AL NOOR GM Menu Management"><link rel="manifest" href="../manifest.webmanifest"><title>AL NOOR — Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()">↪</button></header><main class="container"><h1 class="title">Menu Management</h1><p class="sub">Manage categories, products, prices, images, availability, and official menu import.</p>
-<div class="card"><h3>Category Management</h3><div class="field"><label>Category</label><select class="input" id="gmMenuCategory"><option value="">Loading categories…</option></select></div><div class="field"><label>Category Image</label><input class="input" id="gmCategoryImageFile" type="file" accept="image/*"><small class="sub">Choose the category photo directly from your computer. No image URL is required.</small></div><div id="gmCategoryImagePreview" style="margin-top:10px;display:none"><img id="gmCategoryPreviewImg" alt="Category preview" style="display:block;width:100%;max-height:180px;object-fit:cover;border-radius:16px;border:1px solid var(--line,#ddd)"><button class="btn" id="clearCategoryImageBtn" type="button" style="margin-top:8px">REMOVE SELECTED IMAGE</button></div><div id="gmCategoryCurrent" class="note" style="margin-top:10px">Select a category to view its current image.</div><button class="btn primary block" id="saveCategoryBtn">SAVE CATEGORY IMAGE</button></div>
-<div class="card"><h3>Add / Edit Menu Item</h3><input type="hidden" id="gmMenuId"><div class="field"><label>Category</label><select class="input" id="gmItemCategory"><option value="">Loading categories…</option></select></div><div class="field"><label>Item Name</label><input class="input" id="gmMenuName" placeholder="e.g. Spanish Latte"></div><div class="field"><label>Description</label><input class="input" id="gmMenuDescription" placeholder="Short product description"></div><div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div><div class="field"><label>Price Display (optional)</label><input class="input" id="gmMenuPriceDisplay" placeholder="e.g. 8 / 10 AED or 20-22 AED"></div><div class="field"><label>Image URL (optional)</label><input class="input" id="gmMenuImage" placeholder="https://..."></div><div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button class="btn primary block" id="saveMenuBtn">SAVE MENU ITEM</button><button class="btn block" id="cancelEditBtn" style="display:none;margin-top:8px">CANCEL EDIT</button><div id="menuMsg" class="note">Use IMPORT OFFICIAL AL NOOR MENU to load the official 87-item menu.</div></div>
-<div class="card"><h3>Official Menu Import</h3><p class="sub">Creates/updates the 14 official categories and imports the 87 official menu items. Category IDs are resolved from the database by category name, so no fake IDs are inserted into UUID columns.</p><button class="btn primary block" id="importOfficialBtn">IMPORT OFFICIAL AL NOOR MENU</button><div id="importMsg" class="note"></div></div>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><meta name="description" content="AL NOOR GM Menu Management"><link rel="manifest" href="../manifest.webmanifest"><title>AL NOOR — Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()">↪</button></header><main class="container"><h1 class="title">Menu Management</h1><p class="sub">Manage categories, products, prices, images, and availability.</p>
+<div class="card"><h3>Category</h3><div class="field"><label>Category</label><select class="input" id="gmMenuCategory"><option value="">Loading categories…</option></select></div><div class="field"><label>Category Image</label><input class="input" id="gmCategoryImageFile" type="file" accept="image/*"><small id="gmCategoryImageName" class="note">Choose an image from your device.</small><div id="gmCategoryPreview" style="margin-top:10px"></div></div><button class="btn block" id="saveCategoryBtn">SAVE CATEGORY</button></div>
+<div class="card"><h3>Add / Edit Menu Item</h3><input type="hidden" id="gmMenuId"><div class="field"><label>Category</label><select class="input" id="gmItemCategory"><option value="">Loading categories…</option></select></div><div class="field"><label>Item Name</label><input class="input" id="gmMenuName" placeholder="e.g. Spanish Latte"></div><div class="field"><label>Description</label><input class="input" id="gmMenuDescription" placeholder="Short product description"></div><div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div><div class="field"><label>Item Image</label><input class="input" id="gmMenuImageFile" type="file" accept="image/*"><small id="gmMenuImageName" class="note">Choose an image from your device.</small><div id="gmMenuImagePreview" style="margin-top:10px"></div></div><div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button class="btn primary block" id="saveMenuBtn">SAVE MENU ITEM</button><button class="btn block" id="cancelEditBtn" style="display:none;margin-top:8px">CANCEL EDIT</button><div id="menuMsg" class="note">Add menu items manually. No official menu import is used.</div></div>
 <div class="card"><h3>Current Menu</h3><div id="gmMenuList"><div class="empty">Loading menu…</div></div></div></main><nav class="nav"><div class="navin"><a href="gm-dashboard.html"><b>⌂</b>Dashboard</a><a href="gm-members.html"><b>●</b>Customers</a><a href="gm-menu.html" class="active"><b>✦</b>Menu</a><a href="gm-settings.html"><b>⚙</b>More</a></div></nav>
-<script src="../assets/config.js"></script><script src="../assets/app.js?v=20260930-final"></script><script src="../assets/official-menu-data.js"></script>
+<script src="../assets/config.js"></script><script src="../assets/app.js?v=20260930-final"></script>
 <script>
 (function(){
  const $=id=>document.getElementById(id), esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
  let categories=[], items=[];
- function fillCategories(){ const selects=[$("gmMenuCategory"),$("gmItemCategory")]; selects.forEach(s=>{s.innerHTML='<option value="">Select category</option>'+categories.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("")}); renderSelectedCategory(); }
- function renderSelectedCategory(){ const id=$("gmMenuCategory").value; const cat=categories.find(c=>c.id===id); const note=$("gmCategoryCurrent"), preview=$("gmCategoryImagePreview"), img=$("gmCategoryPreviewImg"); if(!cat){note.textContent="Select a category to view its current image.";preview.style.display="none";return} if(cat.image_url){note.textContent="Current image is loaded. Choose a new image if you want to replace it.";img.src=cat.image_url;preview.style.display="block";} else {note.textContent="No image saved for this category yet. Choose an image below.";preview.style.display="none";} $("gmCategoryImageFile").value=""; }
- async function fileToDataUrl(file){ if(!file||!file.type.startsWith("image/")) throw new Error("Please choose an image file."); if(file.size>5*1024*1024) throw new Error("Image must be 5 MB or smaller."); const raw=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error("Could not read image."));r.readAsDataURL(file);}); const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error("Invalid image."));i.src=raw;}); const max=900,scale=Math.min(1,max/Math.max(img.width,img.height)); const c=document.createElement("canvas");c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext("2d").drawImage(img,0,0,c.width,c.height);return c.toDataURL("image/jpeg",0.78); }
- async function loadCategories(){ const {data,error}=await sb.from("menu_categories").select("id,name,image_url,status").order("name"); if(error){$("menuMsg").textContent=error.message;return false} categories=data||[]; fillCategories(); return true; }
- async function loadItems(){ const {data,error}=await sb.from("menu_items").select("id,name,description,price,price_display,image_url,status,category_id,created_at").order("created_at",{ascending:false}); if(error){$("gmMenuList").innerHTML='<div class="alert">'+esc(error.message)+'</div>';return} items=data||[]; $("gmMenuList").innerHTML=items.length?items.map(r=>'<div class="reward">'+(r.image_url?'<img class="reward-product-image" src="'+esc(r.image_url)+'" alt="'+esc(r.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(r.name)+'</strong><small>'+esc((categories.find(c=>c.id===r.category_id)||{}).name||"No category")+'<br>'+esc(r.description||"")+'<br>'+(r.price_display?esc(r.price_display):'AED '+Number(r.price||0).toFixed(2))+'</small></div><span class="badge">'+esc(r.status||"")+'</span><div style="display:flex;gap:6px;margin-left:8px"><button class="btn" data-edit="'+esc(r.id)+'">EDIT</button><button class="btn" data-delete="'+esc(r.id)+'">DELETE</button></div></div>').join(""):'<div class="empty">No menu items yet.</div>'; $("gmMenuList").querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editItem(b.dataset.edit)); $("gmMenuList").querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteItem(b.dataset.delete)); }
- function editItem(id){const r=items.find(x=>x.id===id);if(!r)return; $("gmMenuId").value=r.id;$("gmItemCategory").value=r.category_id||"";$("gmMenuName").value=r.name||"";$("gmMenuDescription").value=r.description||"";$("gmMenuPrice").value=r.price??"";$("gmMenuPriceDisplay").value=r.price_display||"";$("gmMenuImage").value=r.image_url||"";$("gmMenuStatus").value=r.status||"active";$("cancelEditBtn").style.display="block";window.scrollTo({top:0,behavior:"smooth"});}
- function clearForm(){$("gmMenuId").value="";["gmMenuName","gmMenuDescription","gmMenuPrice","gmMenuPriceDisplay","gmMenuImage"].forEach(id=>$(id).value="");$("gmItemCategory").value="";$("gmMenuStatus").value="active";$("cancelEditBtn").style.display="none";}
- async function deleteItem(id){if(!confirm("Delete this menu item?"))return;const {error}=await sb.from("menu_items").delete().eq("id",id);if(error){$("menuMsg").textContent=error.message;return}$("menuMsg").textContent="Menu item deleted successfully.";await loadItems();}
- $("gmMenuCategory").onchange=renderSelectedCategory;
- $("gmCategoryImageFile").onchange=async()=>{const file=$("gmCategoryImageFile").files?.[0];if(!file)return;try{const dataUrl=await fileToDataUrl(file);$("gmCategoryPreviewImg").src=dataUrl;$("gmCategoryImagePreview").style.display="block";$("gmCategoryCurrent").textContent="New image selected. Press SAVE CATEGORY IMAGE to save it.";}catch(e){$("menuMsg").textContent=e.message||"Could not read image.";$("gmCategoryImageFile").value="";}};
- $("clearCategoryImageBtn").onclick=()=>{$("gmCategoryImageFile").value="";renderSelectedCategory();};
- $("saveCategoryBtn").onclick=async()=>{const id=$("gmMenuCategory").value;if(!id){$("menuMsg").textContent="Select a category first.";return}try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role)){$("menuMsg").textContent="GM access is required.";return}const file=$("gmCategoryImageFile").files?.[0];let image_url; if(file){image_url=await fileToDataUrl(file);}else{const cat=categories.find(c=>c.id===id);image_url=cat?.image_url||null;} const {error}=await sb.from("menu_categories").update({image_url,status:"active"}).eq("id",id);if(error)throw error;$("menuMsg").textContent="Category image saved successfully.";await loadCategories();$("gmMenuCategory").value=id;renderSelectedCategory();}catch(e){$("menuMsg").textContent=e?.message||"Could not save category image.";}};
- $("saveMenuBtn").onclick=async()=>{const id=$("gmMenuId").value.trim(),category_id=$("gmItemCategory").value,name=$("gmMenuName").value.trim(),description=$("gmMenuDescription").value.trim(),price=Number($("gmMenuPrice").value),price_display=$("gmMenuPriceDisplay").value.trim(),image_url=$("gmMenuImage").value.trim(),status=$("gmMenuStatus").value;if(!category_id){$("menuMsg").textContent="Select a category.";return}if(!name){$("menuMsg").textContent="Item name is required.";return}if(!Number.isFinite(price)||price<0){$("menuMsg").textContent="Enter a valid price.";return}const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role)){$("menuMsg").textContent="GM access is required.";return}const payload={category_id,name,description:description||null,price,price_display:price_display||null,image_url:image_url||null,status};let result;if(id)result=await sb.from("menu_items").update(payload).eq("id",id);else result=await sb.from("menu_items").insert({...payload,created_by:profile.id});if(result.error){$("menuMsg").textContent=result.error.message;return}$("menuMsg").textContent=id?"Menu item updated successfully.":"Menu item saved successfully.";clearForm();await loadItems();};
+ let selectedCategoryImage=null, selectedMenuImage=null, currentCategoryImage=null, currentMenuImage=null;
+
+ const requiredCategories=[
+  "Classic Coffee","Craft Pour-Over (V60)","Iced Coffee","Matcha","Breakfast","Sandwiches & Wraps","Salads","Pizza","Manakish","Bakery & Croissants","Cakes & Pastries","Fresh Juices & Wellness","Acai","Mojitos & Iced Teas","Paninis, Wraps & Toast","Fresh Salads","Artisanal Pizzas","Traditional Oven Manakish"
+ ];
+
+ function fillCategories(){
+   const options='<option value="">Select category</option>'+categories.map(c=>'<option value="'+esc(c.id||('new:'+c.name))+'">'+esc(c.name)+'</option>').join("");
+   [$("gmMenuCategory"),$("gmItemCategory")].forEach(s=>{ if(s) s.innerHTML=options; });
+ }
+
+ async function loadCategories(){
+   const res=await sb.from("menu_categories").select("id,name,image_url,status").order("name");
+   if(res.error){
+     $("gmMenuCategory").innerHTML='<option value="">Unable to load categories</option>';
+     $("gmItemCategory").innerHTML='<option value="">Unable to load categories</option>';
+     $("menuMsg").textContent="Could not load categories: "+res.error.message;
+     return false;
+   }
+   const dbRows=res.data||[];
+   const byName=new Map(dbRows.map(c=>[String(c.name).trim().toLowerCase(),c]));
+   categories=requiredCategories.map(name=>byName.get(name.toLowerCase())||{id:null,name,image_url:null,status:"active",fallback:true});
+   // Keep any additional categories that may already exist in the database.
+   dbRows.forEach(c=>{if(!categories.some(x=>x.name.toLowerCase()===String(c.name).trim().toLowerCase())) categories.push(c);});
+   categories.sort((a,b)=>String(a.name).localeCompare(String(b.name)));
+   fillCategories();
+   return true;
+ }
+
+ function renderPreview(containerId, src){
+   const el=$(containerId); if(!el) return;
+   el.innerHTML=src?'<img src="'+esc(src)+'" alt="Preview" style="display:block;width:100%;max-width:360px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.12)">':'';
+ }
+
+ function readAndCompressImage(file,maxW=1000,maxH=700,quality=.82){
+   return new Promise((resolve,reject)=>{
+     if(!file){resolve(null);return;}
+     if(!file.type.startsWith("image/")){reject(new Error("Please choose an image file."));return;}
+     if(file.size>12*1024*1024){reject(new Error("Image is too large. Please choose an image smaller than 12 MB."));return;}
+     const fr=new FileReader();
+     fr.onerror=()=>reject(new Error("Could not read the image file."));
+     fr.onload=()=>{
+       const img=new Image();
+       img.onload=()=>{
+         const scale=Math.min(1,maxW/img.width,maxH/img.height);
+         const w=Math.max(1,Math.round(img.width*scale)), h=Math.max(1,Math.round(img.height*scale));
+         const canvas=document.createElement("canvas"); canvas.width=w; canvas.height=h;
+         const ctx=canvas.getContext("2d"); ctx.drawImage(img,0,0,w,h);
+         resolve(canvas.toDataURL("image/jpeg",quality));
+       };
+       img.onerror=()=>reject(new Error("Could not process the image."));
+       img.src=fr.result;
+     };
+     fr.readAsDataURL(file);
+   });
+ }
+
+ async function loadItems(){
+   const {data,error}=await sb.from("menu_items").select("id,name,description,price,image_url,status,category_id,created_at").order("created_at",{ascending:false});
+   if(error){$("gmMenuList").innerHTML='<div class="alert">'+esc(error.message)+'</div>';return;}
+   items=data||[];
+   $("gmMenuList").innerHTML=items.length?items.map(r=>'<div class="reward">'+(r.image_url?'<img class="reward-product-image" src="'+esc(r.image_url)+'" alt="'+esc(r.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(r.name)+'</strong><small>'+esc((categories.find(c=>c.id===r.category_id)||{}).name||"No category")+'<br>'+esc(r.description||"")+'<br>AED '+Number(r.price||0).toFixed(2)+'</small></div><span class="badge">'+esc(r.status||"")+'</span><div style="display:flex;gap:6px;margin-left:8px"><button class="btn" data-edit="'+esc(r.id)+'">EDIT</button><button class="btn" data-delete="'+esc(r.id)+'">DELETE</button></div></div>').join(""):'<div class="empty">No menu items yet.</div>';
+   $("gmMenuList").querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editItem(b.dataset.edit));
+   $("gmMenuList").querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteItem(b.dataset.delete));
+ }
+
+ function editItem(id){
+   const r=items.find(x=>x.id===id); if(!r)return;
+   $("gmMenuId").value=r.id; $("gmItemCategory").value=r.category_id||""; $("gmMenuName").value=r.name||""; $("gmMenuDescription").value=r.description||""; $("gmMenuPrice").value=r.price??""; $("gmMenuStatus").value=r.status||"active";
+   currentMenuImage=r.image_url||null; selectedMenuImage=null; $("gmMenuImageFile").value=""; $("gmMenuImageName").textContent=currentMenuImage?"Current image kept unless you choose a new one.":"Choose an image from your device."; renderPreview("gmMenuImagePreview",currentMenuImage);
+   $("cancelEditBtn").style.display="block"; window.scrollTo({top:0,behavior:"smooth"});
+ }
+
+ function clearForm(){
+   $("gmMenuId").value=""; ["gmMenuName","gmMenuDescription","gmMenuPrice"].forEach(id=>$(id).value=""); $("gmItemCategory").value=""; $("gmMenuStatus").value="active"; $("gmMenuImageFile").value=""; $("gmMenuImageName").textContent="Choose an image from your device."; $("gmMenuImagePreview").innerHTML=""; currentMenuImage=null; selectedMenuImage=null; $("cancelEditBtn").style.display="none";
+ }
+
+ async function deleteItem(id){
+   if(!confirm("Delete this menu item?"))return;
+   const {error}=await sb.from("menu_items").delete().eq("id",id);
+   if(error){$("menuMsg").textContent=error.message;return}
+   $("menuMsg").textContent="Menu item deleted successfully."; await loadItems();
+ }
+
+ $("gmMenuCategory").onchange=()=>{
+   const c=categories.find(x=>x.id===$("gmMenuCategory").value); currentCategoryImage=c?.image_url||null; selectedCategoryImage=null; $("gmCategoryImageFile").value=""; $("gmCategoryImageName").textContent=currentCategoryImage?"Current image kept unless you choose a new one.":"Choose an image from your device."; renderPreview("gmCategoryPreview",currentCategoryImage);
+ };
+ $("gmCategoryImageFile").onchange=async e=>{
+   try{ selectedCategoryImage=await readAndCompressImage(e.target.files[0],1200,500,.84); $("gmCategoryImageName").textContent=e.target.files[0].name; renderPreview("gmCategoryPreview",selectedCategoryImage); }
+   catch(err){ selectedCategoryImage=null; e.target.value=""; $("menuMsg").textContent=err.message; }
+ };
+ $("gmMenuImageFile").onchange=async e=>{
+   try{ selectedMenuImage=await readAndCompressImage(e.target.files[0],1000,800,.82); $("gmMenuImageName").textContent=e.target.files[0].name; renderPreview("gmMenuImagePreview",selectedMenuImage); }
+   catch(err){ selectedMenuImage=null; e.target.value=""; $("menuMsg").textContent=err.message; }
+ };
+
+ $("saveCategoryBtn").onclick=async()=>{
+   const selected=$("gmMenuCategory").value; if(!selected){$("menuMsg").textContent="Select a category first.";return;}
+   const image_url=selectedCategoryImage||currentCategoryImage||null;
+   let id=selected, name=null;
+   if(selected.startsWith("new:")){ name=selected.slice(4); const ins=await sb.from("menu_categories").insert({name,image_url,status:"active"}).select("id,name,image_url,status").single(); if(ins.error){$("menuMsg").textContent=ins.error.message;return;} id=ins.data.id; }
+   else { const c=categories.find(x=>x.id===selected); name=c?.name||null; const {error}=await sb.from("menu_categories").update({image_url,status:"active"}).eq("id",selected); if(error){$("menuMsg").textContent=error.message;return;} }
+   $("menuMsg").textContent="Category image saved successfully."; await loadCategories(); $("gmMenuCategory").value=id; currentCategoryImage=image_url; selectedCategoryImage=null; $("gmCategoryImageFile").value=""; $("gmCategoryImageName").textContent=image_url?"Current image saved.":"Choose an image from your device."; renderPreview("gmCategoryPreview",image_url);
+ };
+
+ $("saveMenuBtn").onclick=async()=>{
+   const id=$("gmMenuId").value.trim(), categorySelection=$("gmItemCategory").value, name=$("gmMenuName").value.trim(), description=$("gmMenuDescription").value.trim(), price=Number($("gmMenuPrice").value), status=$("gmMenuStatus").value;
+   if(!categorySelection){$("menuMsg").textContent="Select a category.";return}
+   let category_id=categorySelection;
+   if(categorySelection.startsWith("new:")){
+     const catName=categorySelection.slice(4);
+     const ins=await sb.from("menu_categories").insert({name:catName,status:"active",image_url:null}).select("id,name,image_url,status").single();
+     if(ins.error){$("menuMsg").textContent=ins.error.message;return;}
+     category_id=ins.data.id;
+     await loadCategories();
+     $("gmItemCategory").value=category_id;
+   }
+   if(!name){$("menuMsg").textContent="Item name is required.";return}
+   if(!Number.isFinite(price)||price<0){$("menuMsg").textContent="Enter a valid price.";return}
+   const profile=await getProfile(); if(!profile||!['gm','admin'].includes(profile.role)){$("menuMsg").textContent="GM access is required.";return}
+   const payload={category_id,name,description:description||null,price,image_url:selectedMenuImage||currentMenuImage||null,status,price_display:null};
+   let result; if(id) result=await sb.from("menu_items").update(payload).eq("id",id); else result=await sb.from("menu_items").insert({...payload,created_by:profile.id});
+   if(result.error){$("menuMsg").textContent=result.error.message;return}
+   $("menuMsg").textContent=id?"Menu item updated successfully.":"Menu item saved successfully."; clearForm(); await loadItems();
+ };
  $("cancelEditBtn").onclick=clearForm;
- $("importOfficialBtn").onclick=async()=>{const btn=$("importOfficialBtn"),msg=$("importMsg");btn.disabled=true;msg.textContent="Importing official menu…";try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");let createdCats=0;for(const name of Object.keys(AL_NOOR_OFFICIAL_MENU)){let {data,error}=await sb.from("menu_categories").select("id,name").eq("name",name).maybeSingle();if(error)throw error;if(!data){const ins=await sb.from("menu_categories").insert({name,image_url:null,status:"active"}).select("id,name").single();if(ins.error)throw ins.error;data=ins.data;createdCats++;}else if(!data.id)throw new Error("Category '+name+' has no UUID id.");}await loadCategories();let added=0,updated=0;for(const [name,list] of Object.entries(AL_NOOR_OFFICIAL_MENU)){const cat=categories.find(c=>c.name===name);if(!cat?.id)throw new Error("Could not resolve UUID for category: "+name);for(const [item,price,desc] of list){const existing=await sb.from("menu_items").select("id").eq("name",item).eq("category_id",cat.id).maybeSingle();if(existing.error)throw existing.error;const payload={category_id:cat.id,name:item,description:desc||null,price,price_display:(item==='Butter Croissant'?'8 / 10 AED':item==='Milkshakes (Vanilla / Choco / Fruit)'?'20-22 AED':null),status:"active"};if(existing.data){const u=await sb.from("menu_items").update(payload).eq("id",existing.data.id);if(u.error)throw u.error;updated++;}else{const ins=await sb.from("menu_items").insert({...payload,created_by:profile.id});if(ins.error)throw ins.error;added++;}}}await loadItems();msg.textContent='Official menu imported successfully: 14 categories, '+added+' added, '+updated+' updated.';}catch(e){msg.textContent=e?.message||"Import failed.";}finally{btn.disabled=false;}};
- (async()=>{const profile=await guardRole(["gm"]);if(!profile)return;await loadCategories();await loadItems();})();
+
+ (async()=>{ const profile=await guardRole(["gm"]); if(!profile)return; await loadCategories(); await loadItems(); })();
 })();
 </script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
