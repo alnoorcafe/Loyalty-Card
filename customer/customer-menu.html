@@ -15,7 +15,7 @@
   <a class="brand brand-image" href="customer-home.html" aria-label="AL NOOR Home">
     <img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE">
   </a>
-  <button class="icon" onclick="customerLogout()" title="Sign out" aria-label="Sign out">↪</button>
+  <button class="icon" onclick="logout()" title="Sign out" aria-label="Sign out">↪</button>
 </header>
 
 <main class="container menu-page">
@@ -85,7 +85,6 @@
 (function(){
   const categoriesView=document.getElementById('menuCategoriesView');
   const itemsView=document.getElementById('menuItemsView');
-  const REMOVED_CATEGORIES=new Set(["Paninis, Wraps & Toast","Fresh Salads","Artisanal Pizzas","Traditional Oven Manakish"]);
 
   const FALLBACK_CATEGORIES=[
     {key:'classic-coffee',name:'Classic Coffee',icon:'☕',order:1},
@@ -102,7 +101,7 @@
     {key:'fresh-juices-wellness',name:'Fresh Juices & Wellness',icon:'🧃',order:12},
     {key:'acai',name:'Acai',icon:'🥭',order:13},
     {key:'mojitos-iced-teas',name:'Mojitos & Iced Teas',icon:'🍹',order:14}
-  ].filter(c=>!REMOVED_CATEGORIES.has(c.name));
+  ];
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const slug=v=>String(v??'').trim().toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
@@ -130,7 +129,7 @@
     const result=[];
     const byName={};
     FALLBACK_CATEGORIES.forEach(c=>byName[slug(c.name)]=c);
-    (rows||[]).filter(r=>!REMOVED_CATEGORIES.has(r.name)).forEach((r,i)=>{
+    (rows||[]).forEach((r,i)=>{
       const base=byName[slug(r.name)]||FALLBACK_CATEGORIES.find(c=>c.key===slug(r.name))||null;
       result.push({
         id:r.id,
@@ -138,7 +137,7 @@
         icon:r.icon||base?.icon||'☕',
         order:Number(r.sort_order??base?.order??(100+i)),
         active:r.is_active!==false,
-        image:(typeof (r.image_url||r.image||r.icon)==='string' && /^(https?:|data:|\.\.?\/)/.test(r.image_url||r.image||r.icon)) ? (r.image_url||r.image||r.icon) : (categoryImageMap[r.name||base?.name||'']||null)
+        image:(typeof r.icon==='string' && /^(https?:|data:|\.\.?\/)/.test(r.icon)) ? r.icon : (categoryImageMap[r.name||base?.name||'']||null)
       });
     });
     if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image:categoryImageMap[c.name]||null}));
@@ -146,7 +145,7 @@
     FALLBACK_CATEGORIES.forEach(c=>{
       if(!existing.has(slug(c.name))) result.push({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image:categoryImageMap[c.name]||null});
     });
-    return result.filter(c=>c.active && !REMOVED_CATEGORIES.has(c.name)).sort((a,b)=>a.order-b.order);
+    return result.filter(c=>c.active).sort((a,b)=>a.order-b.order);
   }
 
   function isActiveItem(item){
