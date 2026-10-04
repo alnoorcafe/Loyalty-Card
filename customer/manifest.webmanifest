@@ -1,7 +1,7 @@
 {
-  "name": "AL NOOR LOYALTY",
-  "short_name": "AL NOOR",
   "id": "./",
+  "name": "AL NOOR LOYALTY - Customer",
+  "short_name": "AL NOOR",
   "start_url": "./customer-login.html",
   "scope": "./",
   "display": "standalone",
