@@ -1128,22 +1128,123 @@ async function loadAdminDashboard() {
   const profile = await guardRole(["admin"]);
   if (!profile) return;
 
-  try {
-    const profiles = await getAdminProfiles();
-    const roleCount = role => profiles.filter(p => String(p.role || "").toLowerCase() === role).length;
-    const values = {
-      adminCustomers: roleCount("customer"),
-      adminStaff: roleCount("staff")
-    };
-    Object.entries(values).forEach(([id, value]) => {
-      const el = $(id);
-      if (el) el.textContent = moneyPoints(value);
-    });
-  } catch (e) {
-    ["adminCustomers","adminStaff"].forEach(id => { const el=$(id); if(el) el.textContent="—"; });
-    toast(e.message || "Could not load account counts.", false);
-  }
+  const todayEl = $("adminCustomersToday");
+  const weekEl = $("adminCustomersWeek");
+  const monthEl = $("adminCustomersMonth");
+  const multipleBox = $("adminMultiplePointsList");
 
+  try {
+    // Admin Dashboard uses the REAL loyalty activity table.
+    // It does NOT use profiles.created_at. Every positive point transaction
+    // is dated by point_transactions.created_at.
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+    const weekStart = new Date(todayStart);
+    const day = weekStart.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    weekStart.setDate(weekStart.getDate() - diff);
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Load customer names once.
+    const { data: customers, error: customersError } = await sb
+      .from("profiles")
+      .select("id,full_name,member_id,phone")
+      .eq("role", "customer")
+      .order("full_name", { ascending: true });
+    if (customersError) throw customersError;
+
+    const customerMap = new Map((customers || []).map(c => [c.id, {
+      name: c.full_name || c.member_id || c.phone || "Customer",
+      memberId: c.member_id || "—"
+    }]));
+
+    // IMPORTANT: read point_transactions directly so Admin sees the same
+    // dated visit records that are created by add_customer_point().
+    const { data: transactions, error: txError } = await sb
+      .from("point_transactions")
+      .select("id,customer_id,points,type,created_at")
+      .gte("created_at", monthStart.toISOString())
+      .gt("points", 0)
+      .order("created_at", { ascending: false });
+
+    if (txError) throw txError;
+
+    const activity = (transactions || []).map(t => {
+      const customer = customerMap.get(t.customer_id) || {};
+      return {
+        id: t.id,
+        customerId: t.customer_id,
+        name: customer.name || "Customer",
+        memberId: customer.memberId || "—",
+        points: Number(t.points || 0),
+        createdAt: new Date(t.created_at),
+        type: t.type || "visit"
+      };
+    }).filter(x => x.customerId && Number.isFinite(x.createdAt.getTime()) && x.points > 0);
+
+    const inRange = (d, start, end) => d >= start && (!end || d < end);
+    const todayActivity = activity.filter(x => inRange(x.createdAt, todayStart, tomorrowStart));
+    const weekActivity = activity.filter(x => x.createdAt >= weekStart);
+    const monthActivity = activity.filter(x => x.createdAt >= monthStart);
+
+    const uniqueCustomers = rows => new Set(rows.map(x => x.customerId)).size;
+
+    // These counts are UNIQUE CUSTOMERS who actually received points.
+    if (todayEl) todayEl.textContent = String(uniqueCustomers(todayActivity));
+    if (weekEl) weekEl.textContent = String(uniqueCustomers(weekActivity));
+    if (monthEl) monthEl.textContent = String(uniqueCustomers(monthActivity));
+
+    // Show ONLY customers who received 2+ positive points today.
+    const todayByCustomer = new Map();
+    todayActivity.forEach(x => {
+      const current = todayByCustomer.get(x.customerId) || {
+        name: x.name,
+        memberId: x.memberId,
+        points: 0
+      };
+      current.points += x.points;
+      todayByCustomer.set(x.customerId, current);
+    });
+
+    const multipleToday = [...todayByCustomer.values()]
+      .filter(x => x.points >= 2)
+      .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+
+    if (multipleBox) {
+      if (!multipleToday.length) {
+        multipleBox.innerHTML = `<div class="empty">No customer received 2 or more points today.</div>`;
+      } else {
+        const dateText = todayStart.toLocaleDateString();
+        multipleBox.innerHTML = `
+          <div style="overflow-x:auto">
+            <table class="admin-points-table">
+              <thead><tr><th>Customer</th><th>Member ID</th><th>Date</th><th>Points Today</th></tr></thead>
+              <tbody>
+                ${multipleToday.map(x => `
+                  <tr>
+                    <td><strong>${esc(x.name)}</strong></td>
+                    <td>${esc(x.memberId)}</td>
+                    <td>${esc(dateText)}</td>
+                    <td><span class="admin-points-badge">${moneyPoints(x.points)}</span></td>
+                  </tr>`).join("")}
+              </tbody>
+            </table>
+          </div>`;
+      }
+    }
+  } catch (e) {
+    [todayEl, weekEl, monthEl].forEach(el => {
+      if (el) el.textContent = "—";
+    });
+    if (multipleBox) multipleBox.innerHTML = `<div class="alert">${esc(e.message || "Could not load point activity.")}</div>`;
+    toast(e.message || "Could not load point activity.", false);
+  }
 }
 
 async function loadAdminUsers() {
