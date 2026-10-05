@@ -15,28 +15,34 @@
 <a href="admin-users.html"><b>♙</b>Users</a>
 <a href="admin-settings.html"><b>⚙</b>Settings</a>
 </div></nav><script src="../assets/config.js"></script>
-<script src="../assets/app.js?v=20261005-customer-session-isolation"></script>
+<script src="../assets/app.js?v=20261005-admin-dashboard-live-v2"></script>
 <script>
-/* Admin Dashboard only. No shared app.js code is changed for this dashboard. */
+/* Admin Dashboard only. Live activity is calculated here so no other portal is changed. */
 (function(){
   const $id = id => document.getElementById(id);
-  const escHtml = value => String(value ?? "").replace(/[&<>\"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#039;"}[m]));
-  const pointsOf = t => Number(t?.points || 0);
+  const escHtml = value => String(value ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+
+  const pointsOf = t => {
+    const value = t?.points ?? t?.point ?? t?.amount ?? t?.points_change ?? 0;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const typeOf = t => String(t?.type ?? t?.transaction_type ?? t?.action ?? t?.kind ?? "").toLowerCase();
+  const timestampOf = t => t?.created_at ?? t?.transaction_date ?? t?.transaction_at ?? t?.timestamp ?? t?.date ?? t?.createdAt ?? null;
   const isEarnedVisit = t => {
     const n = pointsOf(t);
     if (!(n > 0)) return false;
-    const type = String(t?.type || t?.transaction_type || "").toLowerCase();
-    return !(type.includes("redeem") || type.includes("coupon") || type.includes("reward") || type.includes("deduct"));
+    const type = typeOf(t);
+    return !(type.includes("redeem") || type.includes("coupon") || type.includes("reward") || type.includes("deduct") || type.includes("remove"));
   };
   const localDateKey = d => {
     const x = new Date(d);
     if (Number.isNaN(x.getTime())) return "";
-    const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,"0"), day=String(x.getDate()).padStart(2,"0");
-    return `${y}-${m}-${day}`;
+    return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;
   };
   const minuteKey = d => {
     const x = new Date(d);
-    if (Number.isNaN(x.getTime())) return "";
+    if (Number.isNaN(x.getTime())) return NaN;
     x.setSeconds(0,0);
     return x.getTime();
   };
@@ -48,32 +54,44 @@
 
   async function readCustomerActivity(){
     const {data: customers, error} = await sb.from("profiles")
-      .select("id,full_name,member_id,role")
+      .select("id,full_name,member_id,role,points")
       .eq("role","customer")
+      .order("created_at", {ascending:false})
       .limit(1000);
     if(error) throw error;
 
-    const rows=[]; let failed=0;
     const list=Array.isArray(customers)?customers:[];
-    const batchSize=12;
+    const rows=[];
+    let failed=0;
+    let firstError="";
+    /* Use larger batches: the previous version could sit on Loading for a long time
+       because it waited through many small batches one after another. */
+    const batchSize=40;
     for(let i=0;i<list.length;i+=batchSize){
       const batch=list.slice(i,i+batchSize);
       const results=await Promise.all(batch.map(async customer=>{
         try{
           const {data,error}=await sb.rpc("get_customer_transactions",{p_customer_id:customer.id});
-          if(error) { failed++; return []; }
-          return (Array.isArray(data)?data:[]).filter(isEarnedVisit).map(t=>({
+          if(error){ failed++; firstError ||= error.message || "Transaction history could not be read."; return []; }
+          const raw = Array.isArray(data) ? data : (Array.isArray(data?.transactions) ? data.transactions : (data ? [data] : []));
+          return raw.filter(isEarnedVisit).map(t=>({
             customerId:customer.id,
             full_name:customer.full_name || "Customer",
             member_id:customer.member_id || "—",
             points:pointsOf(t),
-            created_at:t.created_at
-          }));
-        }catch{ failed++; return []; }
+            created_at:timestampOf(t)
+          })).filter(r=>r.created_at && !Number.isNaN(new Date(r.created_at).getTime()));
+        }catch(e){
+          failed++;
+          firstError ||= e?.message || "Transaction history could not be read.";
+          return [];
+        }
       }));
       results.flat().forEach(r=>rows.push(r));
+      const status=$id("adminChartStatus");
+      if(status && list.length>batchSize) status.textContent=`Reading live visit activity… ${Math.min(i+batchSize,list.length)} / ${list.length} customers`;
     }
-    return {rows,failed,totalCustomers:list.length};
+    return {rows,failed,totalCustomers:list.length,firstError};
   }
 
   function renderRepeatToday(rows,todayKey){
@@ -102,7 +120,9 @@
     const totalMinutes=Math.max(1,Math.floor((endMinute-start)/60000)+1);
     const values=new Array(totalMinutes).fill(0);
     rows.filter(r=>localDateKey(r.created_at)===todayKey).forEach(r=>{
-      const idx=Math.floor((minuteKey(r.created_at)-start.getTime())/60000);
+      const mk=minuteKey(r.created_at);
+      if(!Number.isFinite(mk)) return;
+      const idx=Math.floor((mk-start.getTime())/60000);
       if(idx>=0 && idx<values.length) values[idx]+=r.points;
     });
     const max=Math.max(1,...values);
@@ -115,14 +135,17 @@
     ctx.fillStyle="#718078";ctx.font="11px Arial";
     const labelEvery=Math.max(60,Math.ceil(totalMinutes/8/60)*60);
     for(let i=0;i<totalMinutes;i+=labelEvery){const x=pad.l+(i/Math.max(1,totalMinutes-1))*w;const dt=new Date(start.getTime()+i*60000);const label=dt.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});ctx.fillText(label,Math.max(pad.l,x-22),cssH-18);}
-    if(status){const active=values.filter(v=>v>0).length;status.textContent=active?`Today: ${rows.filter(r=>localDateKey(r.created_at)===todayKey).reduce((s,r)=>s+r.points,0)} visit points across ${active} active minute${active===1?"":"s"}.`:"No visit-point activity recorded today yet.";}
+    const active=values.filter(v=>v>0).length;
+    if(status) status.textContent=active ? `Today: ${values.reduce((s,v)=>s+v,0)} visit points across ${active} active minute${active===1?"":"s"}.` : "No visit-point activity recorded today yet.";
   }
 
   async function loadAdminDashboardOnly(){
     const profile=await guardRole(["admin"]); if(!profile)return;
+    const status=$id("adminChartStatus");
     try{
       const now=new Date(), todayKey=localDateKey(now), weekStart=startOfWeek(now), monthStart=startOfMonth(now);
-      const result=await readCustomerActivity(); const rows=result.rows;
+      const result=await readCustomerActivity();
+      const rows=result.rows;
       const todayCustomers=new Set(), weekCustomers=new Set(), monthCustomers=new Set();
       rows.forEach(r=>{
         const d=new Date(r.created_at); if(Number.isNaN(d.getTime()))return;
@@ -133,23 +156,26 @@
       $id("adminToday").textContent=todayCustomers.size.toLocaleString();
       $id("adminWeek").textContent=weekCustomers.size.toLocaleString();
       $id("adminMonth").textContent=monthCustomers.size.toLocaleString();
-      renderRepeatToday(rows,todayKey); drawChart(rows,now);
-      if(result.failed){
-        $id("adminChartStatus").textContent += ` Some customer histories could not be read (${result.failed}); displayed activity uses the histories available to Admin.`;
+      renderRepeatToday(rows,todayKey);
+      drawChart(rows,now);
+      if(result.failed && status){
+        status.textContent += ` ${result.failed} customer history request(s) failed.`;
+        status.title=result.firstError || "";
       }
     }catch(e){
       ["adminToday","adminWeek","adminMonth"].forEach(id=>$id(id).textContent="—");
       $id("adminRepeatToday").innerHTML=`<div class="alert">${escHtml(e.message||"Could not load live activity.")}</div>`;
-      $id("adminChartStatus").textContent="Live activity could not be loaded.";
+      if(status) status.textContent="Live activity could not be loaded.";
     }
   }
 
   window.loadAdminDashboard=loadAdminDashboardOnly;
-  let lastDay=localDateKey(new Date());
-  setInterval(()=>{
-    const day=localDateKey(new Date());
-    if(day!==lastDay) lastDay=day;
-    loadAdminDashboardOnly();
+  loadAdminDashboardOnly();
+  let refreshBusy=false;
+  setInterval(async()=>{
+    if(refreshBusy)return;
+    refreshBusy=true;
+    try{await loadAdminDashboardOnly();}finally{refreshBusy=false;}
   },60000);
 })();
 </script>
