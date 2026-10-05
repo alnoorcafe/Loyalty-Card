@@ -92,10 +92,6 @@
     {key:'iced-coffee',name:'Iced Coffee',icon:'🧊',order:3},
     {key:'matcha',name:'Matcha',icon:'🍵',order:4},
     {key:'breakfast',name:'Breakfast',icon:'🍳',order:5},
-    {key:'paninis-wraps-toast',name:'Paninis, Wraps & Toast',icon:'🥪',order:6},
-    {key:'fresh-salads',name:'Fresh Salads',icon:'🥗',order:7},
-    {key:'artisanal-pizzas',name:'Artisanal Pizzas',icon:'🍕',order:8},
-    {key:'traditional-oven-manakish',name:'Traditional Oven Manakish',icon:'🫓',order:9},
     {key:'bakery-croissants',name:'Bakery & Croissants',icon:'🥐',order:10},
     {key:'cakes-pastries',name:'Cakes & Pastries',icon:'🍰',order:11},
     {key:'fresh-juices-wellness',name:'Fresh Juices & Wellness',icon:'🧃',order:12},
@@ -104,6 +100,16 @@
   ];
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  function validImageSource(value){
+    if(typeof value!=='string') return null;
+    const v=value.trim();
+    if(!v) return null;
+    if(/^data:image\/(png|jpe?g|webp|gif|svg\+xml);base64,/i.test(v)) return v;
+    if(/^https?:\/\//i.test(v)) return v;
+    if(/^\.\.?\//.test(v) || /^assets\//i.test(v)) return v;
+    return null;
+  }
+
   const slug=v=>String(v??'').trim().toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
   let categories=[];
@@ -120,13 +126,14 @@
         name:r.name||base?.name||'Menu',
         icon:r.icon||base?.icon||'☕',
         order:Number(r.sort_order??base?.order??(100+i)),
-        active:r.is_active!==false
+        active:r.is_active!==false,
+        image_url:r.image_url||null
       });
     });
-    if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true}));
+    if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:null}));
     const existing=new Set(result.map(c=>slug(c.name)));
     FALLBACK_CATEGORIES.forEach(c=>{
-      if(!existing.has(slug(c.name))) result.push({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true});
+      if(!existing.has(slug(c.name))) result.push({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:null});
     });
     return result.filter(c=>c.active).sort((a,b)=>a.order-b.order);
   }
@@ -161,7 +168,7 @@
     categoriesView.innerHTML='<div class="menu-grid">'+categories.map(cat=>{
       const count=countForCategory(cat);
       return '<button class="menu-category" type="button" data-category="'+esc(cat.name)+'">'
-        +'<div class="menu-icon" aria-hidden="true">'+esc(cat.icon)+'</div>'
+        +'<div class="menu-icon" aria-hidden="true">'+(validImageSource(cat.image_url)?'<img src="'+esc(validImageSource(cat.image_url))+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;;"><span data-image-fallback style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:28px">'+esc(cat.icon)+'</span>':esc(cat.icon))+'</div>'
         +'<span class="menu-name">'+esc(cat.name)+'</span>'
         +'<span class="menu-count">'+count+' item'+(count===1?'':'s')+'</span>'
         +'</button>';
@@ -176,8 +183,9 @@
     categoriesView.hidden=true;
 
     const rows=filtered.length?filtered.map(item=>{
-      const image=item.image_url
-        ? '<img class="menu-item-image" src="'+esc(item.image_url)+'" alt="'+esc(item.name||'Menu item')+'" loading="lazy">'
+      const itemSrc=validImageSource(item.image_url);
+      const image=itemSrc
+        ? '<img class="menu-item-image" src="'+esc(itemSrc)+'" alt="'+esc(item.name||'Menu item')+'" loading="lazy" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;;"><div class="menu-placeholder" aria-hidden="true" style="display:none">'+esc(cat?.icon||'☕')+'</div>'
         : '<div class="menu-placeholder" aria-hidden="true">'+esc(cat?.icon||'☕')+'</div>';
       const desc=item.description?'<small class="menu-item-description">'+esc(item.description)+'</small>':'';
       const rawPrice=Number(item.price);
@@ -224,7 +232,7 @@
   }
 
   loadMenu().catch(err=>{
-    categories=FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true}));
+    categories=FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:null}));
     items=[];
     categoriesView.hidden=false;
     itemsView.hidden=true;
