@@ -15,164 +15,75 @@
 <a href="admin-users.html"><b>♙</b>Users</a>
 <a href="admin-settings.html"><b>⚙</b>Settings</a>
 </div></nav><script src="../assets/config.js"></script>
-<script src="../assets/app.js?v=20261005-admin-dashboard-direct-points-v3"></script>
+<script src="../assets/app.js?v=20261005-admin-dashboard-live-v2"></script>
 <script>
-/* Admin Dashboard only. Live activity is calculated here so no other portal is changed. */
+/* ADMIN DASHBOARD ONLY: direct point_transactions diagnostic/live reader. */
 (function(){
-  const $id = id => document.getElementById(id);
-  const escHtml = value => String(value ?? "").replace(/[&<>"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+  const $id=id=>document.getElementById(id);
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const points=t=>{const n=Number(t?.points??0);return Number.isFinite(n)?n:0;};
+  const earned=t=>{const n=points(t),ty=String(t?.type??'').toLowerCase();return n>0&&!/(redeem|coupon|reward|deduct|remove)/.test(ty);};
+  const dateKey=d=>{const x=new Date(d);return Number.isNaN(x.getTime())?'':`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
+  const startWeek=n=>{const x=new Date(n),day=x.getDay(),diff=day===0?6:day-1;x.setDate(x.getDate()-diff);x.setHours(0,0,0,0);return x};
+  const startMonth=n=>new Date(n.getFullYear(),n.getMonth(),1);
 
-  const pointsOf = t => {
-    const value = t?.points ?? t?.point ?? t?.amount ?? t?.points_change ?? 0;
-    const n = Number(value);
-    return Number.isFinite(n) ? n : 0;
-  };
-  const typeOf = t => String(t?.type ?? t?.transaction_type ?? t?.action ?? t?.kind ?? "").toLowerCase();
-  const timestampOf = t => t?.created_at ?? t?.transaction_date ?? t?.transaction_at ?? t?.timestamp ?? t?.date ?? t?.createdAt ?? null;
-  const isEarnedVisit = t => {
-    const n = pointsOf(t);
-    if (!(n > 0)) return false;
-    const type = typeOf(t);
-    return !(type.includes("redeem") || type.includes("coupon") || type.includes("reward") || type.includes("deduct") || type.includes("remove"));
-  };
-  const localDateKey = d => {
-    const x = new Date(d);
-    if (Number.isNaN(x.getTime())) return "";
-    return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`;
-  };
-  const minuteKey = d => {
-    const x = new Date(d);
-    if (Number.isNaN(x.getTime())) return NaN;
-    x.setSeconds(0,0);
-    return x.getTime();
-  };
-  const startOfWeek = now => {
-    const x=new Date(now); const day=x.getDay(); const diff=day===0?6:day-1;
-    x.setDate(x.getDate()-diff); x.setHours(0,0,0,0); return x;
-  };
-  const startOfMonth = now => new Date(now.getFullYear(), now.getMonth(), 1);
-
-  async function readCustomerActivity(){
-    // Admin dashboard reads the real visit-point table directly.
-    // This is intentionally isolated to the Admin page; no Customer/Staff/GM page is changed.
-    const {data: customers, error: customerError} = await sb.from("profiles")
-      .select("id,full_name,member_id,role,points")
-      .eq("role","customer")
-      .order("created_at", {ascending:false})
-      .limit(1000);
-    if(customerError) throw customerError;
-
-    const list=Array.isArray(customers)?customers:[];
-    const customerMap=new Map(list.map(c=>[String(c.id),c]));
-
-    const {data: transactions, error: txError} = await sb.from("point_transactions")
-      .select("id,customer_id,type,points,note,created_at")
-      .gt("points",0)
-      .order("created_at", {ascending:true})
+  async function readDirect(){
+    const status=$id('adminChartStatus');
+    status.textContent='Reading point_transactions directly…';
+    const {data,error}=await sb.from('point_transactions')
+      .select('id,customer_id,type,points,note,created_at')
+      .order('created_at',{ascending:true})
       .limit(10000);
-    if(txError) throw txError;
-
-    const rows=(Array.isArray(transactions)?transactions:[])
-      .filter(isEarnedVisit)
-      .map(t=>{
-        const c=customerMap.get(String(t.customer_id));
-        return {
-          customerId:t.customer_id,
-          full_name:c?.full_name || "Customer",
-          member_id:c?.member_id || "—",
-          points:pointsOf(t),
-          created_at:timestampOf(t)
-        };
-      })
-      .filter(r=>r.created_at && !Number.isNaN(new Date(r.created_at).getTime()));
-
-    return {rows,failed:0,totalCustomers:list.length,firstError:""};
-  }
-
-  function renderRepeatToday(rows,todayKey){
-    const map=new Map();
-    rows.filter(r=>localDateKey(r.created_at)===todayKey).forEach(r=>{
-      const key=r.customerId;
-      const item=map.get(key)||{full_name:r.full_name,member_id:r.member_id,total:0,visits:0};
-      item.total+=r.points; item.visits+=1; map.set(key,item);
-    });
-    const repeat=[...map.values()].filter(x=>x.total>1 || x.visits>1).sort((a,b)=>b.total-a.total);
-    const box=$id("adminRepeatToday");
-    if(!repeat.length){box.innerHTML='<div class="empty">No customer received more than one point today.</div>';return;}
-    box.innerHTML=`<div style="overflow-x:auto"><table class="table"><thead><tr><th>Customer</th><th>Member ID</th><th>Date</th><th>Total Points Today</th></tr></thead><tbody>${repeat.map(x=>`<tr><td><strong>${escHtml(x.full_name)}</strong></td><td>${escHtml(x.member_id)}</td><td>${escHtml(todayKey)}</td><td><strong>${x.total}</strong></td></tr>`).join("")}</tbody></table></div>`;
-  }
-
-  function drawChart(rows,now){
-    const canvas=$id("adminActivityChart"), status=$id("adminChartStatus");
-    if(!canvas) return;
-    const ctx=canvas.getContext("2d");
-    const dpr=window.devicePixelRatio||1; const cssW=1200, cssH=330;
-    canvas.width=cssW*dpr; canvas.height=cssH*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.clearRect(0,0,cssW,cssH);
-    const todayKey=localDateKey(now);
-    const start=new Date(now); start.setHours(0,0,0,0);
-    const endMinute=new Date(now); endMinute.setSeconds(0,0);
-    const totalMinutes=Math.max(1,Math.floor((endMinute-start)/60000)+1);
-    const values=new Array(totalMinutes).fill(0);
-    rows.filter(r=>localDateKey(r.created_at)===todayKey).forEach(r=>{
-      const mk=minuteKey(r.created_at);
-      if(!Number.isFinite(mk)) return;
-      const idx=Math.floor((mk-start.getTime())/60000);
-      if(idx>=0 && idx<values.length) values[idx]+=r.points;
-    });
-    const max=Math.max(1,...values);
-    const pad={l:46,r:18,t:22,b:52}; const w=cssW-pad.l-pad.r, h=cssH-pad.t-pad.b;
-    ctx.strokeStyle="#e5dfd2"; ctx.lineWidth=1;
-    for(let i=0;i<=4;i++){const y=pad.t+h-(h*i/4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+w,y);ctx.stroke();ctx.fillStyle="#718078";ctx.font="11px Arial";ctx.fillText(String(Math.round(max*i/4)),8,y+4);}
-    ctx.strokeStyle="#0b4a36";ctx.lineWidth=2;ctx.beginPath();
-    values.forEach((v,i)=>{const x=pad.l+(i/Math.max(1,totalMinutes-1))*w;const y=pad.t+h-(v/max)*h;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
-    ctx.fillStyle="#0b4a36"; values.forEach((v,i)=>{if(v<=0)return;const x=pad.l+(i/Math.max(1,totalMinutes-1))*w;const y=pad.t+h-(v/max)*h;ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();});
-    ctx.fillStyle="#718078";ctx.font="11px Arial";
-    const labelEvery=Math.max(60,Math.ceil(totalMinutes/8/60)*60);
-    for(let i=0;i<totalMinutes;i+=labelEvery){const x=pad.l+(i/Math.max(1,totalMinutes-1))*w;const dt=new Date(start.getTime()+i*60000);const label=dt.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});ctx.fillText(label,Math.max(pad.l,x-22),cssH-18);}
-    const active=values.filter(v=>v>0).length;
-    if(status) status.textContent=active ? `Today: ${values.reduce((s,v)=>s+v,0)} visit points across ${active} active minute${active===1?"":"s"}.` : "No visit-point activity recorded today yet.";
-  }
-
-  async function loadAdminDashboardOnly(){
-    const profile=await guardRole(["admin"]); if(!profile)return;
-    const status=$id("adminChartStatus");
-    try{
-      const now=new Date(), todayKey=localDateKey(now), weekStart=startOfWeek(now), monthStart=startOfMonth(now);
-      const result=await readCustomerActivity();
-      const rows=result.rows;
-      const todayCustomers=new Set(), weekCustomers=new Set(), monthCustomers=new Set();
-      rows.forEach(r=>{
-        const d=new Date(r.created_at); if(Number.isNaN(d.getTime()))return;
-        if(localDateKey(d)===todayKey) todayCustomers.add(r.customerId);
-        if(d>=weekStart) weekCustomers.add(r.customerId);
-        if(d>=monthStart) monthCustomers.add(r.customerId);
-      });
-      $id("adminToday").textContent=todayCustomers.size.toLocaleString();
-      $id("adminWeek").textContent=weekCustomers.size.toLocaleString();
-      $id("adminMonth").textContent=monthCustomers.size.toLocaleString();
-      renderRepeatToday(rows,todayKey);
-      drawChart(rows,now);
-      if(result.failed && status){
-        status.textContent += ` ${result.failed} customer history request(s) failed.`;
-        status.title=result.firstError || "";
+    if(error){
+      const msg=error.message||'Unknown database error';
+      status.innerHTML=`<strong>Database read failed:</strong> ${esc(msg)}<br><small>This confirms the Admin account does not currently have permission to read point_transactions directly.</small>`;
+      throw error;
+    }
+    const raw=Array.isArray(data)?data:[];
+    const rows=raw.filter(earned).filter(r=>r.customer_id&&r.created_at).map(r=>({
+      customerId:r.customer_id,points:points(r),type:r.type,created_at:r.created_at,full_name:r.customer_id,member_id:'—'
+    }));
+    const ids=[...new Set(rows.map(r=>r.customerId))];
+    if(ids.length){
+      const {data:profiles,error:pe}=await sb.from('profiles').select('id,full_name,member_id').in('id',ids);
+      if(!pe && Array.isArray(profiles)){
+        const map=new Map(profiles.map(x=>[x.id,x]));
+        rows.forEach(r=>{const p=map.get(r.customerId);if(p){r.full_name=p.full_name||r.customerId;r.member_id=p.member_id||'—'}});
       }
+    }
+    return rows;
+  }
+
+  function renderRepeat(rows,today){
+    const m=new Map();
+    rows.filter(r=>dateKey(r.created_at)===today).forEach(r=>{const x=m.get(r.customerId)||{name:r.full_name,id:r.member_id,total:0};x.total+=r.points;m.set(r.customerId,x)});
+    const a=[...m.values()].filter(x=>x.total>1).sort((a,b)=>b.total-a.total);
+    $id('adminRepeatToday').innerHTML=a.length?`<div style="overflow-x:auto"><table class="table"><thead><tr><th>Customer</th><th>Member ID</th><th>Date</th><th>Total Points Today</th></tr></thead><tbody>${a.map(x=>`<tr><td><strong>${esc(x.name)}</strong></td><td>${esc(x.id)}</td><td>${esc(today)}</td><td><strong>${x.total}</strong></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No customer received more than one point today.</div>';
+  }
+
+  function chart(rows,now){
+    const c=$id('adminActivityChart'),ctx=c.getContext('2d'),dpr=devicePixelRatio||1,W=1200,H=330;c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+    const today=dateKey(now),start=new Date(now);start.setHours(0,0,0,0);const end=new Date(now);end.setSeconds(0,0);const mins=Math.floor((end-start)/60000)+1,vals=Array(mins).fill(0);
+    rows.filter(r=>dateKey(r.created_at)===today).forEach(r=>{const d=new Date(r.created_at);d.setSeconds(0,0);const i=Math.floor((d-start)/60000);if(i>=0&&i<mins)vals[i]+=r.points});
+    const max=Math.max(1,...vals),p={l:46,r:18,t:22,b:52},w=W-p.l-p.r,h=H-p.t-p.b;ctx.strokeStyle='#e5dfd2';ctx.fillStyle='#718078';ctx.font='11px Arial';
+    for(let i=0;i<=4;i++){const y=p.t+h-h*i/4;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(p.l+w,y);ctx.stroke();ctx.fillText(String(Math.round(max*i/4)),8,y+4)}
+    ctx.strokeStyle='#0b4a36';ctx.lineWidth=2;ctx.beginPath();vals.forEach((v,i)=>{const x=p.l+i/Math.max(1,mins-1)*w,y=p.t+h-v/max*h;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
+    const active=vals.filter(v=>v>0).length,total=vals.reduce((a,b)=>a+b,0);$id('adminChartStatus').textContent=active?`Today: ${total} visit points across ${active} active minute${active===1?'':'s'}. Direct table read.`:'No visit-point activity recorded today. Direct table read returned successfully.';
+  }
+
+  async function load(){
+    const profile=await guardRole(['admin']);if(!profile)return;
+    try{
+      const now=new Date(),today=dateKey(now),week=startWeek(now),month=startMonth(now),rows=await readDirect();
+      const t=new Set(),w=new Set(),m=new Set();
+      rows.forEach(r=>{const d=new Date(r.created_at);if(Number.isNaN(d.getTime()))return;if(dateKey(d)===today)t.add(r.customerId);if(d>=week)w.add(r.customerId);if(d>=month)m.add(r.customerId)});
+      $id('adminToday').textContent=t.size;$id('adminWeek').textContent=w.size;$id('adminMonth').textContent=m.size;renderRepeat(rows,today);chart(rows,now);
     }catch(e){
-      ["adminToday","adminWeek","adminMonth"].forEach(id=>$id(id).textContent="—");
-      $id("adminRepeatToday").innerHTML=`<div class="alert">${escHtml(e.message||"Could not load live activity.")}</div>`;
-      if(status) status.textContent="Live activity could not be loaded.";
+      ['adminToday','adminWeek','adminMonth'].forEach(id=>$id(id).textContent='ERR');
+      $id('adminRepeatToday').innerHTML=`<div class="alert">${esc(e.message||'Could not read point_transactions.')}</div>`;
     }
   }
-
-  window.loadAdminDashboard=loadAdminDashboardOnly;
-  loadAdminDashboardOnly();
-  let refreshBusy=false;
-  setInterval(async()=>{
-    if(refreshBusy)return;
-    refreshBusy=true;
-    try{await loadAdminDashboardOnly();}finally{refreshBusy=false;}
-  },60000);
+  window.loadAdminDashboard=load;load();setInterval(load,60000);
 })();
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body></html>
