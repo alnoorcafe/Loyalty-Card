@@ -15,7 +15,7 @@
 <a href="admin-users.html"><b>♙</b>Users</a>
 <a href="admin-settings.html"><b>⚙</b>Settings</a>
 </div></nav><script src="../assets/config.js"></script>
-<script src="../assets/app.js?v=20261005-admin-dashboard-live-v2"></script>
+<script src="../assets/app.js?v=20261005-admin-dashboard-direct-points-v3"></script>
 <script>
 /* Admin Dashboard only. Live activity is calculated here so no other portal is changed. */
 (function(){
@@ -53,45 +53,40 @@
   const startOfMonth = now => new Date(now.getFullYear(), now.getMonth(), 1);
 
   async function readCustomerActivity(){
-    const {data: customers, error} = await sb.from("profiles")
+    // Admin dashboard reads the real visit-point table directly.
+    // This is intentionally isolated to the Admin page; no Customer/Staff/GM page is changed.
+    const {data: customers, error: customerError} = await sb.from("profiles")
       .select("id,full_name,member_id,role,points")
       .eq("role","customer")
       .order("created_at", {ascending:false})
       .limit(1000);
-    if(error) throw error;
+    if(customerError) throw customerError;
 
     const list=Array.isArray(customers)?customers:[];
-    const rows=[];
-    let failed=0;
-    let firstError="";
-    /* Use larger batches: the previous version could sit on Loading for a long time
-       because it waited through many small batches one after another. */
-    const batchSize=40;
-    for(let i=0;i<list.length;i+=batchSize){
-      const batch=list.slice(i,i+batchSize);
-      const results=await Promise.all(batch.map(async customer=>{
-        try{
-          const {data,error}=await sb.rpc("get_customer_transactions",{p_customer_id:customer.id});
-          if(error){ failed++; firstError ||= error.message || "Transaction history could not be read."; return []; }
-          const raw = Array.isArray(data) ? data : (Array.isArray(data?.transactions) ? data.transactions : (data ? [data] : []));
-          return raw.filter(isEarnedVisit).map(t=>({
-            customerId:customer.id,
-            full_name:customer.full_name || "Customer",
-            member_id:customer.member_id || "—",
-            points:pointsOf(t),
-            created_at:timestampOf(t)
-          })).filter(r=>r.created_at && !Number.isNaN(new Date(r.created_at).getTime()));
-        }catch(e){
-          failed++;
-          firstError ||= e?.message || "Transaction history could not be read.";
-          return [];
-        }
-      }));
-      results.flat().forEach(r=>rows.push(r));
-      const status=$id("adminChartStatus");
-      if(status && list.length>batchSize) status.textContent=`Reading live visit activity… ${Math.min(i+batchSize,list.length)} / ${list.length} customers`;
-    }
-    return {rows,failed,totalCustomers:list.length,firstError};
+    const customerMap=new Map(list.map(c=>[String(c.id),c]));
+
+    const {data: transactions, error: txError} = await sb.from("point_transactions")
+      .select("id,customer_id,type,points,note,created_at")
+      .gt("points",0)
+      .order("created_at", {ascending:true})
+      .limit(10000);
+    if(txError) throw txError;
+
+    const rows=(Array.isArray(transactions)?transactions:[])
+      .filter(isEarnedVisit)
+      .map(t=>{
+        const c=customerMap.get(String(t.customer_id));
+        return {
+          customerId:t.customer_id,
+          full_name:c?.full_name || "Customer",
+          member_id:c?.member_id || "—",
+          points:pointsOf(t),
+          created_at:timestampOf(t)
+        };
+      })
+      .filter(r=>r.created_at && !Number.isNaN(new Date(r.created_at).getTime()));
+
+    return {rows,failed:0,totalCustomers:list.length,firstError:""};
   }
 
   function renderRepeatToday(rows,todayKey){
