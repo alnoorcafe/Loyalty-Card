@@ -1,31 +1,157 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Admin Dashboard</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><style>
-.admin-period-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:22px}
-.admin-period-card{min-height:150px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:22px 24px;position:relative;overflow:hidden}
-.admin-period-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:rgba(184,140,53,.12);color:#b88c35;font-size:23px;margin-bottom:12px}
-.admin-period-label{font-weight:800;color:var(--green,#073a2b);font-size:18px;line-height:1.2}
-.admin-period-card strong{font-size:38px;line-height:1;margin-top:10px;color:var(--green,#073a2b)}
-.admin-period-card span{margin-top:7px;color:var(--muted,#66706c);font-size:13px}
-@media(max-width:800px){.admin-period-grid{grid-template-columns:1fr}.admin-period-card{min-height:125px}}
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Admin Dashboard</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="admin-dashboard"><header class="topbar"><a class="brand brand-image" href="admin-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">System Admin</h1><p class="sub">Customer activity overview.</p>
 
-.admin-multiple-points{margin-top:22px;padding:22px 24px}
-.admin-multiple-points h2{margin:0;color:var(--green,#073a2b);font-size:22px}
-.admin-multiple-points .sub{margin:7px 0 16px}
-.admin-points-table{width:100%;border-collapse:collapse}
-.admin-points-table th,.admin-points-table td{padding:12px 10px;border-bottom:1px solid rgba(7,58,43,.10);text-align:left}
-.admin-points-table th{color:var(--green,#073a2b);font-size:13px}
-.admin-points-table td strong{color:var(--green,#073a2b)}
-.admin-points-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:6px 10px;border-radius:999px;background:rgba(184,140,53,.14);color:var(--green,#073a2b);font-weight:800}
-@media(max-width:600px){.admin-multiple-points{padding:18px 14px}.admin-points-table th,.admin-points-table td{padding:10px 6px;font-size:13px}}
-</style></head><body data-page="admin-dashboard"><header class="topbar"><a class="brand brand-image" href="admin-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">System Admin</h1><p class="sub">Customer activity overview.</p><div class="admin-period-grid"><div class="card admin-period-card"><div class="admin-period-icon">☀</div><div class="admin-period-label">Customers Today</div><strong id="adminCustomersToday">—</strong><span>Customers who earned points today</span></div><div class="card admin-period-card"><div class="admin-period-icon">▦</div><div class="admin-period-label">Customers This Week</div><strong id="adminCustomersWeek">—</strong><span>Customers who earned points this week</span></div><div class="card admin-period-card"><div class="admin-period-icon">▤</div><div class="admin-period-label">Customers This Month</div><strong id="adminCustomersMonth">—</strong><span>Customers who earned points this month</span></div></div><section class="card admin-multiple-points" aria-labelledby="adminMultiplePointsTitle">
-<h2 id="adminMultiplePointsTitle">2+ Points on the Same Day</h2>
-<p class="sub">Customers who received two or more visit points on one day.</p>
-<div id="adminMultiplePointsList"><div class="empty">Loading point activity…</div></div>
-</section></main><nav class="nav"><div class="navin">
+<div class="grid g3" id="adminPeriodCards">
+  <div class="card stat"><i>☀</i><div><strong id="adminToday">—</strong><span>Customers Today</span><small>Customers who earned points today</small></div></div>
+  <div class="card stat"><i>▦</i><div><strong id="adminWeek">—</strong><span>Customers This Week</span><small>Customers who earned points this week</small></div></div>
+  <div class="card stat"><i>▤</i><div><strong id="adminMonth">—</strong><span>Customers This Month</span><small>Customers who earned points this month</small></div></div>
+</div>
+
+<div class="card" style="margin-top:18px"><h3>2+ Points on the Same Day</h3><p class="sub" style="margin-bottom:10px">Customers who received more than one visit point today. This list is calculated live for today only and is not a history.</p><div id="adminRepeatToday"><div class="empty">Loading point activity…</div></div></div>
+
+<div class="card" style="margin-top:18px"><h3>Movement Level by Minute</h3><p class="sub">Today's recorded visit-point activity, grouped by the minute it happened. It refreshes automatically and resets to a new day at midnight.</p><div id="adminChartStatus" class="note" style="margin-top:12px">Loading live activity…</div><div style="overflow-x:auto;margin-top:14px"><canvas id="adminActivityChart" width="1200" height="330" style="display:block;width:100%;min-width:900px;height:330px"></canvas></div></div>
+
+<div class="card" style="margin-top:18px"><h3>Administration</h3><div class="actions"><a class="btn soft" href="admin-users.html">Manage Users</a><a class="btn soft" href="admin-settings.html">System Settings</a><a class="btn gold" href="../gm/gm-dashboard.html">Open GM Portal</a></div></div></main><nav class="nav"><div class="navin">
 <a href="admin-dashboard.html"><b>▦</b>Dashboard</a>
 <a href="admin-users.html"><b>♙</b>Users</a>
-<a href="admin-staff.html"><b>♟</b>Staff</a>
 <a href="admin-settings.html"><b>⚙</b>Settings</a>
 </div></nav><script src="../assets/config.js"></script>
-<script src="../assets/app.js?v=20261005-admin-dashboard-points-table-v2"></script>
+<script src="../assets/app.js?v=20261005-customer-session-isolation"></script>
+<script>
+/* Admin Dashboard only. No shared app.js code is changed for this dashboard. */
+(function(){
+  const $id = id => document.getElementById(id);
+  const escHtml = value => String(value ?? "").replace(/[&<>\"']/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#039;"}[m]));
+  const pointsOf = t => Number(t?.points || 0);
+  const isEarnedVisit = t => {
+    const n = pointsOf(t);
+    if (!(n > 0)) return false;
+    const type = String(t?.type || t?.transaction_type || "").toLowerCase();
+    return !(type.includes("redeem") || type.includes("coupon") || type.includes("reward") || type.includes("deduct"));
+  };
+  const localDateKey = d => {
+    const x = new Date(d);
+    if (Number.isNaN(x.getTime())) return "";
+    const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,"0"), day=String(x.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+  };
+  const minuteKey = d => {
+    const x = new Date(d);
+    if (Number.isNaN(x.getTime())) return "";
+    x.setSeconds(0,0);
+    return x.getTime();
+  };
+  const startOfWeek = now => {
+    const x=new Date(now); const day=x.getDay(); const diff=day===0?6:day-1;
+    x.setDate(x.getDate()-diff); x.setHours(0,0,0,0); return x;
+  };
+  const startOfMonth = now => new Date(now.getFullYear(), now.getMonth(), 1);
+
+  async function readCustomerActivity(){
+    const {data: customers, error} = await sb.from("profiles")
+      .select("id,full_name,member_id,role")
+      .eq("role","customer")
+      .limit(1000);
+    if(error) throw error;
+
+    const rows=[]; let failed=0;
+    const list=Array.isArray(customers)?customers:[];
+    const batchSize=12;
+    for(let i=0;i<list.length;i+=batchSize){
+      const batch=list.slice(i,i+batchSize);
+      const results=await Promise.all(batch.map(async customer=>{
+        try{
+          const {data,error}=await sb.rpc("get_customer_transactions",{p_customer_id:customer.id});
+          if(error) { failed++; return []; }
+          return (Array.isArray(data)?data:[]).filter(isEarnedVisit).map(t=>({
+            customerId:customer.id,
+            full_name:customer.full_name || "Customer",
+            member_id:customer.member_id || "—",
+            points:pointsOf(t),
+            created_at:t.created_at
+          }));
+        }catch{ failed++; return []; }
+      }));
+      results.flat().forEach(r=>rows.push(r));
+    }
+    return {rows,failed,totalCustomers:list.length};
+  }
+
+  function renderRepeatToday(rows,todayKey){
+    const map=new Map();
+    rows.filter(r=>localDateKey(r.created_at)===todayKey).forEach(r=>{
+      const key=r.customerId;
+      const item=map.get(key)||{full_name:r.full_name,member_id:r.member_id,total:0,visits:0};
+      item.total+=r.points; item.visits+=1; map.set(key,item);
+    });
+    const repeat=[...map.values()].filter(x=>x.total>1 || x.visits>1).sort((a,b)=>b.total-a.total);
+    const box=$id("adminRepeatToday");
+    if(!repeat.length){box.innerHTML='<div class="empty">No customer received more than one point today.</div>';return;}
+    box.innerHTML=`<div style="overflow-x:auto"><table class="table"><thead><tr><th>Customer</th><th>Member ID</th><th>Date</th><th>Total Points Today</th></tr></thead><tbody>${repeat.map(x=>`<tr><td><strong>${escHtml(x.full_name)}</strong></td><td>${escHtml(x.member_id)}</td><td>${escHtml(todayKey)}</td><td><strong>${x.total}</strong></td></tr>`).join("")}</tbody></table></div>`;
+  }
+
+  function drawChart(rows,now){
+    const canvas=$id("adminActivityChart"), status=$id("adminChartStatus");
+    if(!canvas) return;
+    const ctx=canvas.getContext("2d");
+    const dpr=window.devicePixelRatio||1; const cssW=1200, cssH=330;
+    canvas.width=cssW*dpr; canvas.height=cssH*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    ctx.clearRect(0,0,cssW,cssH);
+    const todayKey=localDateKey(now);
+    const start=new Date(now); start.setHours(0,0,0,0);
+    const endMinute=new Date(now); endMinute.setSeconds(0,0);
+    const totalMinutes=Math.max(1,Math.floor((endMinute-start)/60000)+1);
+    const values=new Array(totalMinutes).fill(0);
+    rows.filter(r=>localDateKey(r.created_at)===todayKey).forEach(r=>{
+      const idx=Math.floor((minuteKey(r.created_at)-start.getTime())/60000);
+      if(idx>=0 && idx<values.length) values[idx]+=r.points;
+    });
+    const max=Math.max(1,...values);
+    const pad={l:46,r:18,t:22,b:52}; const w=cssW-pad.l-pad.r, h=cssH-pad.t-pad.b;
+    ctx.strokeStyle="#e5dfd2"; ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){const y=pad.t+h-(h*i/4);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+w,y);ctx.stroke();ctx.fillStyle="#718078";ctx.font="11px Arial";ctx.fillText(String(Math.round(max*i/4)),8,y+4);}
+    ctx.strokeStyle="#0b4a36";ctx.lineWidth=2;ctx.beginPath();
+    values.forEach((v,i)=>{const x=pad.l+(i/Math.max(1,totalMinutes-1))*w;const y=pad.t+h-(v/max)*h;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+    ctx.fillStyle="#0b4a36"; values.forEach((v,i)=>{if(v<=0)return;const x=pad.l+(i/Math.max(1,totalMinutes-1))*w;const y=pad.t+h-(v/max)*h;ctx.beginPath();ctx.arc(x,y,2.5,0,Math.PI*2);ctx.fill();});
+    ctx.fillStyle="#718078";ctx.font="11px Arial";
+    const labelEvery=Math.max(60,Math.ceil(totalMinutes/8/60)*60);
+    for(let i=0;i<totalMinutes;i+=labelEvery){const x=pad.l+(i/Math.max(1,totalMinutes-1))*w;const dt=new Date(start.getTime()+i*60000);const label=dt.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});ctx.fillText(label,Math.max(pad.l,x-22),cssH-18);}
+    if(status){const active=values.filter(v=>v>0).length;status.textContent=active?`Today: ${rows.filter(r=>localDateKey(r.created_at)===todayKey).reduce((s,r)=>s+r.points,0)} visit points across ${active} active minute${active===1?"":"s"}.`:"No visit-point activity recorded today yet.";}
+  }
+
+  async function loadAdminDashboardOnly(){
+    const profile=await guardRole(["admin"]); if(!profile)return;
+    try{
+      const now=new Date(), todayKey=localDateKey(now), weekStart=startOfWeek(now), monthStart=startOfMonth(now);
+      const result=await readCustomerActivity(); const rows=result.rows;
+      const todayCustomers=new Set(), weekCustomers=new Set(), monthCustomers=new Set();
+      rows.forEach(r=>{
+        const d=new Date(r.created_at); if(Number.isNaN(d.getTime()))return;
+        if(localDateKey(d)===todayKey) todayCustomers.add(r.customerId);
+        if(d>=weekStart) weekCustomers.add(r.customerId);
+        if(d>=monthStart) monthCustomers.add(r.customerId);
+      });
+      $id("adminToday").textContent=todayCustomers.size.toLocaleString();
+      $id("adminWeek").textContent=weekCustomers.size.toLocaleString();
+      $id("adminMonth").textContent=monthCustomers.size.toLocaleString();
+      renderRepeatToday(rows,todayKey); drawChart(rows,now);
+      if(result.failed){
+        $id("adminChartStatus").textContent += ` Some customer histories could not be read (${result.failed}); displayed activity uses the histories available to Admin.`;
+      }
+    }catch(e){
+      ["adminToday","adminWeek","adminMonth"].forEach(id=>$id(id).textContent="—");
+      $id("adminRepeatToday").innerHTML=`<div class="alert">${escHtml(e.message||"Could not load live activity.")}</div>`;
+      $id("adminChartStatus").textContent="Live activity could not be loaded.";
+    }
+  }
+
+  window.loadAdminDashboard=loadAdminDashboardOnly;
+  let lastDay=localDateKey(new Date());
+  setInterval(()=>{
+    const day=localDateKey(new Date());
+    if(day!==lastDay) lastDay=day;
+    loadAdminDashboardOnly();
+  },60000);
+})();
+</script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body></html>
