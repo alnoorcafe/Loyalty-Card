@@ -3,11 +3,21 @@ const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
 const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
 const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
 
+// Keep Customer authentication completely isolated from Staff / GM / Admin.
+// Supabase sessions are stored under different localStorage keys, so opening
+// a Customer tab can never replace the management portal session.
+const AL_NOOR_PAGE = String(document.body?.dataset?.page || "").toLowerCase();
+const AL_NOOR_IS_CUSTOMER = AL_NOOR_PAGE.startsWith("customer-");
+const AL_NOOR_AUTH_STORAGE_KEY = AL_NOOR_IS_CUSTOMER
+  ? "alnoor_customer_auth_session"
+  : "alnoor_management_auth_session";
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storageKey: AL_NOOR_AUTH_STORAGE_KEY
   }
 });
 
@@ -138,207 +148,65 @@ function toast(message, good = true) {
 
 async function getSession() {
   const { data, error } = await sb.auth.getSession();
-
-  if (error) {
-    throw error;
-  }
-
+  if (error) throw error;
   return data.session;
 }
 
 async function getProfile() {
   const { data, error } = await sb.rpc("get_my_profile");
-
-  if (error) {
-    throw error;
-  }
-
+  if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
 }
 
 async function getStaffProfile() {
   const { data, error } = await sb.rpc("get_my_staff_profile");
-
-  if (error) {
-    throw error;
-  }
-
+  if (error) throw error;
   return Array.isArray(data) ? data[0] : data;
 }
 
-
-/* =========================================================
-   PORTAL ROUTING
-   ========================================================= */
-
 function portalForRole(role) {
   const routes = {
-    admin: "../admin/admin-dashboard.html",
-    gm: "../gm/gm-dashboard.html",
-    staff: "../staff/staff-scan.html",
-    customer: "../customer/customer-home.html"
+    admin: "admin-dashboard.html",
+    gm: "gm-dashboard.html",
+    staff: "staff-scan.html",
+    customer: "customer-home.html"
   };
-
   return routes[String(role || "").toLowerCase()] || "../index.html";
 }
 
-
-/* =========================================================
-   ROLE GUARD
-   IMPORTANT:
-   - NEVER sign out because of portal mismatch.
-   - Customer can NEVER enter Staff / GM / Admin.
-   - Staff can NEVER enter Customer / GM / Admin.
-   - GM can NEVER enter Customer / Staff / Admin.
-   - Admin keeps its existing management access.
-   ========================================================= */
-
 async function guardRole(allowedRoles) {
-
   const session = await getSession();
-
-  /* No active session */
   if (!session?.user) {
-
     const role = allowedRoles[0];
-
-    const loginPages = {
-      customer: "../customer/customer-login.html",
-      staff: "../staff/staff-login.html",
-      gm: "../gm/gm-login.html",
-      admin: "../admin/admin-login.html"
-    };
-
-    location.href =
-      loginPages[role] || "../index.html";
-
+    location.href = role === "customer" ? "customer-login.html" : role === "gm" ? "gm-login.html" : role === "admin" ? "admin-login.html" : "staff-login.html";
     return null;
   }
 
-
-  /* Get authenticated user's profile */
   let profile = null;
-
   try {
-
     profile = await getProfile();
-
-  } catch (error) {
-
-    console.error(
-      "Portal profile verification failed:",
-      error
-    );
-
-    /*
-      IMPORTANT:
-      Do NOT call:
-      sb.auth.signOut()
-
-      The session is still valid.
-    */
-
-    toast(
-      "Could not verify portal access. Please try again.",
-      false
-    );
-
+  } catch (e) {
+    // Never destroy a valid Supabase session because profile verification is temporarily unavailable.
+    toast("Could not verify portal access. Please try again.", false);
     return null;
   }
 
-
-  /* Profile missing */
-  if (!profile) {
-
-    toast(
-      "Could not verify portal access. Please try again.",
-      false
-    );
-
+  const role = String(profile?.role || "").toLowerCase();
+  if (!profile || !role) {
+    toast("Could not verify portal access. Please try again.", false);
     return null;
   }
 
+  // Admin may open management Staff/GM pages. Other roles stay strictly inside their own portal.
+  // A portal mismatch is NOT an authentication failure, so NEVER sign the user out here.
+  const adminPortalAccess = role === "admin" && allowedRoles.some(r => r === "gm" || r === "staff");
 
-  const role =
-    String(profile.role || "").toLowerCase();
-
-
-  /* Role missing */
-  if (!role) {
-
-    toast(
-      "Could not verify portal access. Please try again.",
-      false
-    );
-
+  if (!allowedRoles.includes(role) && !adminPortalAccess) {
+    const target = portalForRole(role);
+    toast("You do not have access to this portal. Returning to your portal.", false);
+    if (location.pathname.split("/").pop() !== target) location.href = target;
     return null;
   }
-
-
-  /*
-    ADMIN SPECIAL ACCESS
-
-    Admin is allowed to open existing
-    Staff / GM management pages.
-  */
-
-  const adminPortalAccess =
-    role === "admin" &&
-    allowedRoles.some(
-      allowedRole =>
-        allowedRole === "gm" ||
-        allowedRole === "staff"
-    );
-
-
-  /*
-    USER DOES NOT HAVE ACCESS
-
-    IMPORTANT:
-    NEVER SIGN OUT HERE.
-
-    Instead:
-    1. Keep Supabase session.
-    2. Send user back to their own portal.
-  */
-
-  if (
-    !allowedRoles.includes(role) &&
-    !adminPortalAccess
-  ) {
-
-    const target =
-      portalForRole(role);
-
-    toast(
-      "You do not have access to this portal. Returning to your portal.",
-      false
-    );
-
-    const currentPage =
-      location.pathname
-        .split("/")
-        .pop();
-
-    const targetPage =
-      target
-        .split("/")
-        .pop();
-
-
-    if (currentPage !== targetPage) {
-
-      location.href = target;
-    }
-
-    return null;
-  }
-
-
-  /*
-    Everything is valid.
-    Continue loading the page.
-  */
 
   return profile;
 }
@@ -437,6 +305,13 @@ async function registerCustomer() {
 
   msg.textContent = "Account created. Opening your loyalty card…";
   setTimeout(() => location.href = "customer-home.html", 500);
+}
+
+async function customerLogout() {
+  try { await sb.auth.signOut(); } catch (e) {}
+  localStorage.removeItem(KEYS.customerToken);
+  localStorage.removeItem(KEYS.staffCustomer);
+  location.href = "customer-login.html";
 }
 
 async function logout() {
@@ -780,6 +655,7 @@ async function loadStaffRedeem() {
   }
 
   const customerPoints = Math.min(50, Number(customer.points || 0));
+  window.staffRedeemRewards = data || [];
   box.innerHTML = data?.length ? data.map(r => {
     const cost = Number(r.points_cost || 0);
     const canRedeem = customerPoints >= cost;
@@ -804,74 +680,125 @@ async function loadStaffRedeem() {
 async function openStaffRedemptionConfirm(rewardId, cost) {
   const customer = getStaffCustomer();
   if (!customer) return;
+
   const current = Math.min(50, Number(customer.points || 0));
-  if (current < cost) {
-    toast(`Customer needs ${moneyPoints(cost - current)} more points.`, false);
+  const rewards = Array.isArray(window.staffRedeemRewards) ? window.staffRedeemRewards : [];
+  const selectableRewards = rewards
+    .map(r => ({
+      id: String(r.id),
+      title: r.title || r.name || "Reward",
+      cost: Number(r.points_cost || 0),
+      description: r.description || ""
+    }))
+    .filter(r => r.cost > 0 && current >= r.cost);
+
+  let selectedRewardId = String(rewardId);
+  let selectedCost = Number(cost);
+  let selectedReward = selectableRewards.find(r => r.id === selectedRewardId);
+
+  if (!selectedReward) {
+    selectedReward = selectableRewards.find(r => r.cost === selectedCost) || selectableRewards[0];
+    if (selectedReward) {
+      selectedRewardId = selectedReward.id;
+      selectedCost = selectedReward.cost;
+    }
+  }
+
+  if (!selectedReward || current < selectedCost) {
+    toast(`Customer needs ${moneyPoints(selectedCost - current)} more points.`, false);
     return;
   }
-  const reward = document.querySelector(`.staff-reward-select[data-reward-id="${CSS.escape(rewardId)}"]`);
-  const title = reward?.querySelector("strong")?.textContent || "Selected Reward";
+
   const confirmBox = $("redeemConfirm");
   if (!confirmBox) return;
-  confirmBox.style.display = "block";
-  confirmBox.innerHTML = `
-    <h2 style="margin-top:0">Confirm Redemption</h2>
-    <div class="card" style="background:#f7f5ee">
-      <strong>${esc(customer.full_name || "Customer")}</strong>
-      <p style="margin:8px 0"><b>${esc(title)}</b></p>
-      <div class="grid g3" style="margin-top:12px">
-        <div><small>Points Before</small><strong>${current}</strong></div>
-        <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
-        <div><small>Points After</small><strong style="color:#2d7b55">${current-cost}</strong></div>
+
+  const renderConfirm = () => {
+    const chosen = selectableRewards.find(r => r.id === selectedRewardId) || selectedReward;
+    const title = chosen?.title || "Selected Reward";
+    selectedCost = Number(chosen?.cost || selectedCost);
+
+    confirmBox.style.display = "block";
+    confirmBox.innerHTML = `
+      <h2 style="margin-top:0">Redeem Rewards</h2>
+      <div class="card" style="background:#f7f5ee">
+        <strong>${esc(customer.full_name || "Customer")}</strong>
+        <label style="display:block;margin:14px 0 6px;font-weight:700">Select Points to Deduct</label>
+        <select id="staffRedeemRewardSelect" class="input" style="width:100%;padding:12px;border-radius:12px">
+          ${selectableRewards.map(r => `
+            <option value="${esc(r.id)}" ${r.id === selectedRewardId ? "selected" : ""}>
+              ${esc(r.title)} — ${moneyPoints(r.cost)} points
+            </option>`).join("")}
+        </select>
+        <p style="margin:10px 0 0"><b>${esc(title)}</b></p>
+        <div class="grid g3" style="margin-top:12px">
+          <div><small>Points Before</small><strong id="redeemBeforePoints">${current}</strong></div>
+          <div><small>Points Used</small><strong id="redeemUsedPoints" style="color:#a85d45">-${selectedCost}</strong></div>
+          <div><small>Points After</small><strong id="redeemAfterPoints" style="color:#2d7b55">${current-selectedCost}</strong></div>
+        </div>
       </div>
-    </div>
-    <div class="grid g2" style="margin-top:14px">
-      <button class="btn gold" id="confirmRedeemBtn">Redeem & Deduct Points</button>
-      <button class="btn soft" id="cancelRedeemBtn">Cancel</button>
-    </div>`;
-  confirmBox.scrollIntoView({behavior:"smooth",block:"nearest"});
-  $("cancelRedeemBtn").onclick = () => { confirmBox.style.display="none"; };
-  $("confirmRedeemBtn").onclick = async () => {
-    const btn = $("confirmRedeemBtn");
-    btn.disabled = true; btn.textContent = "REDEEMING…";
-    try {
-      const staff = await getStaffProfile();
-      const { data, error } = await sb.rpc("redeem_customer_coupon", {
-        p_customer_id: customer.id,
-        p_reward_id: rewardId,
-        p_location_id: staff?.location_id || null
-      });
-      if (error) throw error;
-      const result = Array.isArray(data) ? data[0] : data;
-      const remaining = Number(result?.remaining_points ?? (current - cost));
-      customer.points = Math.max(0, Math.min(50, remaining));
-      saveStaffCustomer(customer);
-      renderStaffCustomer(customer);
-      document.querySelectorAll("[data-points]").forEach(e => e.textContent = customer.points);
-      confirmBox.style.display = "none";
-      const resultBox = $("redeemResult");
-      if (resultBox) {
-        resultBox.style.display = "block";
-        resultBox.innerHTML = `
-          <div style="text-align:center">
-            <div style="font-size:48px">✓</div>
-            <h2 style="color:#073a2b">Reward Redeemed Successfully</h2>
-            <p>${esc(title)} has been redeemed for ${esc(customer.full_name || "Customer")}.</p>
-            <div class="grid g3" style="margin:16px 0">
-              <div><small>Points Before</small><strong>${current}</strong></div>
-              <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
-              <div><small>Points After</small><strong style="color:#2d7b55">${customer.points}</strong></div>
-            </div>
-            <button class="btn primary block" onclick="loadStaffRedeem()">Redeem Another</button>
-          </div>`;
-        resultBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+      <div class="grid g2" style="margin-top:14px">
+        <button class="btn gold" id="confirmRedeemBtn">Redeem & Deduct Points</button>
+        <button class="btn soft" id="cancelRedeemBtn">Cancel</button>
+      </div>`;
+
+    confirmBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+
+    $("staffRedeemRewardSelect").onchange = (e) => {
+      selectedRewardId = String(e.target.value);
+      selectedReward = selectableRewards.find(r => r.id === selectedRewardId);
+      selectedCost = Number(selectedReward?.cost || 0);
+      renderConfirm();
+    };
+
+    $("cancelRedeemBtn").onclick = () => { confirmBox.style.display = "none"; };
+    $("confirmRedeemBtn").onclick = async () => {
+      const btn = $("confirmRedeemBtn");
+      btn.disabled = true;
+      btn.textContent = "REDEEMING…";
+      try {
+        const staff = await getStaffProfile();
+        const { data, error } = await sb.rpc("redeem_customer_coupon", {
+          p_customer_id: customer.id,
+          p_reward_id: selectedRewardId,
+          p_location_id: staff?.location_id || null
+        });
+        if (error) throw error;
+
+        const result = Array.isArray(data) ? data[0] : data;
+        const remaining = Number(result?.remaining_points ?? (current - selectedCost));
+        customer.points = Math.max(0, Math.min(50, remaining));
+        saveStaffCustomer(customer);
+        renderStaffCustomer(customer);
+        document.querySelectorAll("[data-points]").forEach(e => e.textContent = customer.points);
+        confirmBox.style.display = "none";
+
+        const resultBox = $("redeemResult");
+        if (resultBox) {
+          resultBox.style.display = "block";
+          resultBox.innerHTML = `
+            <div style="text-align:center">
+              <div style="font-size:48px">✓</div>
+              <h2 style="color:#073a2b">Reward Redeemed Successfully</h2>
+              <p>${esc(selectedReward?.title || "Selected Reward")} has been redeemed for ${esc(customer.full_name || "Customer")}.</p>
+              <div class="grid g3" style="margin:16px 0">
+                <div><small>Points Before</small><strong>${current}</strong></div>
+                <div><small>Points Used</small><strong style="color:#a85d45">-${selectedCost}</strong></div>
+                <div><small>Points After</small><strong style="color:#2d7b55">${customer.points}</strong></div>
+              </div>
+              <button class="btn primary block" onclick="loadStaffRedeem()">Redeem Another</button>
+            </div>`;
+          resultBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+        }
+        toast("Reward redeemed and points deducted.", true);
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = "Redeem & Deduct Points";
+        toast(e.message || "Could not redeem reward.", false);
       }
-      toast("Reward redeemed and points deducted.", true);
-    } catch (e) {
-      btn.disabled = false; btn.textContent = "Redeem & Deduct Points";
-      toast(e.message || "Could not redeem reward.", false);
-    }
+    };
   };
+
+  renderConfirm();
 }
 
 async function loadStaffHistory() {
@@ -1297,160 +1224,22 @@ async function loadAdminDashboard() {
   const profile = await guardRole(["admin"]);
   if (!profile) return;
 
-  const todayEl = $("adminCustomersToday");
-  const weekEl = $("adminCustomersWeek");
-  const monthEl = $("adminCustomersMonth");
-  const multipleBox = $("adminMultiplePointsList");
-
   try {
-    // Admin Dashboard uses the REAL loyalty activity table.
-    // It does NOT use profiles.created_at. Every positive point transaction
-    // is dated by point_transactions.created_at.
-    const now = new Date();
-    const todayStart = new Date(now);
-    todayStart.setHours(0, 0, 0, 0);
-
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-
-    const weekStart = new Date(todayStart);
-    const day = weekStart.getDay();
-    const diff = day === 0 ? 6 : day - 1;
-    weekStart.setDate(weekStart.getDate() - diff);
-
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    // Load customer names once.
-    const { data: customers, error: customersError } = await sb
-      .from("profiles")
-      .select("id,full_name,member_id,phone")
-      .eq("role", "customer")
-      .order("full_name", { ascending: true });
-    if (customersError) throw customersError;
-
-    const customerMap = new Map((customers || []).map(c => [c.id, {
-      name: c.full_name || c.member_id || c.phone || "Customer",
-      memberId: c.member_id || "—"
-    }]));
-
-    // IMPORTANT: read the REAL dated point activity created by add_customer_point().
-    // Prefer the table directly. If Admin RLS hides that table, fall back to the
-    // existing get_customer_transactions RPC (the same source used by Staff history).
-    // This keeps the dashboard tied to the point/visit date, NEVER profiles.created_at.
-    let transactions = [];
-    let txError = null;
-
-    const direct = await sb
-      .from("point_transactions")
-      .select("id,customer_id,points,type,created_at")
-      .gte("created_at", monthStart.toISOString())
-      .gt("points", 0)
-      .order("created_at", { ascending: false });
-
-    if (!direct.error && Array.isArray(direct.data) && direct.data.length) {
-      transactions = direct.data;
-    } else {
-      // Fallback for projects where point_transactions has RLS enabled for Staff/GM
-      // but not direct SELECT for Admin. The RPC already exists in this version.
-      const results = [];
-      const batchSize = 8;
-      const ids = [...customerMap.keys()];
-      for (let i = 0; i < ids.length; i += batchSize) {
-        const batch = ids.slice(i, i + batchSize);
-        const rows = await Promise.all(batch.map(async customerId => {
-          try {
-            const r = await sb.rpc("get_customer_transactions", { p_customer_id: customerId });
-            if (r.error || !Array.isArray(r.data)) return [];
-            return r.data.map(t => ({
-              id: t.id || `${customerId}-${t.created_at}-${t.points}`,
-              customer_id: t.customer_id || customerId,
-              points: Number(t.points || 0),
-              type: t.type || t.transaction_type || "visit",
-              created_at: t.created_at
-            }));
-          } catch {
-            return [];
-          }
-        }));
-        rows.flat().forEach(t => results.push(t));
-      }
-      transactions = results;
-      if (!direct.error && !direct.data?.length) txError = null;
-      else txError = direct.error || null;
-    }
-
-    if (txError && !transactions.length) throw txError;
-
-    const activity = transactions.map(t => {
-      const customer = customerMap.get(t.customer_id) || {};
-      return {
-        id: t.id,
-        customerId: t.customer_id,
-        name: customer.name || "Customer",
-        memberId: customer.memberId || "—",
-        points: Number(t.points || 0),
-        createdAt: new Date(t.created_at),
-        type: t.type || "visit"
-      };
-    }).filter(x => x.customerId && Number.isFinite(x.createdAt.getTime()) && x.points > 0 && x.createdAt >= monthStart);
-
-    const inRange = (d, start, end) => d >= start && (!end || d < end);
-    const todayActivity = activity.filter(x => inRange(x.createdAt, todayStart, tomorrowStart));
-    const weekActivity = activity.filter(x => x.createdAt >= weekStart);
-    const monthActivity = activity.filter(x => x.createdAt >= monthStart);
-
-    const uniqueCustomers = rows => new Set(rows.map(x => x.customerId)).size;
-
-    // These counts are UNIQUE CUSTOMERS who actually received points.
-    if (todayEl) todayEl.textContent = String(uniqueCustomers(todayActivity));
-    if (weekEl) weekEl.textContent = String(uniqueCustomers(weekActivity));
-    if (monthEl) monthEl.textContent = String(uniqueCustomers(monthActivity));
-
-    // Show ONLY customers who received 2+ positive points today.
-    const todayByCustomer = new Map();
-    todayActivity.forEach(x => {
-      const current = todayByCustomer.get(x.customerId) || {
-        name: x.name,
-        memberId: x.memberId,
-        points: 0
-      };
-      current.points += x.points;
-      todayByCustomer.set(x.customerId, current);
+    const profiles = await getAdminProfiles();
+    const roleCount = role => profiles.filter(p => String(p.role || "").toLowerCase() === role).length;
+    const values = {
+      adminCustomers: roleCount("customer"),
+      adminStaff: roleCount("staff")
+    };
+    Object.entries(values).forEach(([id, value]) => {
+      const el = $(id);
+      if (el) el.textContent = moneyPoints(value);
     });
-
-    const multipleToday = [...todayByCustomer.values()]
-      .filter(x => x.points >= 2)
-      .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
-
-    if (multipleBox) {
-      if (!multipleToday.length) {
-        multipleBox.innerHTML = `<div class="empty">No customer received 2 or more points today.</div>`;
-      } else {
-        const dateText = todayStart.toLocaleDateString();
-        multipleBox.innerHTML = `
-          <div style="overflow-x:auto">
-            <table class="admin-points-table">
-              <thead><tr><th>Customer</th><th>Member ID</th><th>Date</th><th>Points Today</th></tr></thead>
-              <tbody>
-                ${multipleToday.map(x => `
-                  <tr>
-                    <td><strong>${esc(x.name)}</strong></td>
-                    <td>${esc(x.memberId)}</td>
-                    <td>${esc(dateText)}</td>
-                    <td><span class="admin-points-badge">${moneyPoints(x.points)}</span></td>
-                  </tr>`).join("")}
-              </tbody>
-            </table>
-          </div>`;
-      }
-    }
   } catch (e) {
-    [todayEl, weekEl, monthEl].forEach(el => {
-      if (el) el.textContent = "—";
-    });
-    if (multipleBox) multipleBox.innerHTML = `<div class="alert">${esc(e.message || "Could not load point activity.")}</div>`;
-    toast(e.message || "Could not load point activity.", false);
+    ["adminCustomers","adminStaff"].forEach(id => { const el=$(id); if(el) el.textContent="—"; });
+    toast(e.message || "Could not load account counts.", false);
   }
+
 }
 
 async function loadAdminUsers() {
