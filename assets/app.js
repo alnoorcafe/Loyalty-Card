@@ -3,25 +3,24 @@ const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
 const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
 const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
 
-// Keep Customer authentication completely isolated from Staff / GM / Admin.
-// Supabase sessions are stored under different localStorage keys, so opening
-// a Customer tab can never replace the management portal session.
-const AL_NOOR_PAGE = String(document.body?.dataset?.page || "").toLowerCase();
-const AL_NOOR_IS_CUSTOMER = AL_NOOR_PAGE.startsWith("customer-");
-const AL_NOOR_AUTH_STORAGE_KEY = AL_NOOR_IS_CUSTOMER
-  ? "alnoor_customer_auth_session"
-  : "alnoor_management_auth_session";
+// Keep Customer authentication completely separate from Staff / GM / Admin.
+// Supabase normally stores one session per origin; without a separate storageKey,
+// signing in/out in another tab can replace the Customer session.
+const __page = String(document.body?.dataset?.page || "");
+const __isCustomerPortal = __page.startsWith("customer-") || /\/customer\//i.test(String(location.pathname || ""));
+const __authStorageKey = __isCustomerPortal ? "alnoor_customer_auth" : "alnoor_backoffice_auth";
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storageKey: AL_NOOR_AUTH_STORAGE_KEY
+    storageKey: __authStorageKey
   }
 });
 
 window.sb = sb;
+window.AL_NOOR_PORTAL = __isCustomerPortal ? "customer" : "backoffice";
 
 const KEYS = {
   staffCustomer: "alnoor_staff_customer",
@@ -164,50 +163,23 @@ async function getStaffProfile() {
   return Array.isArray(data) ? data[0] : data;
 }
 
-function portalForRole(role) {
-  const routes = {
-    admin: "admin-dashboard.html",
-    gm: "gm-dashboard.html",
-    staff: "staff-scan.html",
-    customer: "customer-home.html"
-  };
-  return routes[String(role || "").toLowerCase()] || "../index.html";
-}
-
 async function guardRole(allowedRoles) {
   const session = await getSession();
-  if (!session?.user) {
+  if (!session) {
     const role = allowedRoles[0];
     location.href = role === "customer" ? "customer-login.html" : role === "gm" ? "gm-login.html" : role === "admin" ? "admin-login.html" : "staff-login.html";
     return null;
   }
 
-  let profile = null;
-  try {
-    profile = await getProfile();
-  } catch (e) {
-    // Never destroy a valid Supabase session because profile verification is temporarily unavailable.
-    toast("Could not verify portal access. Please try again.", false);
+  const profile = await getProfile();
+  const adminPortalAccess = profile?.role === "admin" &&
+    allowedRoles.some(r => r === "gm" || r === "staff");
+  if (!profile || (!allowedRoles.includes(profile.role) && !adminPortalAccess)) {
+    toast("You do not have access to this portal.", false);
+    await sb.auth.signOut();
+    location.href = "../index.html";
     return null;
   }
-
-  const role = String(profile?.role || "").toLowerCase();
-  if (!profile || !role) {
-    toast("Could not verify portal access. Please try again.", false);
-    return null;
-  }
-
-  // Admin may open management Staff/GM pages. Other roles stay strictly inside their own portal.
-  // A portal mismatch is NOT an authentication failure, so NEVER sign the user out here.
-  const adminPortalAccess = role === "admin" && allowedRoles.some(r => r === "gm" || r === "staff");
-
-  if (!allowedRoles.includes(role) && !adminPortalAccess) {
-    const target = portalForRole(role);
-    toast("You do not have access to this portal. Returning to your portal.", false);
-    if (location.pathname.split("/").pop() !== target) location.href = target;
-    return null;
-  }
-
   return profile;
 }
 
@@ -307,17 +279,17 @@ async function registerCustomer() {
   setTimeout(() => location.href = "customer-home.html", 500);
 }
 
-async function customerLogout() {
-  try { await sb.auth.signOut(); } catch (e) {}
-  localStorage.removeItem(KEYS.customerToken);
-  localStorage.removeItem(KEYS.staffCustomer);
-  location.href = "customer-login.html";
-}
-
 async function logout() {
   await sb.auth.signOut();
   localStorage.removeItem(KEYS.customerToken);
   localStorage.removeItem(KEYS.staffCustomer);
+
+  // Customer logout must stay inside the Customer portal.
+  if (window.AL_NOOR_PORTAL === "customer") {
+    location.href = "customer-login.html";
+    return;
+  }
+
   location.href = "../index.html";
 }
 
@@ -655,7 +627,6 @@ async function loadStaffRedeem() {
   }
 
   const customerPoints = Math.min(50, Number(customer.points || 0));
-  window.staffRedeemRewards = data || [];
   box.innerHTML = data?.length ? data.map(r => {
     const cost = Number(r.points_cost || 0);
     const canRedeem = customerPoints >= cost;
@@ -680,125 +651,74 @@ async function loadStaffRedeem() {
 async function openStaffRedemptionConfirm(rewardId, cost) {
   const customer = getStaffCustomer();
   if (!customer) return;
-
   const current = Math.min(50, Number(customer.points || 0));
-  const rewards = Array.isArray(window.staffRedeemRewards) ? window.staffRedeemRewards : [];
-  const selectableRewards = rewards
-    .map(r => ({
-      id: String(r.id),
-      title: r.title || r.name || "Reward",
-      cost: Number(r.points_cost || 0),
-      description: r.description || ""
-    }))
-    .filter(r => r.cost > 0 && current >= r.cost);
-
-  let selectedRewardId = String(rewardId);
-  let selectedCost = Number(cost);
-  let selectedReward = selectableRewards.find(r => r.id === selectedRewardId);
-
-  if (!selectedReward) {
-    selectedReward = selectableRewards.find(r => r.cost === selectedCost) || selectableRewards[0];
-    if (selectedReward) {
-      selectedRewardId = selectedReward.id;
-      selectedCost = selectedReward.cost;
-    }
-  }
-
-  if (!selectedReward || current < selectedCost) {
-    toast(`Customer needs ${moneyPoints(selectedCost - current)} more points.`, false);
+  if (current < cost) {
+    toast(`Customer needs ${moneyPoints(cost - current)} more points.`, false);
     return;
   }
-
+  const reward = document.querySelector(`.staff-reward-select[data-reward-id="${CSS.escape(rewardId)}"]`);
+  const title = reward?.querySelector("strong")?.textContent || "Selected Reward";
   const confirmBox = $("redeemConfirm");
   if (!confirmBox) return;
-
-  const renderConfirm = () => {
-    const chosen = selectableRewards.find(r => r.id === selectedRewardId) || selectedReward;
-    const title = chosen?.title || "Selected Reward";
-    selectedCost = Number(chosen?.cost || selectedCost);
-
-    confirmBox.style.display = "block";
-    confirmBox.innerHTML = `
-      <h2 style="margin-top:0">Redeem Rewards</h2>
-      <div class="card" style="background:#f7f5ee">
-        <strong>${esc(customer.full_name || "Customer")}</strong>
-        <label style="display:block;margin:14px 0 6px;font-weight:700">Select Points to Deduct</label>
-        <select id="staffRedeemRewardSelect" class="input" style="width:100%;padding:12px;border-radius:12px">
-          ${selectableRewards.map(r => `
-            <option value="${esc(r.id)}" ${r.id === selectedRewardId ? "selected" : ""}>
-              ${esc(r.title)} — ${moneyPoints(r.cost)} points
-            </option>`).join("")}
-        </select>
-        <p style="margin:10px 0 0"><b>${esc(title)}</b></p>
-        <div class="grid g3" style="margin-top:12px">
-          <div><small>Points Before</small><strong id="redeemBeforePoints">${current}</strong></div>
-          <div><small>Points Used</small><strong id="redeemUsedPoints" style="color:#a85d45">-${selectedCost}</strong></div>
-          <div><small>Points After</small><strong id="redeemAfterPoints" style="color:#2d7b55">${current-selectedCost}</strong></div>
-        </div>
+  confirmBox.style.display = "block";
+  confirmBox.innerHTML = `
+    <h2 style="margin-top:0">Confirm Redemption</h2>
+    <div class="card" style="background:#f7f5ee">
+      <strong>${esc(customer.full_name || "Customer")}</strong>
+      <p style="margin:8px 0"><b>${esc(title)}</b></p>
+      <div class="grid g3" style="margin-top:12px">
+        <div><small>Points Before</small><strong>${current}</strong></div>
+        <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
+        <div><small>Points After</small><strong style="color:#2d7b55">${current-cost}</strong></div>
       </div>
-      <div class="grid g2" style="margin-top:14px">
-        <button class="btn gold" id="confirmRedeemBtn">Redeem & Deduct Points</button>
-        <button class="btn soft" id="cancelRedeemBtn">Cancel</button>
-      </div>`;
-
-    confirmBox.scrollIntoView({behavior:"smooth",block:"nearest"});
-
-    $("staffRedeemRewardSelect").onchange = (e) => {
-      selectedRewardId = String(e.target.value);
-      selectedReward = selectableRewards.find(r => r.id === selectedRewardId);
-      selectedCost = Number(selectedReward?.cost || 0);
-      renderConfirm();
-    };
-
-    $("cancelRedeemBtn").onclick = () => { confirmBox.style.display = "none"; };
-    $("confirmRedeemBtn").onclick = async () => {
-      const btn = $("confirmRedeemBtn");
-      btn.disabled = true;
-      btn.textContent = "REDEEMING…";
-      try {
-        const staff = await getStaffProfile();
-        const { data, error } = await sb.rpc("redeem_customer_coupon", {
-          p_customer_id: customer.id,
-          p_reward_id: selectedRewardId,
-          p_location_id: staff?.location_id || null
-        });
-        if (error) throw error;
-
-        const result = Array.isArray(data) ? data[0] : data;
-        const remaining = Number(result?.remaining_points ?? (current - selectedCost));
-        customer.points = Math.max(0, Math.min(50, remaining));
-        saveStaffCustomer(customer);
-        renderStaffCustomer(customer);
-        document.querySelectorAll("[data-points]").forEach(e => e.textContent = customer.points);
-        confirmBox.style.display = "none";
-
-        const resultBox = $("redeemResult");
-        if (resultBox) {
-          resultBox.style.display = "block";
-          resultBox.innerHTML = `
-            <div style="text-align:center">
-              <div style="font-size:48px">✓</div>
-              <h2 style="color:#073a2b">Reward Redeemed Successfully</h2>
-              <p>${esc(selectedReward?.title || "Selected Reward")} has been redeemed for ${esc(customer.full_name || "Customer")}.</p>
-              <div class="grid g3" style="margin:16px 0">
-                <div><small>Points Before</small><strong>${current}</strong></div>
-                <div><small>Points Used</small><strong style="color:#a85d45">-${selectedCost}</strong></div>
-                <div><small>Points After</small><strong style="color:#2d7b55">${customer.points}</strong></div>
-              </div>
-              <button class="btn primary block" onclick="loadStaffRedeem()">Redeem Another</button>
-            </div>`;
-          resultBox.scrollIntoView({behavior:"smooth",block:"nearest"});
-        }
-        toast("Reward redeemed and points deducted.", true);
-      } catch (e) {
-        btn.disabled = false;
-        btn.textContent = "Redeem & Deduct Points";
-        toast(e.message || "Could not redeem reward.", false);
+    </div>
+    <div class="grid g2" style="margin-top:14px">
+      <button class="btn gold" id="confirmRedeemBtn">Redeem & Deduct Points</button>
+      <button class="btn soft" id="cancelRedeemBtn">Cancel</button>
+    </div>`;
+  confirmBox.scrollIntoView({behavior:"smooth",block:"nearest"});
+  $("cancelRedeemBtn").onclick = () => { confirmBox.style.display="none"; };
+  $("confirmRedeemBtn").onclick = async () => {
+    const btn = $("confirmRedeemBtn");
+    btn.disabled = true; btn.textContent = "REDEEMING…";
+    try {
+      const staff = await getStaffProfile();
+      const { data, error } = await sb.rpc("redeem_customer_coupon", {
+        p_customer_id: customer.id,
+        p_reward_id: rewardId,
+        p_location_id: staff?.location_id || null
+      });
+      if (error) throw error;
+      const result = Array.isArray(data) ? data[0] : data;
+      const remaining = Number(result?.remaining_points ?? (current - cost));
+      customer.points = Math.max(0, Math.min(50, remaining));
+      saveStaffCustomer(customer);
+      renderStaffCustomer(customer);
+      document.querySelectorAll("[data-points]").forEach(e => e.textContent = customer.points);
+      confirmBox.style.display = "none";
+      const resultBox = $("redeemResult");
+      if (resultBox) {
+        resultBox.style.display = "block";
+        resultBox.innerHTML = `
+          <div style="text-align:center">
+            <div style="font-size:48px">✓</div>
+            <h2 style="color:#073a2b">Reward Redeemed Successfully</h2>
+            <p>${esc(title)} has been redeemed for ${esc(customer.full_name || "Customer")}.</p>
+            <div class="grid g3" style="margin:16px 0">
+              <div><small>Points Before</small><strong>${current}</strong></div>
+              <div><small>Points Used</small><strong style="color:#a85d45">-${cost}</strong></div>
+              <div><small>Points After</small><strong style="color:#2d7b55">${customer.points}</strong></div>
+            </div>
+            <button class="btn primary block" onclick="loadStaffRedeem()">Redeem Another</button>
+          </div>`;
+        resultBox.scrollIntoView({behavior:"smooth",block:"nearest"});
       }
-    };
+      toast("Reward redeemed and points deducted.", true);
+    } catch (e) {
+      btn.disabled = false; btn.textContent = "Redeem & Deduct Points";
+      toast(e.message || "Could not redeem reward.", false);
+    }
   };
-
-  renderConfirm();
 }
 
 async function loadStaffHistory() {
