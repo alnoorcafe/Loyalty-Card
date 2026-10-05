@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><meta name="description" content="AL NOOR GM Menu Management"><link rel="manifest" href="../manifest.webmanifest"><title>AL NOOR — Menu Management</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="gm-menu"><header class="topbar"><a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()">↪</button></header><main class="container"><h1 class="title">Menu Management</h1><p class="sub">Manage categories, products, prices, images, and availability.</p>
 <div class="card"><h3>Category</h3><div class="field"><label>Category</label><select class="input" id="gmMenuCategory"><option value="">Loading categories…</option></select></div><div class="field"><label>Category Image</label><input class="input" id="gmCategoryImageFile" type="file" accept="image/*"><small id="gmCategoryImageName" class="note">Choose an image from your device.</small><div id="gmCategoryPreview" style="margin-top:10px"></div></div><button class="btn block" id="saveCategoryBtn">SAVE CATEGORY</button></div>
 <div class="card"><h3>Add / Edit Menu Item</h3><input type="hidden" id="gmMenuId"><div class="field"><label>Category</label><select class="input" id="gmItemCategory"><option value="">Loading categories…</option></select></div><div class="field"><label>Item Name</label><input class="input" id="gmMenuName" placeholder="e.g. Spanish Latte"></div><div class="field"><label>Description</label><input class="input" id="gmMenuDescription" placeholder="Short product description"></div><div class="field"><label>Price (AED)</label><input class="input" id="gmMenuPrice" type="number" step="0.01" min="0" placeholder="18"></div><div class="field"><label>Item Image</label><input class="input" id="gmMenuImageFile" type="file" accept="image/*"><small id="gmMenuImageName" class="note">Choose an image from your device.</small><div id="gmMenuImagePreview" style="margin-top:10px"></div></div><div class="field"><label>Status</label><select class="input" id="gmMenuStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div><button class="btn primary block" id="saveMenuBtn">SAVE MENU ITEM</button><button class="btn block" id="cancelEditBtn" style="display:none;margin-top:8px">CANCEL EDIT</button><div id="menuMsg" class="note">Add menu items manually.</div></div>
-</div></main><nav class="nav"><div class="navin"><a href="gm-dashboard.html"><b>⌂</b>Dashboard</a><a href="gm-members.html"><b>●</b>Customers</a><a href="gm-menu.html" class="active"><b>✦</b>Menu</a><a href="gm-settings.html"><b>⚙</b>More</a></div></nav>
+<div class="card"><h3>Current Menu</h3><div id="gmMenuList"><div class="empty">Loading menu…</div></div></div></main><nav class="nav"><div class="navin"><a href="gm-dashboard.html"><b>⌂</b>Dashboard</a><a href="gm-members.html"><b>●</b>Customers</a><a href="gm-menu.html" class="active"><b>✦</b>Menu</a><a href="gm-settings.html"><b>⚙</b>More</a></div></nav>
 <script src="../assets/config.js"></script><script src="../assets/app.js?v=20260930-final"></script>
 <script>
 (function(){
@@ -16,14 +16,14 @@
 
   async function loadCategories(){
     // Preserve the original working query exactly.
-    const {data,error}=await sb.from("menu_categories").select("id,name,image_url,status").order("name");
+    const {data,error}=await sb.from("menu_categories").select("*").order("sort_order",{ascending:true});
     if(error){
       $("gmMenuCategory").innerHTML='<option value="">Unable to load categories</option>';
       $("gmItemCategory").innerHTML='<option value="">Unable to load categories</option>';
       $("menuMsg").textContent="Could not load categories: "+(error.message||"Unknown error");
       return false;
     }
-    categories=data||[];
+    categories=(data||[]).filter(c=>c && c.is_active!==false);
     fillCategories();
     return true;
   }
@@ -46,7 +46,7 @@
   }
 
   async function loadItems(){
-    const {data,error}=await sb.from("menu_items").select("id,name,description,price,image_url,status,category_id,created_at").order("created_at",{ascending:false});
+    const {data,error}=await sb.from("menu_items").select("*").order("created_at",{ascending:false});
     if(error){$("gmMenuList").innerHTML='<div class="alert">'+esc(error.message)+'</div>';return;}
     items=data||[];
     $("gmMenuList").innerHTML=items.length?items.map(r=>'<div class="reward">'+(r.image_url?'<img class="reward-product-image" src="'+esc(r.image_url)+'" alt="'+esc(r.name)+'">':'<div class="food">☕</div>')+'<div class="grow"><strong>'+esc(r.name)+'</strong><small>'+esc((categories.find(c=>c.id===r.category_id)||{}).name||"No category")+'<br>'+esc(r.description||"")+'<br>AED '+Number(r.price||0).toFixed(2)+'</small></div><span class="badge">'+esc(r.status||"")+'</span><div style="display:flex;gap:6px;margin-left:8px"><button class="btn" data-edit="'+esc(r.id)+'">EDIT</button><button class="btn" data-delete="'+esc(r.id)+'">DELETE</button></div></div>').join(""):'<div class="empty">No menu items yet.</div>';
@@ -91,7 +91,7 @@
     try{
       const profile=await getProfile();
       if(!profile||!['gm','admin'].includes(profile.role)) throw new Error("GM access is required.");
-      const {error}=await sb.from("menu_categories").update({image_url,status:"active"}).eq("id",id);
+      const {error}=await sb.from("menu_categories").update({image_url}).eq("id",id);
       if(error) throw error;
       $("menuMsg").textContent="Category image saved successfully.";
       await loadCategories();
@@ -113,4 +113,4 @@
   $("cancelEditBtn").onclick=clearForm;
   (async()=>{const profile=await guardRole(["gm"]);if(!profile)return;await loadCategories();await loadItems();})();
 })();
-</script></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
+</script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script></body></html>
