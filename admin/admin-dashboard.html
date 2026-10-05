@@ -1,9 +1,31 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Admin Dashboard</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="admin-dashboard"><header class="topbar"><a class="brand brand-image" href="admin-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">System Admin</h1><p class="sub">Full system administration, separate from GM operations.</p><div class="grid g2"><div class="card stat"><i>♙</i><div><strong id="adminCustomers">—</strong><span>Customers</span></div></div><div class="card stat"><i>♟</i><div><strong id="adminStaff">—</strong><span>Staff</span></div></div></div><div class="card" style="margin-top:18px"><h3>Administration</h3><div class="actions"><a class="btn soft" href="admin-users.html">Manage Users</a><a class="btn soft" href="admin-settings.html">System Settings</a><a class="btn gold" href="../gm/gm-dashboard.html">Open GM Portal</a></div></div></main><nav class="nav"><div class="navin">
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Admin Dashboard</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script><style>
+.admin-period-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:22px}
+.admin-period-card{min-height:150px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:22px 24px;position:relative;overflow:hidden}
+.admin-period-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:rgba(184,140,53,.12);color:#b88c35;font-size:23px;margin-bottom:12px}
+.admin-period-label{font-weight:800;color:var(--green,#073a2b);font-size:18px;line-height:1.2}
+.admin-period-card strong{font-size:38px;line-height:1;margin-top:10px;color:var(--green,#073a2b)}
+.admin-period-card span{margin-top:7px;color:var(--muted,#66706c);font-size:13px}
+@media(max-width:800px){.admin-period-grid{grid-template-columns:1fr}.admin-period-card{min-height:125px}}
+
+.admin-multiple-points{margin-top:22px;padding:22px 24px}
+.admin-multiple-points h2{margin:0;color:var(--green,#073a2b);font-size:22px}
+.admin-multiple-points .sub{margin:7px 0 16px}
+.admin-points-table{width:100%;border-collapse:collapse}
+.admin-points-table th,.admin-points-table td{padding:12px 10px;border-bottom:1px solid rgba(7,58,43,.10);text-align:left}
+.admin-points-table th{color:var(--green,#073a2b);font-size:13px}
+.admin-points-table td strong{color:var(--green,#073a2b)}
+.admin-points-badge{display:inline-flex;align-items:center;justify-content:center;min-width:44px;padding:6px 10px;border-radius:999px;background:rgba(184,140,53,.14);color:var(--green,#073a2b);font-weight:800}
+@media(max-width:600px){.admin-multiple-points{padding:18px 14px}.admin-points-table th,.admin-points-table td{padding:10px 6px;font-size:13px}}
+</style></head><body data-page="admin-dashboard"><header class="topbar"><a class="brand brand-image" href="admin-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">System Admin</h1><p class="sub">Customer activity overview.</p><div class="admin-period-grid"><div class="card admin-period-card"><div class="admin-period-icon">☀</div><div class="admin-period-label">Customers Today</div><strong id="adminCustomersToday">—</strong><span>Customers who earned points today</span></div><div class="card admin-period-card"><div class="admin-period-icon">▦</div><div class="admin-period-label">Customers This Week</div><strong id="adminCustomersWeek">—</strong><span>Customers who earned points this week</span></div><div class="card admin-period-card"><div class="admin-period-icon">▤</div><div class="admin-period-label">Customers This Month</div><strong id="adminCustomersMonth">—</strong><span>Customers who earned points this month</span></div></div><section class="card admin-multiple-points" aria-labelledby="adminMultiplePointsTitle">
+<h2 id="adminMultiplePointsTitle">2+ Points on the Same Day</h2>
+<p class="sub">Customers who received two or more visit points on one day.</p>
+<div id="adminMultiplePointsList"><div class="empty">Loading point activity…</div></div>
+</section></main><nav class="nav"><div class="navin">
 <a href="admin-dashboard.html"><b>▦</b>Dashboard</a>
 <a href="admin-users.html"><b>♙</b>Users</a>
 <a href="admin-staff.html"><b>♟</b>Staff</a>
 <a href="admin-settings.html"><b>⚙</b>Settings</a>
 </div></nav><script src="../assets/config.js"></script>
-<script src="../assets/app.js?v=20260930-final"></script>
+<script src="../assets/app.js?v=20261005-admin-dashboard"></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body></html>
