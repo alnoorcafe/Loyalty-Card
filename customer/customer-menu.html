@@ -55,10 +55,10 @@
 .eyebrow{margin:0 0 5px;color:var(--gold,#a78a52);font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
 .menu-panel{padding:18px}
 .menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.menu-category{appearance:none;width:100%;border:1px solid rgba(7,58,43,.10);background:var(--menu-cream);border-radius:22px;padding:17px 11px 15px;text-align:center;color:var(--menu-green);cursor:pointer;min-height:142px;box-shadow:0 8px 22px rgba(19,48,37,.05);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.menu-category{appearance:none;width:100%;height:170px;border:1px solid rgba(7,58,43,.10);background:#efe4d1;border-radius:22px;padding:0;overflow:hidden;position:relative;text-align:center;color:var(--menu-green);cursor:pointer;box-shadow:0 8px 22px rgba(19,48,37,.05);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
 .menu-category:hover,.menu-category:focus-visible{transform:translateY(-2px);box-shadow:0 12px 28px rgba(19,48,37,.09);border-color:rgba(167,138,82,.55);outline:none}
-.menu-icon{width:62px;height:62px;margin:0 auto 10px;border-radius:18px;display:grid;place-items:center;background:#efe4d1;font-size:30px;line-height:1}
-.menu-name{display:block;font-size:13px;font-weight:900;line-height:1.25}
+.menu-icon{width:100%;height:100%;margin:0;border-radius:inherit;display:grid;place-items:center;background:#efe4d1;font-size:30px;line-height:1}.menu-icon img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}.image-fallback{width:100%;height:100%;display:grid;place-items:center;font-size:30px}.menu-item-image-wrap{width:76px;height:76px;flex:0 0 76px;border-radius:17px;border:1px solid rgba(7,58,43,.10);background:#f4eee3;overflow:hidden;display:grid;place-items:center}.menu-item-image-wrap img{width:100%;height:100%;object-fit:cover;display:block}.menu-item-image-wrap .image-fallback{font-size:29px}
+.menu-name,.menu-count{display:none!important}
 .menu-count{display:block;margin-top:6px;color:var(--muted);font-size:10px;font-weight:800}
 .menu-head{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .menu-back{width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);background:#edf2eb;border-radius:13px;color:var(--menu-green);font-size:23px;font-weight:900;cursor:pointer}
@@ -78,7 +78,7 @@
 .menu-empty,.menu-loading{padding:28px 10px;text-align:center;color:var(--muted);font-weight:700}
 .menu-error{padding:22px 14px;border-radius:16px;background:#fff7f5;border:1px solid #ead2cc;color:#8b3a31;font-size:12px;line-height:1.5}
 .menu-small-note{margin:0 0 10px;color:var(--muted);font-size:10px;font-weight:700}
-@media(max-width:420px){.menu-panel{padding:14px}.menu-grid{gap:10px}.menu-category{min-height:130px;padding:14px 8px}.menu-icon{width:56px;height:56px;font-size:27px}.menu-name{font-size:12px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
+@media(max-width:420px){.menu-panel{padding:14px}.menu-grid{gap:10px}.menu-category{height:145px;padding:0}.menu-icon{width:100%;height:100%;font-size:27px}.menu-name{font-size:12px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
 </style>
 
 <script>
@@ -162,18 +162,54 @@
     return items.filter(item=>isActiveItem(item) && categoryForItem(item)?.name===cat.name).length;
   }
 
+  function buildSafeImage(src, alt, className, fallbackIcon){
+    const wrap=document.createElement('div');
+    wrap.className=className;
+    wrap.setAttribute('aria-hidden','true');
+    if(src){
+      const img=document.createElement('img');
+      img.className=className==='menu-icon'?'category-image':'menu-item-image';
+      img.alt=alt||'';
+      img.loading='lazy';
+      img.decoding='async';
+      img.src=src;
+      img.onerror=()=>{
+        img.remove();
+        if(!wrap.querySelector('.image-fallback')){
+          const fallback=document.createElement('span');
+          fallback.className='image-fallback';
+          fallback.textContent=fallbackIcon||'☕';
+          wrap.appendChild(fallback);
+        }
+      };
+      wrap.appendChild(img);
+    }else{
+      const fallback=document.createElement('span');
+      fallback.className='image-fallback';
+      fallback.textContent=fallbackIcon||'☕';
+      wrap.appendChild(fallback);
+    }
+    return wrap;
+  }
+
   function renderCategories(){
     itemsView.hidden=true;
     categoriesView.hidden=false;
-    categoriesView.innerHTML='<div class="menu-grid">'+categories.map(cat=>{
-      const count=countForCategory(cat);
-      return '<button class="menu-category" type="button" data-category="'+esc(cat.name)+'">'
-        +'<div class="menu-icon" aria-hidden="true">'+(validImageSource(cat.image_url)?'<img src="'+esc(validImageSource(cat.image_url))+'" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;;"><span data-image-fallback style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:28px">'+esc(cat.icon)+'</span>':esc(cat.icon))+'</div>'
-        +'<span class="menu-name">'+esc(cat.name)+'</span>'
-        +'<span class="menu-count">'+count+' item'+(count===1?'':'s')+'</span>'
-        +'</button>';
-    }).join('')+'</div>';
-    categoriesView.querySelectorAll('[data-category]').forEach(btn=>btn.addEventListener('click',()=>renderItems(btn.dataset.category)));
+    categoriesView.innerHTML='';
+    const grid=document.createElement('div');
+    grid.className='menu-grid';
+    categories.forEach(cat=>{
+      const btn=document.createElement('button');
+      btn.className='menu-category';
+      btn.type='button';
+      btn.dataset.category=cat.name;
+      btn.setAttribute('aria-label',cat.name);
+      const icon=buildSafeImage(validImageSource(cat.image_url),'', 'menu-icon',cat.icon);
+      btn.appendChild(icon);
+      btn.addEventListener('click',()=>renderItems(cat.name));
+      grid.appendChild(btn);
+    });
+    categoriesView.appendChild(grid);
   }
 
   function renderItems(name){
@@ -181,26 +217,51 @@
     const filtered=items.filter(item=>isActiveItem(item) && categoryForItem(item)?.name===name);
     itemsView.hidden=false;
     categoriesView.hidden=true;
+    itemsView.innerHTML='';
 
-    const rows=filtered.length?filtered.map(item=>{
-      const itemSrc=validImageSource(item.image_url);
-      const image=itemSrc
-        ? '<img class="menu-item-image" src="'+esc(itemSrc)+'" alt="'+esc(item.name||'Menu item')+'" loading="lazy" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;flex&quot;;"><div class="menu-placeholder" aria-hidden="true" style="display:none">'+esc(cat?.icon||'☕')+'</div>'
-        : '<div class="menu-placeholder" aria-hidden="true">'+esc(cat?.icon||'☕')+'</div>';
-      const desc=item.description?'<small class="menu-item-description">'+esc(item.description)+'</small>':'';
-      const rawPrice=Number(item.price);
-      const price=Number.isFinite(rawPrice)?'AED '+rawPrice.toFixed(2):'';
-      return '<article class="menu-item">'+image+'<div class="menu-item-copy"><strong class="menu-item-name">'+esc(item.name||'Menu item')+'</strong>'+desc+(price?'<span class="menu-item-price">'+price+'</span>':'')+'</div></article>';
-    }).join(''):'<div class="menu-empty">No items in this category yet.</div>';
+    const head=document.createElement('div');
+    head.className='menu-head';
+    const back=document.createElement('button');
+    back.className='menu-back';
+    back.type='button';
+    back.setAttribute('aria-label','Back to categories');
+    back.textContent='‹';
+    back.addEventListener('click',renderCategories);
+    const headIcon=document.createElement('div');
+    headIcon.className='menu-head-icon';
+    headIcon.setAttribute('aria-hidden','true');
+    headIcon.textContent=cat?.icon||'☕';
+    const headCopy=document.createElement('div');
+    headCopy.className='menu-head-copy';
+    const h2=document.createElement('h2'); h2.textContent=name;
+    const hp=document.createElement('p'); hp.textContent=filtered.length+' item'+(filtered.length===1?'':'s');
+    headCopy.append(h2,hp);
+    head.append(back,headIcon,headCopy);
+    itemsView.appendChild(head);
 
-    itemsView.innerHTML='<div class="menu-head">'
-      +'<button class="menu-back" type="button" aria-label="Back to categories">‹</button>'
-      +'<div class="menu-head-icon" aria-hidden="true">'+esc(cat?.icon||'☕')+'</div>'
-      +'<div class="menu-head-copy"><h2>'+esc(name)+'</h2><p>'+filtered.length+' item'+(filtered.length===1?'':'s')+'</p></div>'
-      +'</div>'
-      +'<p class="menu-small-note">Tap the back arrow to return to all categories.</p>'
-      +'<div class="menu-list">'+rows+'</div>';
-    itemsView.querySelector('.menu-back').addEventListener('click',renderCategories);
+    const note=document.createElement('p');
+    note.className='menu-small-note';
+    note.textContent='Tap the back arrow to return to all categories.';
+    itemsView.appendChild(note);
+
+    const list=document.createElement('div');
+    list.className='menu-list';
+    if(!filtered.length){
+      const empty=document.createElement('div'); empty.className='menu-empty'; empty.textContent='No items in this category yet.'; list.appendChild(empty);
+    }else{
+      filtered.forEach(item=>{
+        const article=document.createElement('article'); article.className='menu-item';
+        const itemSrc=validImageSource(item.image_url);
+        article.appendChild(buildSafeImage(itemSrc,item.name||'Menu item','menu-item-image-wrap',cat?.icon||'☕'));
+        const copy=document.createElement('div'); copy.className='menu-item-copy';
+        const title=document.createElement('strong'); title.className='menu-item-name'; title.textContent=item.name||'Menu item'; copy.appendChild(title);
+        if(item.description){ const d=document.createElement('small'); d.className='menu-item-description'; d.textContent=item.description; copy.appendChild(d); }
+        const rawPrice=Number(item.price);
+        if(Number.isFinite(rawPrice)){ const price=document.createElement('span'); price.className='menu-item-price'; price.textContent='AED '+rawPrice.toFixed(2); copy.appendChild(price); }
+        article.appendChild(copy); list.appendChild(article);
+      });
+    }
+    itemsView.appendChild(list);
   }
 
   async function loadMenu(){
