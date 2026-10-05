@@ -138,39 +138,208 @@ function toast(message, good = true) {
 
 async function getSession() {
   const { data, error } = await sb.auth.getSession();
-  if (error) throw error;
+
+  if (error) {
+    throw error;
+  }
+
   return data.session;
 }
 
 async function getProfile() {
   const { data, error } = await sb.rpc("get_my_profile");
-  if (error) throw error;
+
+  if (error) {
+    throw error;
+  }
+
   return Array.isArray(data) ? data[0] : data;
 }
 
 async function getStaffProfile() {
   const { data, error } = await sb.rpc("get_my_staff_profile");
-  if (error) throw error;
+
+  if (error) {
+    throw error;
+  }
+
   return Array.isArray(data) ? data[0] : data;
 }
 
+
+/* =========================================================
+   PORTAL ROUTING
+   ========================================================= */
+
+function portalForRole(role) {
+  const routes = {
+    admin: "../admin/admin-dashboard.html",
+    gm: "../gm/gm-dashboard.html",
+    staff: "../staff/staff-scan.html",
+    customer: "../customer/customer-home.html"
+  };
+
+  return routes[String(role || "").toLowerCase()] || "../index.html";
+}
+
+
+/* =========================================================
+   ROLE GUARD
+   IMPORTANT:
+   - NEVER sign out because of portal mismatch.
+   - Customer can NEVER enter Staff / GM / Admin.
+   - Staff can NEVER enter Customer / GM / Admin.
+   - GM can NEVER enter Customer / Staff / Admin.
+   - Admin keeps its existing management access.
+   ========================================================= */
+
 async function guardRole(allowedRoles) {
+
   const session = await getSession();
-  if (!session) {
+
+  /* No active session */
+  if (!session?.user) {
+
     const role = allowedRoles[0];
-    location.href = role === "customer" ? "customer-login.html" : role === "gm" ? "gm-login.html" : role === "admin" ? "admin-login.html" : "staff-login.html";
+
+    const loginPages = {
+      customer: "../customer/customer-login.html",
+      staff: "../staff/staff-login.html",
+      gm: "../gm/gm-login.html",
+      admin: "../admin/admin-login.html"
+    };
+
+    location.href =
+      loginPages[role] || "../index.html";
+
     return null;
   }
 
-  const profile = await getProfile();
-  const adminPortalAccess = profile?.role === "admin" &&
-    allowedRoles.some(r => r === "gm" || r === "staff");
-  if (!profile || (!allowedRoles.includes(profile.role) && !adminPortalAccess)) {
-    toast("You do not have access to this portal.", false);
-    await sb.auth.signOut();
-    location.href = "../index.html";
+
+  /* Get authenticated user's profile */
+  let profile = null;
+
+  try {
+
+    profile = await getProfile();
+
+  } catch (error) {
+
+    console.error(
+      "Portal profile verification failed:",
+      error
+    );
+
+    /*
+      IMPORTANT:
+      Do NOT call:
+      sb.auth.signOut()
+
+      The session is still valid.
+    */
+
+    toast(
+      "Could not verify portal access. Please try again.",
+      false
+    );
+
     return null;
   }
+
+
+  /* Profile missing */
+  if (!profile) {
+
+    toast(
+      "Could not verify portal access. Please try again.",
+      false
+    );
+
+    return null;
+  }
+
+
+  const role =
+    String(profile.role || "").toLowerCase();
+
+
+  /* Role missing */
+  if (!role) {
+
+    toast(
+      "Could not verify portal access. Please try again.",
+      false
+    );
+
+    return null;
+  }
+
+
+  /*
+    ADMIN SPECIAL ACCESS
+
+    Admin is allowed to open existing
+    Staff / GM management pages.
+  */
+
+  const adminPortalAccess =
+    role === "admin" &&
+    allowedRoles.some(
+      allowedRole =>
+        allowedRole === "gm" ||
+        allowedRole === "staff"
+    );
+
+
+  /*
+    USER DOES NOT HAVE ACCESS
+
+    IMPORTANT:
+    NEVER SIGN OUT HERE.
+
+    Instead:
+    1. Keep Supabase session.
+    2. Send user back to their own portal.
+  */
+
+  if (
+    !allowedRoles.includes(role) &&
+    !adminPortalAccess
+  ) {
+
+    const target =
+      portalForRole(role);
+
+    toast(
+      "You do not have access to this portal. Returning to your portal.",
+      false
+    );
+
+    const currentPage =
+      location.pathname
+        .split("/")
+        .pop();
+
+    const targetPage =
+      target
+        .split("/")
+        .pop();
+
+
+    if (currentPage !== targetPage) {
+
+      location.href = target;
+    }
+
+    return null;
+  }
+
+
+  /*
+    Everything is valid.
+    Continue loading the page.
+  */
+
   return profile;
 }
 
