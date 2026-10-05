@@ -110,6 +110,15 @@
     return null;
   }
 
+  function safeIcon(value, fallback){
+    const v=String(value??'').trim();
+    // Older GM records may have accidentally stored the image URL in the icon column.
+    // Never render a URL as visible text in the customer page.
+    if(!v || validImageSource(v)) return fallback||'☕';
+    if(/^https?:/i.test(v) || /^data:/i.test(v)) return fallback||'☕';
+    return v;
+  }
+
   const slug=v=>String(v??'').trim().toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
   let categories=[];
@@ -124,10 +133,12 @@
       result.push({
         id:r.id,
         name:r.name||base?.name||'Menu',
-        icon:r.icon||base?.icon||'☕',
+        icon:safeIcon(r.icon,base?.icon||'☕'),
         order:Number(r.sort_order??base?.order??(100+i)),
         active:r.is_active!==false,
-        image_url:r.image_url||null
+        // Backward compatibility: if an older record stored its image URL in `icon`,
+        // use it as the category image instead of displaying the URL as text.
+        image_url:validImageSource(r.image_url) || validImageSource(r.icon) || null
       });
     });
     if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:null}));
@@ -227,10 +238,7 @@
     back.setAttribute('aria-label','Back to categories');
     back.textContent='‹';
     back.addEventListener('click',renderCategories);
-    const headIcon=document.createElement('div');
-    headIcon.className='menu-head-icon';
-    headIcon.setAttribute('aria-hidden','true');
-    headIcon.textContent=cat?.icon||'☕';
+    const headIcon=buildSafeImage(validImageSource(cat?.image_url),'', 'menu-head-icon',safeIcon(cat?.icon,'☕'));
     const headCopy=document.createElement('div');
     headCopy.className='menu-head-copy';
     const h2=document.createElement('h2'); h2.textContent=name;
