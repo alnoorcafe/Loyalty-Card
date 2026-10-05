@@ -30,6 +30,12 @@
   async function readDirect(){
     const status=$id('adminChartStatus');
     status.textContent='Reading point_transactions directly…';
+    const {count:rowCount,error:countError}=await sb.from('point_transactions').select('id',{count:'exact',head:true});
+    if(countError){
+      status.textContent='Count check failed: '+(countError.message||'unknown error');
+    } else {
+      status.textContent=`point_transactions rows visible to Admin: ${rowCount ?? 0}. Reading latest records…`;
+    }
     const {data,error}=await sb.from('point_transactions')
       .select('id,customer_id,type,points,note,created_at')
       .order('created_at',{ascending:true})
@@ -40,6 +46,7 @@
       throw error;
     }
     const raw=Array.isArray(data)?data:[];
+    status.textContent = `Direct table read successful: ${raw.length} rows returned to Admin. Latest: ${raw[raw.length-1]?.created_at || 'none'}`;
     const rows=raw.filter(earned).filter(r=>r.customer_id&&r.created_at).map(r=>({
       customerId:r.customer_id,points:points(r),type:r.type,created_at:r.created_at,full_name:r.customer_id,member_id:'—'
     }));
