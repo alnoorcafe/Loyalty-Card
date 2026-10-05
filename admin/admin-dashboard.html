@@ -69,13 +69,68 @@
   }
 
   function chart(rows,now){
-    const c=$id('adminActivityChart'),ctx=c.getContext('2d'),dpr=devicePixelRatio||1,W=1200,H=330;c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
-    const today=dateKey(now),start=new Date(now);start.setHours(0,0,0,0);const end=new Date(now);end.setSeconds(0,0);const mins=Math.floor((end-start)/60000)+1,vals=Array(mins).fill(0);
-    rows.filter(r=>dateKey(r.created_at)===today).forEach(r=>{const d=new Date(r.created_at);d.setSeconds(0,0);const i=Math.floor((d-start)/60000);if(i>=0&&i<mins)vals[i]+=r.points});
-    const max=Math.max(1,...vals),p={l:46,r:18,t:22,b:52},w=W-p.l-p.r,h=H-p.t-p.b;ctx.strokeStyle='#e5dfd2';ctx.fillStyle='#718078';ctx.font='11px Arial';
-    for(let i=0;i<=4;i++){const y=p.t+h-h*i/4;ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(p.l+w,y);ctx.stroke();ctx.fillText(String(Math.round(max*i/4)),8,y+4)}
-    ctx.strokeStyle='#0b4a36';ctx.lineWidth=2;ctx.beginPath();vals.forEach((v,i)=>{const x=p.l+i/Math.max(1,mins-1)*w,y=p.t+h-v/max*h;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();
-    const active=vals.filter(v=>v>0).length,total=vals.reduce((a,b)=>a+b,0);$id('adminChartStatus').textContent=active?`Today: ${total} visit points across ${active} active minute${active===1?'':'s'}. Direct table read.`:'No visit-point activity recorded today. Direct table read returned successfully.';
+    const c=$id('adminActivityChart'),ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1,W=1200,H=330;
+    c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+
+    const today=dateKey(now),start=new Date(now);start.setHours(0,0,0,0);
+    const end=new Date(now);end.setSeconds(0,0);
+    const mins=Math.floor((end-start)/60000)+1,vals=Array(mins).fill(0);
+    rows.filter(r=>dateKey(r.created_at)===today).forEach(r=>{
+      const d=new Date(r.created_at);d.setSeconds(0,0);
+      const i=Math.floor((d-start)/60000);
+      if(i>=0&&i<mins) vals[i]+=r.points;
+    });
+
+    const max=Math.max(1,...vals),p={l:54,r:22,t:28,b:58},w=W-p.l-p.r,h=H-p.t-p.b;
+    const baseY=p.t+h;
+
+    // Clean grid: one horizontal line per whole point, up to the day's peak.
+    ctx.font='11px Arial';ctx.textAlign='right';
+    for(let v=0;v<=max;v++){
+      const y=baseY-(v/max)*h;
+      ctx.strokeStyle=v===0?'#9aa49f':'#e5dfd2';ctx.lineWidth=v===0?1.5:1;
+      ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(p.l+w,y);ctx.stroke();
+      ctx.fillStyle='#718078';ctx.fillText(String(v),p.l-9,y+4);
+    }
+
+    // Vertical hour guides make the movement easy to follow across the day.
+    ctx.textAlign='center';ctx.font='10px Arial';
+    const hourCount=Math.ceil(mins/60);
+    for(let hr=0;hr<=hourCount;hr++){
+      const i=Math.min(mins-1,hr*60);
+      const x=p.l+(i/Math.max(1,mins-1))*w;
+      ctx.strokeStyle='#eee9df';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x,p.t);ctx.lineTo(x,baseY);ctx.stroke();
+      const dt=new Date(start.getTime()+i*60000);
+      ctx.fillStyle='#718078';
+      ctx.fillText(dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),x,H-28);
+    }
+
+    // Bar chart: every active minute is a visible bar, positioned at its real time.
+    const active=vals.reduce((n,v)=>n+(v>0?1:0),0);
+    const barW=Math.max(5,Math.min(16,w/Math.max(1,Math.min(active,24))*0.55));
+    vals.forEach((v,i)=>{
+      if(v<=0)return;
+      const x=p.l+(i/Math.max(1,mins-1))*w;
+      const bh=Math.max(3,(v/max)*h);
+      const y=baseY-bh;
+      ctx.fillStyle='#0b4a36';
+      ctx.fillRect(x-barW/2,y,barW,bh);
+      ctx.fillStyle='#0b4a36';ctx.font='bold 11px Arial';ctx.textAlign='center';
+      ctx.fillText(String(v),x,Math.max(p.t+12,y-6));
+      const dt=new Date(start.getTime()+i*60000);
+      ctx.fillStyle='#56655e';ctx.font='9px Arial';
+      ctx.fillText(dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),x,Math.max(p.t+24,y-19));
+    });
+
+    // Small legend explains exactly what the bars represent.
+    ctx.fillStyle='#718078';ctx.font='11px Arial';ctx.textAlign='left';
+    ctx.fillText('Each bar = visit points recorded in that minute',p.l,16);
+
+    const total=vals.reduce((a,b)=>a+b,0);
+    $id('adminChartStatus').textContent=active
+      ? `Today: ${total} visit points across ${active} active minute${active===1?'':'s'}. Direct table read.`
+      : 'No visit-point activity recorded today. Direct table read returned successfully.';
   }
 
   async function load(){
