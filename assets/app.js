@@ -1164,18 +1164,55 @@ async function loadAdminDashboard() {
       memberId: c.member_id || "—"
     }]));
 
-    // IMPORTANT: read point_transactions directly so Admin sees the same
-    // dated visit records that are created by add_customer_point().
-    const { data: transactions, error: txError } = await sb
+    // IMPORTANT: read the REAL dated point activity created by add_customer_point().
+    // Prefer the table directly. If Admin RLS hides that table, fall back to the
+    // existing get_customer_transactions RPC (the same source used by Staff history).
+    // This keeps the dashboard tied to the point/visit date, NEVER profiles.created_at.
+    let transactions = [];
+    let txError = null;
+
+    const direct = await sb
       .from("point_transactions")
       .select("id,customer_id,points,type,created_at")
       .gte("created_at", monthStart.toISOString())
       .gt("points", 0)
       .order("created_at", { ascending: false });
 
-    if (txError) throw txError;
+    if (!direct.error && Array.isArray(direct.data) && direct.data.length) {
+      transactions = direct.data;
+    } else {
+      // Fallback for projects where point_transactions has RLS enabled for Staff/GM
+      // but not direct SELECT for Admin. The RPC already exists in this version.
+      const results = [];
+      const batchSize = 8;
+      const ids = [...customerMap.keys()];
+      for (let i = 0; i < ids.length; i += batchSize) {
+        const batch = ids.slice(i, i + batchSize);
+        const rows = await Promise.all(batch.map(async customerId => {
+          try {
+            const r = await sb.rpc("get_customer_transactions", { p_customer_id: customerId });
+            if (r.error || !Array.isArray(r.data)) return [];
+            return r.data.map(t => ({
+              id: t.id || `${customerId}-${t.created_at}-${t.points}`,
+              customer_id: t.customer_id || customerId,
+              points: Number(t.points || 0),
+              type: t.type || t.transaction_type || "visit",
+              created_at: t.created_at
+            }));
+          } catch {
+            return [];
+          }
+        }));
+        rows.flat().forEach(t => results.push(t));
+      }
+      transactions = results;
+      if (!direct.error && !direct.data?.length) txError = null;
+      else txError = direct.error || null;
+    }
 
-    const activity = (transactions || []).map(t => {
+    if (txError && !transactions.length) throw txError;
+
+    const activity = transactions.map(t => {
       const customer = customerMap.get(t.customer_id) || {};
       return {
         id: t.id,
@@ -1186,7 +1223,7 @@ async function loadAdminDashboard() {
         createdAt: new Date(t.created_at),
         type: t.type || "visit"
       };
-    }).filter(x => x.customerId && Number.isFinite(x.createdAt.getTime()) && x.points > 0);
+    }).filter(x => x.customerId && Number.isFinite(x.createdAt.getTime()) && x.points > 0 && x.createdAt >= monthStart);
 
     const inRange = (d, start, end) => d >= start && (!end || d < end);
     const todayActivity = activity.filter(x => inRange(x.createdAt, todayStart, tomorrowStart));
