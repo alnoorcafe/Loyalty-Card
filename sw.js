@@ -1,4 +1,4 @@
-const CACHE = "al-noor-loyalty-v4-menu-final";
+const CACHE = "al-noor-loyalty-v4-customer-menu-fix";
 const SHELL = [
   "./",
   "./index.html",
@@ -8,11 +8,7 @@ const SHELL = [
   "./manifest.webmanifest",
   "./assets/al-noor-approved-logo.png",
   "./assets/icons/icon-192.png",
-  "./assets/icons/icon-512.png",
-  "./assets/official-menu-data.js",
-  "./assets/menu-data.js",
-  "./assets/menu-items/espresso-avocado.png",
-  "./assets/menu-categories/paninis-wraps-toast.png"
+  "./assets/icons/icon-512.png"
 ];
 
 self.addEventListener("install", event => {
