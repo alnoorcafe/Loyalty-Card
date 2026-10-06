@@ -7,7 +7,7 @@
 <meta name="description" content="AL NOOR Bakery & Cafe customer menu">
 <link rel="manifest" href="../manifest.webmanifest">
 <title>AL NOOR Menu</title>
-<link rel="stylesheet" href="../assets/style.css?v=20261006-menu-embedded-final">
+<link rel="stylesheet" href="../assets/style.css?v=20261006-v2-menu-embedded-final">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
 </head>
 <body data-page="public-menu">
@@ -30,8 +30,8 @@
 
 
 
-<script src="../assets/config.js?v=20261006-menu-embedded-final"></script>
-<script src="../assets/app.js?v=20261006-menu-embedded-final"></script>
+<script src="../assets/config.js?v=20261006-v2-menu-embedded-final"></script>
+<script src="../assets/app.js?v=20261006-v2-menu-embedded-final"></script>
 
 <style>
 :root{--menu-cream:#f7f1e7;--menu-gold:#c9ae70;--menu-green:#073a2b}
@@ -138,11 +138,12 @@
     if(categoryId){
       const exact=categories.find(c=>sameId(c.id,categoryId));
       if(exact)return exact;
-      return null;
+      // If an old/stale category_id does not match the live category table,
+      // continue to the legacy name fields instead of hiding the item.
     }
 
     // Legacy rows may have the category name instead of category_id.
-    // Only use these fields when category_id is genuinely missing.
+    // Also use these fields as a safe fallback when an old category_id is stale.
     const keys=[item?.category_name,item?.categoryName,item?.category_key,item?.category,item?.category_slug];
     for(const key of keys){
       const n=slug(key);
@@ -296,7 +297,19 @@ const EMBEDDED_CATEGORY_IMAGES = {
 </script>
 
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('../sw.js').catch(()=>{}));}
+// Public QR Menu: clear any older service-worker cache so the current menu
+// page is always fetched from GitHub Pages. The menu itself does not need
+// offline caching because category images are embedded in this HTML.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', async ()=>{
+    try{
+      const regs=await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r=>r.unregister()));
+      const keys=await caches.keys();
+      await Promise.all(keys.filter(k=>/al-noor-loyalty/i.test(k)).map(k=>caches.delete(k)));
+    }catch(e){}
+  });
+}
 </script>
 </body>
 </html>
