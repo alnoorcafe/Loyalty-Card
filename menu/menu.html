@@ -42,7 +42,7 @@
 .menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .menu-category{appearance:none;width:100%;border:1px solid rgba(7,58,43,.10);background:var(--menu-cream);border-radius:22px;padding:17px 11px 15px;text-align:center;color:var(--menu-green);cursor:pointer;min-height:142px;box-shadow:0 8px 22px rgba(19,48,37,.05);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
 .menu-category:hover,.menu-category:focus-visible{transform:translateY(-2px);box-shadow:0 12px 28px rgba(19,48,37,.09);border-color:rgba(167,138,82,.55);outline:none}
-.menu-icon{width:62px;height:62px;margin:0 auto 10px;border-radius:18px;display:grid;place-items:center;background:#efe4d1;font-size:30px;line-height:1}
+.menu-icon{width:82px;height:82px;margin:0 auto 10px;border-radius:20px;display:grid;place-items:center;background:#efe4d1;font-size:36px;line-height:1}
 .menu-category-image{object-fit:cover;display:block}
 .menu-name{display:block;font-size:13px;font-weight:900;line-height:1.25}
 .menu-count{display:block;margin-top:6px;color:var(--muted);font-size:10px;font-weight:800}
@@ -64,7 +64,7 @@
 .menu-empty,.menu-loading{padding:28px 10px;text-align:center;color:var(--muted);font-weight:700}
 .menu-error{padding:22px 14px;border-radius:16px;background:#fff7f5;border:1px solid #ead2cc;color:#8b3a31;font-size:12px;line-height:1.5}
 .menu-small-note{margin:0 0 10px;color:var(--muted);font-size:10px;font-weight:700}
-@media(max-width:420px){.menu-panel{padding:14px}.menu-grid{gap:10px}.menu-category{min-height:130px;padding:14px 8px}.menu-icon{width:56px;height:56px;font-size:27px}.menu-name{font-size:12px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
+@media(max-width:420px){.menu-panel{padding:14px}.menu-grid{gap:10px}.menu-category{min-height:145px;padding:14px 8px}.menu-icon{width:70px;height:70px;font-size:30px}.menu-name{font-size:12px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
 </style>
 
 <script>
@@ -78,15 +78,11 @@
     {key:'iced-coffee',name:'Iced Coffee',icon:'🧊',order:3},
     {key:'matcha',name:'Matcha',icon:'🍵',order:4},
     {key:'breakfast',name:'Breakfast',icon:'🍳',order:5},
-    {key:'paninis-wraps-toast',name:'Paninis, Wraps & Toast',icon:'🥪',order:6},
-    {key:'fresh-salads',name:'Fresh Salads',icon:'🥗',order:7},
-    {key:'artisanal-pizzas',name:'Artisanal Pizzas',icon:'🍕',order:8},
-    {key:'traditional-oven-manakish',name:'Traditional Oven Manakish',icon:'🫓',order:9},
-    {key:'bakery-croissants',name:'Bakery & Croissants',icon:'🥐',order:10},
-    {key:'cakes-pastries',name:'Cakes & Pastries',icon:'🍰',order:11},
-    {key:'fresh-juices-wellness',name:'Fresh Juices & Wellness',icon:'🧃',order:12},
-    {key:'acai',name:'Acai',icon:'🥭',order:13},
-    {key:'mojitos-iced-teas',name:'Mojitos & Iced Teas',icon:'🍹',order:14}
+    {key:'bakery-croissants',name:'Bakery & Croissants',icon:'🥐',order:6},
+    {key:'cakes-pastries',name:'Cakes & Pastries',icon:'🍰',order:7},
+    {key:'fresh-juices-wellness',name:'Fresh Juices & Wellness',icon:'🧃',order:8},
+    {key:'acai',name:'Acai',icon:'🥭',order:9},
+    {key:'mojitos-iced-teas',name:'Mojitos & Iced Teas',icon:'🍹',order:10}
   ];
 
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
@@ -100,42 +96,52 @@
     const byName={};
     FALLBACK_CATEGORIES.forEach(c=>byName[slug(c.name)]=c);
     (rows||[]).forEach((r,i)=>{
-      const base=byName[slug(r.name)]||FALLBACK_CATEGORIES.find(c=>c.key===slug(r.name))||null;
-      const rawIcon=typeof r.icon==='string' ? r.icon.trim() : '';
-      const rawImage=typeof r.image_url==='string' ? r.image_url.trim() : '';
+      const name=r.name||r.title||'';
+      const base=byName[slug(name)]||null;
+      const rawIcon=typeof (r.icon||r.emoji) === 'string' ? String(r.icon||r.emoji).trim() : '';
+      const rawImage=[r.image_url,r.imageUrl,r.image,r.image_path,r.category_image,r.photo_url].find(v=>typeof v==='string'&&v.trim()) || '';
+      const image=String(rawImage).trim();
       result.push({
         id:r.id,
-        name:r.name||base?.name||'Menu',
+        name:name||base?.name||'Menu',
         icon:rawIcon||base?.icon||'☕',
-        image_url:rawImage || (rawIcon && /^https?:\/\//i.test(rawIcon) ? rawIcon : '') || null,
-        order:Number(r.sort_order??base?.order??(100+i)),
-        active:r.is_active!==false
+        image_url:image || (rawIcon && /^(https?:\/\/|\/|data:image)/i.test(rawIcon) ? rawIcon : '') || null,
+        order:Number(r.sort_order??r.sortOrder??base?.order??(100+i)),
+        active:r.is_active!==false && r.active!==false
       });
     });
     if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true}));
-    const existing=new Set(result.map(c=>slug(c.name)));
-    FALLBACK_CATEGORIES.forEach(c=>{
-      if(!existing.has(slug(c.name))) result.push({id:null,name:c.name,icon:c.icon,image_url:null,order:c.order,active:true,fallback:true});
-    });
     return result.filter(c=>c.active).sort((a,b)=>a.order-b.order);
   }
 
   function isActiveItem(item){
     if(item==null)return false;
+    // Public menu: only hide rows explicitly disabled by the database.
+    // Do not treat a status label such as 'inactive' as deleted data; older
+    // menu records may use status for workflow/reporting rather than visibility.
     if(item.is_active===false)return false;
     if(typeof item.active==='boolean' && item.active===false)return false;
-    if(typeof item.status==='string' && item.status.trim().toLowerCase()==='inactive')return false;
     return true;
   }
 
+  function sameId(a,b){
+    if(a==null || b==null)return false;
+    return String(a).trim().toLowerCase()===String(b).trim().toLowerCase();
+  }
+
   function categoryForItem(item){
-    if(item.category_id){
-      const exact=categories.find(c=>c.id===item.category_id);
+    const ids=[item.category_id,item.categoryId,item.category_uuid,item.categoryId];
+    for(const id of ids){
+      const exact=categories.find(c=>sameId(c.id,id));
       if(exact)return exact;
     }
-    const n=slug(item.category_name||item.category);
-    if(n){
-      return categories.find(c=>slug(c.name)===n) || FALLBACK_CATEGORIES.find(c=>slug(c.name)===n) || null;
+    const keys=[item.category_name,item.categoryName,item.category_key,item.category,item.category_slug];
+    for(const key of keys){
+      const n=slug(key);
+      if(n){
+        const exact=categories.find(c=>slug(c.name)===n);
+        if(exact)return exact;
+      }
     }
     return null;
   }
@@ -147,9 +153,15 @@
   function renderCategories(){
     itemsView.hidden=true;
     categoriesView.hidden=false;
-    categoriesView.innerHTML='<div class="menu-grid">'+categories.map(cat=>{
+
+    // Public Menu: hide only the four categories removed from the current menu.
+    // Do not change Supabase data and do not use item-count filtering here.
+    const hiddenCategorySlugs = new Set(['paninis-wraps-toast','fresh-salads','artisanal-pizzas','traditional-oven-manakish']);
+    const visibleCategories = categories.filter(cat => !hiddenCategorySlugs.has(slug(cat.name)));
+
+    categoriesView.innerHTML='<div class="menu-grid">'+visibleCategories.map(cat=>{
       const count=countForCategory(cat);
-      const categoryImage=cat.image_url || (typeof cat.icon==='string' && /^https?:\/\//i.test(cat.icon.trim()) ? cat.icon.trim() : '');
+      const categoryImage=cat.image_url || (typeof cat.icon==='string' && /^(https?:\/\/|\/|data:image)/i.test(cat.icon.trim()) ? cat.icon.trim() : '');
       const iconHtml=categoryImage
         ? '<img class="menu-icon menu-category-image" src="'+esc(categoryImage)+'" alt="'+esc(cat.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">'
           +'<span class="menu-icon menu-category-fallback" aria-hidden="true" style="display:none">'+esc(cat.icon && !/^https?:\/\//i.test(String(cat.icon)) ? cat.icon : '☕')+'</span>'
@@ -170,8 +182,9 @@
     categoriesView.hidden=true;
 
     const rows=filtered.length?filtered.map(item=>{
-      const image=item.image_url
-        ? '<img class="menu-item-image" src="'+esc(item.image_url)+'" alt="'+esc(item.name||'Menu item')+'" loading="lazy">'
+      const itemImage=[item.image_url,item.imageUrl,item.image,item.photo_url,item.image_path,item.icon].find(v=>typeof v==='string'&&v.trim()) || '';
+      const image=/^(https?:\/\/|\/|data:image)/i.test(String(itemImage).trim())
+        ? '<img class="menu-item-image" src="'+esc(String(itemImage).trim())+'" alt="'+esc(item.name||'Menu item')+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">'+'<div class="menu-placeholder" aria-hidden="true" style="display:none">'+esc(cat?.icon||'☕')+'</div>'
         : '<div class="menu-placeholder" aria-hidden="true">'+esc(cat?.icon||'☕')+'</div>';
       const desc=item.description?'<small class="menu-item-description">'+esc(item.description)+'</small>':'';
       const rawPrice=Number(item.price);
