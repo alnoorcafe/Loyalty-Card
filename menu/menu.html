@@ -130,24 +130,38 @@
   }
 
   function categoryForItem(item){
-    const ids=[item.category_id,item.categoryId,item.category_uuid,item.categoryId];
-    for(const id of ids){
-      const exact=categories.find(c=>sameId(c.id,id));
+    // The GM menu saves the real relation in menu_items.category_id.
+    // Use that first so an item can never appear under a different category.
+    const categoryId=item?.category_id ?? item?.categoryId ?? item?.category_uuid ?? null;
+    if(categoryId){
+      const exact=categories.find(c=>sameId(c.id,categoryId));
       if(exact)return exact;
+      return null;
     }
-    const keys=[item.category_name,item.categoryName,item.category_key,item.category,item.category_slug];
+
+    // Legacy rows may have the category name instead of category_id.
+    // Only use these fields when category_id is genuinely missing.
+    const keys=[item?.category_name,item?.categoryName,item?.category_key,item?.category,item?.category_slug];
     for(const key of keys){
       const n=slug(key);
-      if(n){
-        const exact=categories.find(c=>slug(c.name)===n);
-        if(exact)return exact;
-      }
+      if(!n)continue;
+      const exact=categories.find(c=>slug(c.name)===n);
+      if(exact)return exact;
     }
     return null;
   }
 
+  function itemsForCategory(cat){
+    if(!cat)return [];
+    return items.filter(item=>{
+      if(!isActiveItem(item))return false;
+      const linked=categoryForItem(item);
+      return linked ? sameId(linked.id,cat.id) || slug(linked.name)===slug(cat.name) : false;
+    });
+  }
+
   function countForCategory(cat){
-    return items.filter(item=>isActiveItem(item) && categoryForItem(item)?.name===cat.name).length;
+    return itemsForCategory(cat).length;
   }
 
   function renderCategories(){
@@ -177,7 +191,7 @@
 
   function renderItems(name){
     const cat=categories.find(c=>c.name===name) || FALLBACK_CATEGORIES.find(c=>c.name===name);
-    const filtered=items.filter(item=>isActiveItem(item) && categoryForItem(item)?.name===name);
+    const filtered=itemsForCategory(cat);
     itemsView.hidden=false;
     categoriesView.hidden=true;
 
