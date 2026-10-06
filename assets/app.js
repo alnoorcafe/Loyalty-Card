@@ -184,14 +184,6 @@ async function guardRole(allowedRoles) {
   return profile;
 }
 
-function portalForRole(role) {
-  const r = String(role || "").toLowerCase();
-  if (r === "admin") return "../admin/admin-dashboard.html";
-  if (r === "gm") return "../gm/gm-dashboard.html";
-  if (r === "staff") return "../staff/staff-scan.html";
-  return "../customer/customer-home.html";
-}
-
 function routeForRole(role) {
   if (role === "admin") return "admin-dashboard.html";
   if (role === "gm") return "gm-dashboard.html";
