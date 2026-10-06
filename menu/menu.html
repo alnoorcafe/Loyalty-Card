@@ -7,7 +7,7 @@
 <meta name="description" content="AL NOOR Bakery & Cafe customer menu">
 <link rel="manifest" href="../manifest.webmanifest">
 <title>AL NOOR Menu</title>
-<link rel="stylesheet" href="../assets/style.css?v=20261003-customer-menu">
+<link rel="stylesheet" href="../assets/style.css?v=20261006-menu-final">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
 </head>
 <body data-page="public-menu">
@@ -30,8 +30,8 @@
 
 
 
-<script src="../assets/config.js?v=20261003-customer-menu"></script>
-<script src="../assets/app.js?v=20261006-role-isolation"></script>
+<script src="../assets/config.js?v=20261006-menu-final"></script>
+<script src="../assets/app.js?v=20261006-menu-final"></script>
 
 <style>
 :root{--menu-cream:#f7f1e7;--menu-gold:#c9ae70;--menu-green:#073a2b}
@@ -166,6 +166,13 @@
     return itemsForCategory(cat).length;
   }
 
+  const HIDDEN_CATEGORY_SLUGS = new Set([
+    'paninis-wraps-toast',
+    'fresh-salads',
+    'artisanal-pizzas',
+    'traditional-oven-manakish'
+  ]);
+
   const LOCAL_CATEGORY_IMAGES = {
     'classic-coffee': '01_Classic_Coffee.png',
     'craft-pour-over-v60': '02_Craft_Pour_Over_V60.png',
@@ -189,7 +196,7 @@
 
   function localCategoryImage(cat){
     const file=LOCAL_CATEGORY_IMAGES[slug(cat?.name)];
-    return file ? '../assets/menu-categories/'+file : '';
+    return file ? '../assets/menu-categories/'+file+'?v=20261006-menu-final' : '';
   }
 
   function renderCategories(){
@@ -197,7 +204,7 @@
     categoriesView.hidden=false;
 
     // Keep the live database categories. Images are bundled locally so the QR menu works on phones.
-    const visibleCategories = categories;
+    const visibleCategories = categories.filter(cat=>!HIDDEN_CATEGORY_SLUGS.has(slug(cat?.name)));
 
     categoriesView.innerHTML='<div class="menu-grid">'+visibleCategories.map(cat=>{
       const count=countForCategory(cat);
