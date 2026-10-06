@@ -222,11 +222,20 @@
     const categoryResult=await sb.from('menu_categories').select('*').order('sort_order',{ascending:true});
     if(categoryResult.error) throw categoryResult.error;
 
-    const itemResult=await sb.from('menu_items').select('*').order('created_at',{ascending:true});
+    // Public QR Menu reads the same live menu_items table used by GM.
+    // Do not use a local/catalog source when live rows exist.
+    let itemResult=await sb.from('menu_items').select('*').order('created_at',{ascending:true});
     if(itemResult.error) throw itemResult.error;
 
     categories=normalizeCategoryRows(Array.isArray(categoryResult.data)?categoryResult.data:[]);
     items=Array.isArray(itemResult.data)?itemResult.data:[];
+
+    // Some older records may not have created_at populated; retry without ordering.
+    if(!items.length){
+      const retry=await sb.from('menu_items').select('*');
+      if(retry.error) throw retry.error;
+      items=Array.isArray(retry.data)?retry.data:[];
+    }
     // If the database is empty, show the official AL NOOR menu catalog immediately.
     // Once GM imports/saves the catalog into Supabase, the live database becomes the source of truth.
     if(items.length===0 && Array.isArray(window.AL_NOOR_MENU_CATALOG)){
