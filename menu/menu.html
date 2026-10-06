@@ -145,9 +145,12 @@
   }
 
   function renderCategories(){
+    // Public menu: hide empty/deleted categories automatically.
+    // Only categories that currently contain at least one active item are shown.
+    const visibleCategories = categories.filter(cat => countForCategory(cat) > 0);
     itemsView.hidden=true;
     categoriesView.hidden=false;
-    categoriesView.innerHTML='<div class="menu-grid">'+categories.map(cat=>{
+    categoriesView.innerHTML='<div class="menu-grid">'+visibleCategories.map(cat=>{
       const count=countForCategory(cat);
       const categoryImage=cat.image_url || (typeof cat.icon==='string' && /^https?:\/\//i.test(cat.icon.trim()) ? cat.icon.trim() : '');
       const iconHtml=categoryImage
