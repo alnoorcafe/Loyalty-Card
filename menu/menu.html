@@ -40,10 +40,12 @@
 .eyebrow{margin:0 0 5px;color:var(--gold,#a78a52);font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
 .menu-panel{padding:18px}
 .menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.menu-category{appearance:none;width:100%;border:1px solid rgba(7,58,43,.10);background:var(--menu-cream);border-radius:22px;padding:17px 11px 15px;text-align:center;color:var(--menu-green);cursor:pointer;min-height:142px;box-shadow:0 8px 22px rgba(19,48,37,.05);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+.menu-category{appearance:none;width:100%;border:1px solid rgba(7,58,43,.10);background:var(--menu-cream);border-radius:22px;padding:0;text-align:center;color:var(--menu-green);cursor:pointer;height:190px;min-height:190px;overflow:hidden;position:relative;box-shadow:0 8px 22px rgba(19,48,37,.05);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
 .menu-category:hover,.menu-category:focus-visible{transform:translateY(-2px);box-shadow:0 12px 28px rgba(19,48,37,.09);border-color:rgba(167,138,82,.55);outline:none}
-.menu-icon{width:82px;height:82px;margin:0 auto 10px;border-radius:20px;display:grid;place-items:center;background:#efe4d1;font-size:36px;line-height:1}
-.menu-category-image{object-fit:cover;display:block}
+.menu-icon{width:100%;height:100%;margin:0;border-radius:21px;display:grid;place-items:center;background:#efe4d1;font-size:36px;line-height:1}
+.menu-category-image{width:100%;height:100%;object-fit:cover;display:block}
+.menu-category .menu-name,.menu-category .menu-count{display:none}
+.menu-category-fallback{position:absolute;inset:0}
 .menu-name{display:block;font-size:13px;font-weight:900;line-height:1.25}
 .menu-count{display:block;margin-top:6px;color:var(--muted);font-size:10px;font-weight:800}
 .menu-head{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
@@ -64,7 +66,7 @@
 .menu-empty,.menu-loading{padding:28px 10px;text-align:center;color:var(--muted);font-weight:700}
 .menu-error{padding:22px 14px;border-radius:16px;background:#fff7f5;border:1px solid #ead2cc;color:#8b3a31;font-size:12px;line-height:1.5}
 .menu-small-note{margin:0 0 10px;color:var(--muted);font-size:10px;font-weight:700}
-@media(max-width:420px){.menu-panel{padding:14px}.menu-grid{gap:10px}.menu-category{min-height:145px;padding:14px 8px}.menu-icon{width:70px;height:70px;font-size:30px}.menu-name{font-size:12px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
+@media(max-width:420px){.menu-panel{padding:14px}.menu-grid{gap:10px}.menu-category{height:160px;min-height:160px}.menu-icon{width:100%;height:100%;font-size:30px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
 </style>
 
 <script>
@@ -180,10 +182,8 @@
         ? '<img class="menu-icon menu-category-image" src="'+esc(categoryImage)+'" alt="'+esc(cat.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">'
           +'<span class="menu-icon menu-category-fallback" aria-hidden="true" style="display:none">'+esc(cat.icon && !/^https?:\/\//i.test(String(cat.icon)) ? cat.icon : '☕')+'</span>'
         : '<span class="menu-icon" aria-hidden="true">'+esc(cat.icon)+'</span>';
-      return '<button class="menu-category" type="button" data-category="'+esc(cat.name)+'">'
+      return '<button class="menu-category" type="button" aria-label="'+esc(cat.name)+'" title="'+esc(cat.name)+'" data-category="'+esc(cat.name)+'">'
         +iconHtml
-        +'<span class="menu-name">'+esc(cat.name)+'</span>'
-        +'<span class="menu-count">'+count+' item'+(count===1?'':'s')+'</span>'
         +'</button>';
     }).join('')+'</div>';
     categoriesView.querySelectorAll('[data-category]').forEach(btn=>btn.addEventListener('click',()=>renderItems(btn.dataset.category)));
