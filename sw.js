@@ -1,4 +1,4 @@
-const CACHE = "al-noor-loyalty-v4-customer-menu-fix";
+const CACHE = "al-noor-loyalty-v2";
 const SHELL = [
   "./",
   "./index.html",
