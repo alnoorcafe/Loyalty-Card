@@ -10,13 +10,8 @@
 <link rel="stylesheet" href="../assets/style.css?v=20261003-customer-menu">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
 </head>
-<body data-page="customer-menu">
-<header class="topbar">
-  <a class="brand brand-image" href="customer-home.html" aria-label="AL NOOR Home">
-    <img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE">
-  </a>
-  <button class="icon" onclick="logout()" title="Sign out" aria-label="Sign out">↪</button>
-</header>
+<body data-page="public-menu">
+
 
 <main class="container menu-page">
   <div class="menu-hero">
@@ -33,24 +28,14 @@
   </section>
 </main>
 
-<nav class="nav" aria-label="Customer navigation">
-  <div class="navin">
-    <a href="customer-home.html" data-nav="home"><b>⌂</b>Home</a>
-    <a href="customer-rewards.html" data-nav="rewards"><b>★</b>Rewards</a>
-    <a href="customer-locations.html" data-nav="locations"><b>⌖</b>Locations</a>
-    <a href="customer-offers.html" data-nav="offers"><b>◇</b>Offers</a>
-    <a href="customer-menu.html" data-nav="menu" class="active"><b>☰</b>Menu</a>
-    <a href="customer-profile.html" data-nav="profile"><b>●</b>My Profile</a>
-  </div>
-</nav>
+
 
 <script src="../assets/config.js?v=20261003-customer-menu"></script>
-<script src="../assets/app.js?v=20261006-role-isolation"></script>
 <script src="../assets/menu-data.js?v=20261003-menu"></script>
 
 <style>
 :root{--menu-cream:#f7f1e7;--menu-gold:#c9ae70;--menu-green:#073a2b}
-.menu-page{padding-bottom:110px}
+.menu-page{padding-bottom:24px}
 .menu-hero{margin-bottom:18px}
 .eyebrow{margin:0 0 5px;color:var(--gold,#a78a52);font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
 .menu-panel{padding:18px}
