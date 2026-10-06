@@ -3,24 +3,15 @@ const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
 const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
 const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
 
-// Keep Customer authentication completely separate from Staff / GM / Admin.
-// Supabase normally stores one session per origin; without a separate storageKey,
-// signing in/out in another tab can replace the Customer session.
-const __page = String(document.body?.dataset?.page || "");
-const __isCustomerPortal = __page.startsWith("customer-") || /\/customer\//i.test(String(location.pathname || ""));
-const __authStorageKey = __isCustomerPortal ? "alnoor_customer_auth" : "alnoor_backoffice_auth";
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-    storageKey: __authStorageKey
+    detectSessionInUrl: true
   }
 });
 
 window.sb = sb;
-window.AL_NOOR_PORTAL = __isCustomerPortal ? "customer" : "backoffice";
 
 const KEYS = {
   staffCustomer: "alnoor_staff_customer",
@@ -163,24 +154,42 @@ async function getStaffProfile() {
   return Array.isArray(data) ? data[0] : data;
 }
 
+function loginForRole(role) {
+  const r = String(role || "").toLowerCase();
+  const currentPath = String(location.pathname || "");
+  const inPortalFolder = /\/(customer|staff|gm|admin)\//i.test(currentPath);
+  const folder = inPortalFolder ? currentPath.replace(/\/[^/]*$/, "") : "";
+  const file = r === "customer" ? "customer-login.html" : r === "gm" ? "gm-login.html" : r === "admin" ? "admin-login.html" : "staff-login.html";
+  return folder ? `${folder}/${file}` : file;
+}
+
 async function guardRole(allowedRoles) {
   const session = await getSession();
   if (!session) {
-    const role = allowedRoles[0];
-    location.href = role === "customer" ? "customer-login.html" : role === "gm" ? "gm-login.html" : role === "admin" ? "admin-login.html" : "staff-login.html";
+    location.href = loginForRole(allowedRoles[0]);
     return null;
   }
 
   const profile = await getProfile();
-  const adminPortalAccess = profile?.role === "admin" &&
-    allowedRoles.some(r => r === "gm" || r === "staff");
-  if (!profile || (!allowedRoles.includes(profile.role) && !adminPortalAccess)) {
+  const actualRole = String(profile?.role || "").toLowerCase();
+  const isAdmin = actualRole === "admin";
+  const allowed = allowedRoles.map(r => String(r).toLowerCase()).includes(actualRole);
+
+  // Admin is the only role allowed to open every portal.
+  if (!profile || (!allowed && !isAdmin)) {
     toast("You do not have access to this portal.", false);
-    await sb.auth.signOut();
-    location.href = "../index.html";
+    location.href = portalForRole(actualRole);
     return null;
   }
   return profile;
+}
+
+function portalForRole(role) {
+  const r = String(role || "").toLowerCase();
+  if (r === "admin") return "../admin/admin-dashboard.html";
+  if (r === "gm") return "../gm/gm-dashboard.html";
+  if (r === "staff") return "../staff/staff-scan.html";
+  return "../customer/customer-home.html";
 }
 
 function routeForRole(role) {
@@ -280,17 +289,15 @@ async function registerCustomer() {
 }
 
 async function logout() {
+  let role = "";
+  try {
+    const profile = await getProfile();
+    role = String(profile?.role || "").toLowerCase();
+  } catch (_) {}
   await sb.auth.signOut();
   localStorage.removeItem(KEYS.customerToken);
   localStorage.removeItem(KEYS.staffCustomer);
-
-  // Customer logout must stay inside the Customer portal.
-  if (window.AL_NOOR_PORTAL === "customer") {
-    location.href = "customer-login.html";
-    return;
-  }
-
-  location.href = "../index.html";
+  location.href = loginForRole(role || (document.body.dataset.page || "").split("-")[0]);
 }
 
 async function loadCustomerHome() {
@@ -537,7 +544,7 @@ function renderStaffCustomer(customer) {
 }
 
 async function loadStaffCustomer() {
-  const profile = await guardRole(["staff","gm"]);
+  const profile = await guardRole(["staff"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
@@ -550,7 +557,7 @@ async function loadStaffCustomer() {
 }
 
 async function loadAddPoints() {
-  const profile = await guardRole(["staff","gm"]);
+  const profile = await guardRole(["staff"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
@@ -602,7 +609,7 @@ async function loadAddPoints() {
 }
 
 async function loadStaffRedeem() {
-  const profile = await guardRole(["staff","gm"]);
+  const profile = await guardRole(["staff"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
@@ -722,7 +729,7 @@ async function openStaffRedemptionConfirm(rewardId, cost) {
 }
 
 async function loadStaffHistory() {
-  const profile = await guardRole(["staff","gm"]);
+  const profile = await guardRole(["staff"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
@@ -788,7 +795,7 @@ async function loadStaffHistory() {
 }
 
 async function loadStaffProfile() {
-  const profile = await guardRole(["staff","gm"]);
+  const profile = await guardRole(["staff"]);
   if (!profile) return;
 
   const staff = await getStaffProfile().catch(() => profile);
@@ -838,7 +845,7 @@ async function bindStaffPhoto(profile) {
 }
 
 async function startScanner() {
-  const profile = await guardRole(["staff","gm"]);
+  const profile = await guardRole(["staff"]);
   if (!profile) return;
   await bindStaffPhoto(profile);
 
