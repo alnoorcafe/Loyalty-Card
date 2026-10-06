@@ -166,18 +166,43 @@
     return itemsForCategory(cat).length;
   }
 
+  const LOCAL_CATEGORY_IMAGES = {
+    'classic-coffee': '01_Classic_Coffee.png',
+    'craft-pour-over-v60': '02_Craft_Pour_Over_V60.png',
+    'iced-coffee': '03_Iced_Coffee.png',
+    'matcha': '04_Matcha.png',
+    'breakfast': '05_Breakfast.png',
+    'paninis-wraps-toast': '06_Paninis_Wraps_Toast.png',
+    'sandwiches-wraps': '06_Paninis_Wraps_Toast.png',
+    'fresh-salads': '07_Fresh_Salads.png',
+    'salads': '07_Fresh_Salads.png',
+    'artisanal-pizzas': '08_Artisanal_Pizzas.png',
+    'pizza': '08_Artisanal_Pizzas.png',
+    'traditional-oven-manakish': '09_Manakish.png',
+    'manakish': '09_Manakish.png',
+    'bakery-croissants': '10_Bakery_Croissants.png',
+    'cakes-pastries': '11_Cakes_Pastries.png',
+    'fresh-juices-wellness': '12_Fresh_Juices_Wellness.png',
+    'acai': '13_Acai.png',
+    'mojitos-iced-teas': '14_Mojitos_Iced_Teas.png'
+  };
+
+  function localCategoryImage(cat){
+    const file=LOCAL_CATEGORY_IMAGES[slug(cat?.name)];
+    return file ? '../assets/menu-categories/'+file : '';
+  }
+
   function renderCategories(){
     itemsView.hidden=true;
     categoriesView.hidden=false;
 
-    // Public Menu: hide only the four categories removed from the current menu.
-    // Do not change Supabase data and do not use item-count filtering here.
-    const hiddenCategorySlugs = new Set(['paninis-wraps-toast','fresh-salads','artisanal-pizzas','traditional-oven-manakish']);
-    const visibleCategories = categories.filter(cat => !hiddenCategorySlugs.has(slug(cat.name)));
+    // Keep the live database categories. Images are bundled locally so the QR menu works on phones.
+    const visibleCategories = categories;
 
     categoriesView.innerHTML='<div class="menu-grid">'+visibleCategories.map(cat=>{
       const count=countForCategory(cat);
-      const categoryImage=cat.image_url || (typeof cat.icon==='string' && /^(https?:\/\/|\/|data:image)/i.test(cat.icon.trim()) ? cat.icon.trim() : '');
+      const localImage=localCategoryImage(cat);
+      const categoryImage=localImage || cat.image_url || (typeof cat.icon==='string' && /^(https?:\/\/|\/|data:image)/i.test(cat.icon.trim()) ? cat.icon.trim() : '');
       const iconHtml=categoryImage
         ? '<img class="menu-icon menu-category-image" src="'+esc(categoryImage)+'" alt="'+esc(cat.name)+'" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'grid\'">'
           +'<span class="menu-icon menu-category-fallback" aria-hidden="true" style="display:none">'+esc(cat.icon && !/^https?:\/\//i.test(String(cat.icon)) ? cat.icon : '☕')+'</span>'
