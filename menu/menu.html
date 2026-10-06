@@ -145,11 +145,19 @@
   }
 
   function renderCategories(){
-    // Public menu: hide empty/deleted categories automatically.
-    // Only categories that currently contain at least one active item are shown.
-    const visibleCategories = categories.filter(cat => countForCategory(cat) > 0);
     itemsView.hidden=true;
     categoriesView.hidden=false;
+
+    // Public Menu: hide only the four categories removed from the current menu.
+    // Do not change Supabase data and do not use item-count filtering here.
+    const hiddenCategorySlugs = new Set([
+      'paninis-wraps-toast',
+      'fresh-salads',
+      'artisanal-pizzas',
+      'traditional-oven-manakish'
+    ]);
+    const visibleCategories = categories.filter(cat => !hiddenCategorySlugs.has(slug(cat.name)));
+
     categoriesView.innerHTML='<div class="menu-grid">'+visibleCategories.map(cat=>{
       const count=countForCategory(cat);
       const categoryImage=cat.image_url || (typeof cat.icon==='string' && /^https?:\/\//i.test(cat.icon.trim()) ? cat.icon.trim() : '');
