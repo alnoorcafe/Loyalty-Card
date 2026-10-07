@@ -96,15 +96,33 @@
     if(result.error){$("gmSettingsCategoryMsg").textContent="Could not load categories: "+result.error.message;return false;}
     categories=(result.data||[]).filter(c=>c&&c.is_active!==false); fill(); return true;
   }
-  function reset(){ $("gmSettingsCategoryName").value=""; $("gmSettingsEditCategoryName").value=""; $("gmSettingsCategorySelect").value=""; $("gmSettingsCategoryImage").value=""; $("gmSettingsEditCategoryImage").value=""; $("gmSettingsCategoryImageName").textContent="Choose an image from your device."; $("gmSettingsEditCategoryImageName").textContent="Current image will be kept unless you choose a new one."; $("gmSettingsCategoryMsg").textContent=""; selectedImage=null;currentImage=null;editImage=null;renderPreview(null);$("gmSettingsEditCategoryPreview").innerHTML=""; }
+  function reset(){ $("gmSettingsCategoryName").value=""; $("gmSettingsEditCategoryName").value=""; $("gmSettingsCategorySelect").value=""; $("gmSettingsCategoryImage").value=""; $("gmSettingsEditCategoryImage").value=""; $("gmSettingsCategoryImageName").textContent="Choose an image from your device."; $("gmSettingsEditCategoryImageName").textContent="Current image will be kept unless you choose a new one."; selectedImage=null;currentImage=null;editImage=null;renderPreview(null);$("gmSettingsEditCategoryPreview").innerHTML=""; }
   $("gmSettingsCategorySelect").onchange=()=>{const c=categories.find(x=>x.id===$("gmSettingsCategorySelect").value); $("gmSettingsEditCategoryName").value=c?.name||"";currentImage=c?.image_url||null;editImage=null;$("gmSettingsEditCategoryImage").value="";$("gmSettingsEditCategoryImageName").textContent=currentImage?"Current image will be kept unless you choose a new one.":"Choose an image from your device.";$("gmSettingsEditCategoryPreview").innerHTML=currentImage?'<img src="'+esc(currentImage)+'" alt="Current category" style="display:block;width:100%;max-width:360px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.12)">':'';$("gmSettingsCategoryMsg").textContent=c?"Editing category: "+c.name:"";};
   $("gmSettingsCategoryImage").onchange=async e=>{try{const f=e.target.files?.[0];selectedImage=await fileToDataUrl(f);$("gmSettingsCategoryImageName").textContent=f.name;renderPreview(selectedImage);$("gmSettingsCategoryMsg").textContent="New image selected. Press ADD CATEGORY.";}catch(err){selectedImage=null;e.target.value="";$("gmSettingsCategoryMsg").textContent=err.message;}};
   $("gmSettingsEditCategoryImage").onchange=async e=>{try{const f=e.target.files?.[0];editImage=await fileToDataUrl(f);$("gmSettingsEditCategoryImageName").textContent=f.name;$("gmSettingsEditCategoryPreview").innerHTML='<img src="'+esc(editImage)+'" alt="New category image" style="display:block;width:100%;max-width:360px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.12)">';$("gmSettingsCategoryMsg").textContent="New image selected. Press SAVE CHANGES.";}catch(err){editImage=null;e.target.value="";$("gmSettingsCategoryMsg").textContent=err.message;}};
   $("gmSettingsAddCategory").onclick=async()=>{
-    const name=$("gmSettingsCategoryName").value.trim(); if(!name){$("gmSettingsCategoryMsg").textContent="Category name is required.";return;}
+    const btn=$("gmSettingsAddCategory"), name=$("gmSettingsCategoryName").value.trim();
+    if(!name){$("gmSettingsCategoryMsg").textContent="Category name is required.";return;}
     if(categories.some(c=>String(c.name||"").trim().toLowerCase()===name.toLowerCase())){$("gmSettingsCategoryMsg").textContent="This category already exists.";return;}
-    const btn=$("gmSettingsAddCategory");btn.disabled=true;btn.textContent="ADDING…";
-    try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");const payload={name,is_active:true,sort_order:categories.length};if(selectedImage!==null)payload.image_url=selectedImage;const {error}=await sb.from("menu_categories").insert({...payload,created_by:profile.id});if(error)throw error;$("gmSettingsCategoryMsg").textContent="Category added successfully.";await load();reset();}catch(err){$("gmSettingsCategoryMsg").textContent="Could not add category: "+(err?.message||"Unknown error");}finally{btn.disabled=false;btn.textContent="ADD NEW";}
+    btn.disabled=true;btn.textContent="ADDING…";
+    try{
+      const profile=await getProfile();
+      if(!profile||!['gm','admin'].includes(profile.role)) throw new Error("GM access is required.");
+      const payload={name,is_active:true,sort_order:categories.length};
+      if(selectedImage!==null) payload.image_url=selectedImage;
+      const {data,error}=await sb.from("menu_categories").insert({...payload,created_by:profile.id}).select("*").single();
+      if(error) throw error;
+      await load();
+      $("gmSettingsCategorySelect").value=data.id;
+      $("gmSettingsEditCategoryName").value=data.name||name;
+      currentImage=data.image_url||null; selectedImage=null;
+      $("gmSettingsCategoryImage").value="";
+      $("gmSettingsCategoryImageName").textContent=currentImage?"Current image saved.":"Choose an image from your device.";
+      renderPreview(null);
+      $("gmSettingsCategoryMsg").textContent="Category added successfully: "+(data.name||name);
+    }catch(err){
+      $("gmSettingsCategoryMsg").textContent="Could not add category: "+(err?.message||"Unknown error");
+    }finally{btn.disabled=false;btn.textContent="ADD CATEGORY";}
   };
   $("gmSettingsSaveCategory").onclick=async()=>{
     const id=$("gmSettingsCategorySelect").value,name=$("gmSettingsEditCategoryName").value.trim();if(!id){$("gmSettingsCategoryMsg").textContent="Select a category first.";return;}if(!name){$("gmSettingsCategoryMsg").textContent="Category name is required.";return;}
