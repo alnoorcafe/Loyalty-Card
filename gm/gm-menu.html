@@ -15,14 +15,9 @@
   }
 
   async function loadCategories(){
-    // Read only columns that the GM menu actually needs.
-    // Do NOT request menu_categories.status: older/current schemas may not have it.
-    // Also avoid depending on sort_order or is_active being present.
-    let result=await sb.from("menu_categories").select("id,name,image_url");
-    if(result.error){
-      // Some existing databases may not have image_url yet.
-      result=await sb.from("menu_categories").select("id,name");
-    }
+    // Preserve the original working query exactly.
+    let result=await sb.from("menu_categories").select("*").order("sort_order",{ascending:true});
+    if(result.error){ result=await sb.from("menu_categories").select("*"); }
     const {data,error}=result;
     if(error){
       $("gmMenuCategory").innerHTML='<option value="">Unable to load categories</option>';
@@ -30,11 +25,8 @@
       $("menuMsg").textContent="Could not load categories: "+(error.message||"Unknown error");
       return false;
     }
-    categories=(data||[]).filter(c=>c && c.id && c.name);
+    categories=(data||[]).filter(c=>c && c.is_active!==false);
     fillCategories();
-    if(!categories.length){
-      $("menuMsg").textContent="No categories found in menu_categories.";
-    }
     return true;
   }
 
