@@ -1,9 +1,38 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Admin Users</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="admin-users"><header class="topbar"><a class="brand brand-image" href="admin-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">Users</h1><p class="sub">Staff and management account overview.</p><div class="card"><input id="adminSearch" class="input" placeholder="Search name, phone or member ID"><div id="adminUsers" style="margin-top:14px"></div></div></main><nav class="nav"><div class="navin">
 <a href="admin-dashboard.html"><b>▦</b>Dashboard</a>
 <a href="admin-users.html"><b>♙</b>Users</a>
-<a href="admin-staff.html"><b>♟</b>Staff</a>
 <a href="admin-settings.html"><b>⚙</b>Settings</a>
 </div></nav><script src="../assets/config.js"></script>
-<script src="../assets/app.js?v=20261007-admin-restore"></script>
+<script src="../assets/app.js?v=20261005-customer-session-isolation"></script>
+<script>
+(function(){
+  const box=document.getElementById("adminUsers"), search=document.getElementById("adminSearch");
+  const escHtml=value=>String(value??"").replace(/[&<>\"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'\"':"&quot;","'":"&#039;"}[m]));
+  const initialsLocal=name=>(name||"AN").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase()||"AN";
+  async function loadUsersOnly(){
+    const profile=await guardRole(["admin"]); if(!profile)return;
+    async function render(){
+      const q=search.value.trim().toLowerCase(); let data=[];
+      try{
+        const {data:rows,error}=await sb.from("profiles").select("id,full_name,email,phone,member_id,role,is_active,points,created_at,avatar_url").order("created_at",{ascending:false}).limit(1000);
+        if(error)throw error;
+        data=(rows||[]).filter(u=>String(u.role||"").toLowerCase()!=="customer");
+      }catch(e){box.innerHTML=`<div class="alert">${escHtml(e.message)}</div>`;return;}
+      if(q)data=data.filter(u=>[u.full_name,u.phone,u.member_id,u.role,u.email].some(v=>String(v||"").toLowerCase().includes(q)));
+      box.innerHTML=data.length?data.map(u=>`
+        <div class="row" style="padding:13px 0;border-bottom:1px solid var(--line)">
+          <div class="avatar">${escHtml(initialsLocal(u.full_name))}</div>
+          <div class="grow">
+            <a class="admin-user-name-btn" href="admin-user.html?id=${encodeURIComponent(u.id)}" style="display:inline-flex;align-items:center;background:#edf1e9;color:var(--green);border:1px solid #dce4d7;border-radius:12px;padding:8px 12px;font-weight:900">${escHtml(u.full_name||"User")}</a>
+            <small>${escHtml(u.member_id||"—")} • ${escHtml(u.phone||u.email||"—")}</small>
+          </div>
+          <span class="badge">${escHtml(String(u.role||"—").toLowerCase())}</span>
+        </div>`).join(""):`<div class="empty">No staff or management accounts found.</div>`;
+    }
+    search.oninput=render; await render();
+  }
+  window.loadAdminUsers=loadUsersOnly;
+})();
+</script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body></html>

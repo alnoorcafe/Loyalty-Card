@@ -1,1 +1,151 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><meta name="description" content="AL NOOR Loyalty System Admin Dashboard"><link rel="manifest" href="../manifest.webmanifest"><title>Admin Dashboard</title><link rel="stylesheet" href="../assets/style.css?v=20261007-admin-dashboard-v2"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="admin-dashboard"><header class="topbar"><a class="brand brand-image" href="admin-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container admin-dashboard"><div class="admin-heading"><div><h1 class="title">System Admin</h1><p class="sub">Customer activity overview.</p></div></div><section class="admin-period-grid" aria-label="Customer activity summary"><div class="card admin-period-card"><div class="admin-period-icon">☀</div><div><strong id="adminCustomersToday">—</strong><span>Customers Today</span><small>Customers who earned points today</small></div></div><div class="card admin-period-card"><div class="admin-period-icon">▦</div><div><strong id="adminCustomersWeek">—</strong><span>Customers This Week</span><small>Unique customers who earned points this week</small></div></div><div class="card admin-period-card"><div class="admin-period-icon">▤</div><div><strong id="adminCustomersMonth">—</strong><span>Customers This Month</span><small>Unique customers who earned points this month</small></div></div></section><section class="card admin-activity-card"><div class="admin-section-head"><div><h2>Customer Activity</h2><p class="sub">Customers per minute — last 60 minutes</p></div><span id="adminActivityStatus" class="badge">Live activity</span></div><div id="adminMinuteChart" class="admin-minute-chart" aria-label="Customer activity by minute"><div class="admin-chart-empty">Loading customer activity…</div></div><div class="admin-chart-axis"><span id="adminChartStart">—</span><span>Last 60 minutes</span><span>Now</span></div></section><section class="card admin-quick-card"><h3>Administration</h3><div class="actions"><a class="btn soft" href="admin-users.html">Manage Users</a><a class="btn soft" href="admin-settings.html">System Settings</a><a class="btn gold" href="../gm/gm-dashboard.html">Open GM Portal</a></div></section></main><nav class="nav"><div class="navin"><a href="admin-dashboard.html" class="active"><b>▦</b>Dashboard</a><a href="admin-users.html"><b>♙</b>Users</a><a href="admin-staff.html"><b>♟</b>Staff</a><a href="admin-settings.html"><b>⚙</b>Settings</a></div></nav><script src="../assets/config.js"></script><script src="../assets/app.js?v=20261007-admin-dashboard-v2"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js?v=20261007-admin-dashboard-v2").catch(()=>{}));}</script></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#073a2b"><link rel="manifest" href="../manifest.webmanifest"><title>Admin Dashboard</title><link rel="stylesheet" href="../assets/style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script></head><body data-page="admin-dashboard"><header class="topbar"><a class="brand brand-image" href="admin-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY & CAFE"></a><button class="icon" onclick="logout()" title="Sign out">↪</button></header><main class="container"><h1 class="title">System Admin</h1><p class="sub">Customer activity overview.</p>
+
+<div class="grid g3" id="adminPeriodCards">
+  <div class="card stat"><i>☀</i><div><strong id="adminToday">—</strong><span>Customers Today</span><small>Customers who earned points today</small></div></div>
+  <div class="card stat"><i>▦</i><div><strong id="adminWeek">—</strong><span>Customers This Week</span><small>Customers who earned points this week</small></div></div>
+  <div class="card stat"><i>▤</i><div><strong id="adminMonth">—</strong><span>Customers This Month</span><small>Customers who earned points this month</small></div></div>
+</div>
+
+<div class="card" style="margin-top:18px"><h3>2+ Points on the Same Day</h3><p class="sub" style="margin-bottom:10px">Customers who received more than one visit point today. This list is calculated live for today only and is not a history.</p><div id="adminRepeatToday"><div class="empty">Loading point activity…</div></div></div>
+
+<div class="card" style="margin-top:18px"><h3>Movement Level by Minute</h3><p class="sub">Today's recorded visit-point activity, grouped by the minute it happened. It refreshes automatically and resets to a new day at midnight.</p><div id="adminChartStatus" class="note" style="margin-top:12px">Loading live activity…</div><div style="overflow-x:auto;margin-top:14px"><canvas id="adminActivityChart" width="1200" height="330" style="display:block;width:100%;min-width:900px;height:330px"></canvas></div></div>
+
+<div class="card" style="margin-top:18px"><h3>Administration</h3><div class="actions"><a class="btn soft" href="admin-users.html">Manage Users</a><a class="btn soft" href="admin-settings.html">System Settings</a><a class="btn gold" href="../gm/gm-dashboard.html">Open GM Portal</a></div></div></main><nav class="nav"><div class="navin">
+<a href="admin-dashboard.html"><b>▦</b>Dashboard</a>
+<a href="admin-users.html"><b>♙</b>Users</a>
+<a href="admin-settings.html"><b>⚙</b>Settings</a>
+</div></nav><script src="../assets/config.js"></script>
+<script src="../assets/app.js?v=20261005-admin-dashboard-live-v2"></script>
+<script>
+/* ADMIN DASHBOARD ONLY: direct point_transactions diagnostic/live reader. */
+(function(){
+  const $id=id=>document.getElementById(id);
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const points=t=>{const n=Number(t?.points??0);return Number.isFinite(n)?n:0;};
+  const earned=t=>{const n=points(t),ty=String(t?.type??'').toLowerCase();return n>0&&!/(redeem|coupon|reward|deduct|remove)/.test(ty);};
+  const dateKey=d=>{const x=new Date(d);return Number.isNaN(x.getTime())?'':`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`};
+  const startWeek=n=>{const x=new Date(n),day=x.getDay(),diff=day===0?6:day-1;x.setDate(x.getDate()-diff);x.setHours(0,0,0,0);return x};
+  const startMonth=n=>new Date(n.getFullYear(),n.getMonth(),1);
+
+  async function readDirect(){
+    const status=$id('adminChartStatus');
+    status.textContent='Reading point_transactions directly…';
+    const {count:rowCount,error:countError}=await sb.from('point_transactions').select('id',{count:'exact',head:true});
+    if(countError){
+      status.textContent='Count check failed: '+(countError.message||'unknown error');
+    } else {
+      status.textContent=`point_transactions rows visible to Admin: ${rowCount ?? 0}. Reading latest records…`;
+    }
+    const {data,error}=await sb.from('point_transactions')
+      .select('id,customer_id,type,points,note,created_at')
+      .order('created_at',{ascending:true})
+      .limit(10000);
+    if(error){
+      const msg=error.message||'Unknown database error';
+      status.innerHTML=`<strong>Database read failed:</strong> ${esc(msg)}<br><small>This confirms the Admin account does not currently have permission to read point_transactions directly.</small>`;
+      throw error;
+    }
+    const raw=Array.isArray(data)?data:[];
+    status.textContent = `Direct table read successful: ${raw.length} rows returned to Admin. Latest: ${raw[raw.length-1]?.created_at || 'none'}`;
+    const rows=raw.filter(earned).filter(r=>r.customer_id&&r.created_at).map(r=>({
+      customerId:r.customer_id,points:points(r),type:r.type,created_at:r.created_at,full_name:r.customer_id,member_id:'—'
+    }));
+    const ids=[...new Set(rows.map(r=>r.customerId))];
+    if(ids.length){
+      const {data:profiles,error:pe}=await sb.from('profiles').select('id,full_name,member_id').in('id',ids);
+      if(!pe && Array.isArray(profiles)){
+        const map=new Map(profiles.map(x=>[x.id,x]));
+        rows.forEach(r=>{const p=map.get(r.customerId);if(p){r.full_name=p.full_name||r.customerId;r.member_id=p.member_id||'—'}});
+      }
+    }
+    return rows;
+  }
+
+  function renderRepeat(rows,today){
+    const m=new Map();
+    rows.filter(r=>dateKey(r.created_at)===today).forEach(r=>{const x=m.get(r.customerId)||{name:r.full_name,id:r.member_id,total:0};x.total+=r.points;m.set(r.customerId,x)});
+    const a=[...m.values()].filter(x=>x.total>1).sort((a,b)=>b.total-a.total);
+    $id('adminRepeatToday').innerHTML=a.length?`<div style="overflow-x:auto"><table class="table"><thead><tr><th>Customer</th><th>Member ID</th><th>Date</th><th>Total Points Today</th></tr></thead><tbody>${a.map(x=>`<tr><td><strong>${esc(x.name)}</strong></td><td>${esc(x.id)}</td><td>${esc(today)}</td><td><strong>${x.total}</strong></td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">No customer received more than one point today.</div>';
+  }
+
+  function chart(rows,now){
+    const c=$id('adminActivityChart'),ctx=c.getContext('2d'),dpr=window.devicePixelRatio||1,W=1200,H=330;
+    c.width=W*dpr;c.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+
+    const today=dateKey(now),start=new Date(now);start.setHours(0,0,0,0);
+    const end=new Date(now);end.setSeconds(0,0);
+    const mins=Math.floor((end-start)/60000)+1,vals=Array(mins).fill(0);
+    rows.filter(r=>dateKey(r.created_at)===today).forEach(r=>{
+      const d=new Date(r.created_at);d.setSeconds(0,0);
+      const i=Math.floor((d-start)/60000);
+      if(i>=0&&i<mins) vals[i]+=r.points;
+    });
+
+    const max=Math.max(1,...vals),p={l:54,r:22,t:28,b:58},w=W-p.l-p.r,h=H-p.t-p.b;
+    const baseY=p.t+h;
+
+    // Clean grid: one horizontal line per whole point, up to the day's peak.
+    ctx.font='11px Arial';ctx.textAlign='right';
+    for(let v=0;v<=max;v++){
+      const y=baseY-(v/max)*h;
+      ctx.strokeStyle=v===0?'#9aa49f':'#e5dfd2';ctx.lineWidth=v===0?1.5:1;
+      ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(p.l+w,y);ctx.stroke();
+      ctx.fillStyle='#718078';ctx.fillText(String(v),p.l-9,y+4);
+    }
+
+    // Vertical hour guides make the movement easy to follow across the day.
+    ctx.textAlign='center';ctx.font='10px Arial';
+    const hourCount=Math.ceil(mins/60);
+    for(let hr=0;hr<=hourCount;hr++){
+      const i=Math.min(mins-1,hr*60);
+      const x=p.l+(i/Math.max(1,mins-1))*w;
+      ctx.strokeStyle='#eee9df';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(x,p.t);ctx.lineTo(x,baseY);ctx.stroke();
+      const dt=new Date(start.getTime()+i*60000);
+      ctx.fillStyle='#718078';
+      ctx.fillText(dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),x,H-28);
+    }
+
+    // Bar chart: every active minute is a visible bar, positioned at its real time.
+    const active=vals.reduce((n,v)=>n+(v>0?1:0),0);
+    const barW=Math.max(5,Math.min(16,w/Math.max(1,Math.min(active,24))*0.55));
+    vals.forEach((v,i)=>{
+      if(v<=0)return;
+      const x=p.l+(i/Math.max(1,mins-1))*w;
+      const bh=Math.max(3,(v/max)*h);
+      const y=baseY-bh;
+      ctx.fillStyle='#0b4a36';
+      ctx.fillRect(x-barW/2,y,barW,bh);
+      ctx.fillStyle='#0b4a36';ctx.font='bold 11px Arial';ctx.textAlign='center';
+      ctx.fillText(String(v),x,Math.max(p.t+12,y-6));
+      const dt=new Date(start.getTime()+i*60000);
+      ctx.fillStyle='#56655e';ctx.font='9px Arial';
+      ctx.fillText(dt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}),x,Math.max(p.t+24,y-19));
+    });
+
+    // Small legend explains exactly what the bars represent.
+    ctx.fillStyle='#718078';ctx.font='11px Arial';ctx.textAlign='left';
+    ctx.fillText('Each bar = visit points recorded in that minute',p.l,16);
+
+    const total=vals.reduce((a,b)=>a+b,0);
+    $id('adminChartStatus').textContent=active
+      ? `Today: ${total} visit points across ${active} active minute${active===1?'':'s'}. Direct table read.`
+      : 'No visit-point activity recorded today. Direct table read returned successfully.';
+  }
+
+  async function load(){
+    const profile=await guardRole(['admin']);if(!profile)return;
+    try{
+      const now=new Date(),today=dateKey(now),week=startWeek(now),month=startMonth(now),rows=await readDirect();
+      const t=new Set(),w=new Set(),m=new Set();
+      rows.forEach(r=>{const d=new Date(r.created_at);if(Number.isNaN(d.getTime()))return;if(dateKey(d)===today)t.add(r.customerId);if(d>=week)w.add(r.customerId);if(d>=month)m.add(r.customerId)});
+      $id('adminToday').textContent=t.size;$id('adminWeek').textContent=w.size;$id('adminMonth').textContent=m.size;renderRepeat(rows,today);chart(rows,now);
+    }catch(e){
+      ['adminToday','adminWeek','adminMonth'].forEach(id=>$id(id).textContent='ERR');
+      $id('adminRepeatToday').innerHTML=`<div class="alert">${esc(e.message||'Could not read point_transactions.')}</div>`;
+    }
+  }
+  window.loadAdminDashboard=load;load();setInterval(load,60000);
+})();
+</script>
+</body></html>
