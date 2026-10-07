@@ -31,6 +31,37 @@
 </div>
 <button class="btn danger block" onclick="logout()">Sign Out</button>
 </div>
+
+<div class="card" id="gmCategoriesCard">
+<h3>Categories</h3>
+<p class="sub">Manage menu categories from one place. Add a new category, edit an existing category, change its image, or delete it.</p>
+
+<div style="padding:14px;border:1px solid rgba(7,58,43,.12);border-radius:14px;margin-top:12px">
+<h4 style="margin:0 0 10px">➕ Add New Category</h4>
+<div class="field"><label>Category Name</label><input class="input" id="gmSettingsCategoryName" type="text" placeholder="Enter category name"></div>
+<div class="field"><label>Category Image</label><input class="input" id="gmSettingsCategoryImage" type="file" accept="image/*"><small id="gmSettingsCategoryImageName" class="note">Choose an image from your device.</small><div id="gmSettingsCategoryPreview" style="margin-top:10px"></div></div>
+<button class="btn primary" id="gmSettingsAddCategory" type="button">ADD CATEGORY</button>
+</div>
+
+<div style="padding:14px;border:1px solid rgba(7,58,43,.12);border-radius:14px;margin-top:14px">
+<h4 style="margin:0 0 10px">✏️ Edit Category</h4>
+<div class="field"><label>Select Category</label><select class="input" id="gmSettingsCategorySelect"><option value="">Loading categories…</option></select></div>
+<div class="field"><label>Category Name</label><input class="input" id="gmSettingsEditCategoryName" type="text" placeholder="Edit category name"></div>
+<div class="field"><label>Change Image (optional)</label><input class="input" id="gmSettingsEditCategoryImage" type="file" accept="image/*"><small id="gmSettingsEditCategoryImageName" class="note">Current image will be kept unless you choose a new one.</small><div id="gmSettingsEditCategoryPreview" style="margin-top:10px"></div></div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button class="btn" id="gmSettingsSaveCategory" type="button">SAVE CHANGES</button>
+<button class="btn" id="gmSettingsClearCategory" type="button">CLEAR</button>
+</div>
+</div>
+
+<div style="padding:14px;border:1px solid rgba(160,0,0,.15);border-radius:14px;margin-top:14px">
+<h4 style="margin:0 0 10px">🗑️ Delete Category</h4>
+<p class="sub" style="margin-top:0">Select a category above, then delete it. Categories containing menu items are protected.</p>
+<button class="btn danger" id="gmSettingsDeleteCategory" type="button">DELETE CATEGORY</button>
+</div>
+
+<div id="gmSettingsCategoryMsg" class="note" style="margin-top:10px"></div>
+</div>
 <div class="quick" style="margin-top:16px"><a href="gm-menu.html"><b>☰</b>Menu</a><a href="gm-offers.html"><b>◇</b>Offers</a><a href="gm-rewards.html"><b>★</b>Rewards</a></div>
 </main>
 <nav class="nav"><div class="navin"><a href="gm-dashboard.html" class="active"><b>▦</b>Dashboard</a>
@@ -39,8 +70,57 @@
 
 <a href="gm-settings.html"><b>⚙</b>Settings</a></div></nav>
 <script src="../assets/config.js"></script>
-<script src="../assets/app.js?v=20261007-username-name-only-v3"></script>
+<script src="../assets/app.js?v=20261007-gm-settings-categories-v4"></script>
 
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;", "'":"&#039;"}[m]));
+  let categories=[];
+  let selectedImage=null,currentImage=null,editImage=null;
+  function renderPreview(src){const el=$("gmSettingsCategoryPreview"); if(!el)return; el.innerHTML=src?'<img src="'+esc(src)+'" alt="Category preview" style="display:block;width:100%;max-width:360px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.12)">':'';}
+  async function fileToDataUrl(file,maxSize=5*1024*1024,maxDim=700,quality=.78){
+    if(!file||!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+    if(file.size>maxSize) throw new Error("Image must be 5 MB or smaller.");
+    const raw=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error("Could not read image."));r.readAsDataURL(file);});
+    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error("Invalid image."));i.src=raw;});
+    const scale=Math.min(1,maxDim/Math.max(img.width,img.height)); const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(img.width*scale)); c.height=Math.max(1,Math.round(img.height*scale)); c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL("image/jpeg",quality);
+  }
+  function fill(){const s=$("gmSettingsCategorySelect"); if(!s)return; s.innerHTML='<option value="">Select category</option>'+categories.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("");}
+  async function load(){
+    let result=await sb.from("menu_categories").select("*").order("sort_order",{ascending:true});
+    if(result.error) result=await sb.from("menu_categories").select("*");
+    if(result.error){$("gmSettingsCategoryMsg").textContent="Could not load categories: "+result.error.message;return false;}
+    categories=(result.data||[]).filter(c=>c&&c.is_active!==false); fill(); return true;
+  }
+  function reset(){ $("gmSettingsCategoryName").value=""; $("gmSettingsEditCategoryName").value=""; $("gmSettingsCategorySelect").value=""; $("gmSettingsCategoryImage").value=""; $("gmSettingsEditCategoryImage").value=""; $("gmSettingsCategoryImageName").textContent="Choose an image from your device."; $("gmSettingsEditCategoryImageName").textContent="Current image will be kept unless you choose a new one."; $("gmSettingsCategoryMsg").textContent=""; selectedImage=null;currentImage=null;editImage=null;renderPreview(null);$("gmSettingsEditCategoryPreview").innerHTML=""; }
+  $("gmSettingsCategorySelect").onchange=()=>{const c=categories.find(x=>x.id===$("gmSettingsCategorySelect").value); $("gmSettingsEditCategoryName").value=c?.name||"";currentImage=c?.image_url||null;editImage=null;$("gmSettingsEditCategoryImage").value="";$("gmSettingsEditCategoryImageName").textContent=currentImage?"Current image will be kept unless you choose a new one.":"Choose an image from your device.";$("gmSettingsEditCategoryPreview").innerHTML=currentImage?'<img src="'+esc(currentImage)+'" alt="Current category" style="display:block;width:100%;max-width:360px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.12)">':'';$("gmSettingsCategoryMsg").textContent=c?"Editing category: "+c.name:"";};
+  $("gmSettingsCategoryImage").onchange=async e=>{try{const f=e.target.files?.[0];selectedImage=await fileToDataUrl(f);$("gmSettingsCategoryImageName").textContent=f.name;renderPreview(selectedImage);$("gmSettingsCategoryMsg").textContent="New image selected. Press ADD CATEGORY.";}catch(err){selectedImage=null;e.target.value="";$("gmSettingsCategoryMsg").textContent=err.message;}};
+  $("gmSettingsEditCategoryImage").onchange=async e=>{try{const f=e.target.files?.[0];editImage=await fileToDataUrl(f);$("gmSettingsEditCategoryImageName").textContent=f.name;$("gmSettingsEditCategoryPreview").innerHTML='<img src="'+esc(editImage)+'" alt="New category image" style="display:block;width:100%;max-width:360px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.12)">';$("gmSettingsCategoryMsg").textContent="New image selected. Press SAVE CHANGES.";}catch(err){editImage=null;e.target.value="";$("gmSettingsCategoryMsg").textContent=err.message;}};
+  $("gmSettingsAddCategory").onclick=async()=>{
+    const name=$("gmSettingsCategoryName").value.trim(); if(!name){$("gmSettingsCategoryMsg").textContent="Category name is required.";return;}
+    if(categories.some(c=>String(c.name||"").trim().toLowerCase()===name.toLowerCase())){$("gmSettingsCategoryMsg").textContent="This category already exists.";return;}
+    const btn=$("gmSettingsAddCategory");btn.disabled=true;btn.textContent="ADDING…";
+    try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");const payload={name,is_active:true,sort_order:categories.length};if(selectedImage!==null)payload.image_url=selectedImage;const {error}=await sb.from("menu_categories").insert({...payload,created_by:profile.id});if(error)throw error;$("gmSettingsCategoryMsg").textContent="Category added successfully.";await load();reset();}catch(err){$("gmSettingsCategoryMsg").textContent="Could not add category: "+(err?.message||"Unknown error");}finally{btn.disabled=false;btn.textContent="ADD NEW";}
+  };
+  $("gmSettingsSaveCategory").onclick=async()=>{
+    const id=$("gmSettingsCategorySelect").value,name=$("gmSettingsEditCategoryName").value.trim();if(!id){$("gmSettingsCategoryMsg").textContent="Select a category first.";return;}if(!name){$("gmSettingsCategoryMsg").textContent="Category name is required.";return;}
+    if(categories.some(c=>c.id!==id&&String(c.name||"").trim().toLowerCase()===name.toLowerCase())){$("gmSettingsCategoryMsg").textContent="This category already exists.";return;}
+    const btn=$("gmSettingsSaveCategory");btn.disabled=true;btn.textContent="SAVING…";
+    try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");const image_url=editImage!==null?editImage:(currentImage||null);const {error}=await sb.from("menu_categories").update({name,image_url}).eq("id",id);if(error)throw error;$("gmSettingsCategoryMsg").textContent="Category updated successfully.";await load();$("gmSettingsCategorySelect").value=id;currentImage=image_url;editImage=null;$("gmSettingsEditCategoryImage").value="";$("gmSettingsEditCategoryImageName").textContent="Current image kept unless you choose a new one.";$("gmSettingsEditCategoryPreview").innerHTML=image_url?'<img src="'+esc(image_url)+'" alt="Current category" style="display:block;width:100%;max-width:360px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.12)">':'';}catch(err){$("gmSettingsCategoryMsg").textContent="Could not update category: "+(err?.message||"Unknown error");}finally{btn.disabled=false;btn.textContent="SAVE CHANGES";}
+  };
+  $("gmSettingsDeleteCategory").onclick=async()=>{
+    const id=$("gmSettingsCategorySelect").value;if(!id){$("gmSettingsCategoryMsg").textContent="Select a category first.";return;}const c=categories.find(x=>x.id===id);if(!c)return;if(!confirm('Delete category "'+c.name+'"? This is allowed only when it has no menu items.'))return;
+    const btn=$("gmSettingsDeleteCategory");btn.disabled=true;btn.textContent="DELETING…";
+    try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");const {count,error:ce}=await sb.from("menu_items").select("id",{count:"exact",head:true}).eq("category_id",id);if(ce)throw ce;if((count||0)>0)throw new Error("This category has menu items. Delete or move those items first.");const {error}=await sb.from("menu_categories").delete().eq("id",id);if(error)throw error;$("gmSettingsCategoryMsg").textContent="Category deleted successfully.";await load();reset();}catch(err){$("gmSettingsCategoryMsg").textContent="Could not delete category: "+(err?.message||"Unknown error");}finally{btn.disabled=false;btn.textContent="DELETE";}
+  };
+  $("gmSettingsClearCategory").onclick=reset;
+  (async()=>{const profile=await guardRole(["gm"]);if(!profile)return;await load();})();
+})();
+</script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
 </body>
 </html>
