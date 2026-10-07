@@ -108,9 +108,9 @@
     try{
       const profile=await getProfile();
       if(!profile||!['gm','admin'].includes(profile.role)) throw new Error("GM access is required.");
-      const payload={name,is_active:true,sort_order:categories.length};
-      if(selectedImage!==null) payload.image_url=selectedImage;
-      const {data,error}=await sb.from("menu_categories").insert({...payload,created_by:profile.id}).select("*").single();
+      const payload={name,is_active:true,sort_order:categories.length,image_url:selectedImage||null};
+      // Do not depend on an optional created_by column; RLS is enforced by the database policy.
+      const {data,error}=await sb.from("menu_categories").insert(payload).select("*").single();
       if(error) throw error;
       await load();
       $("gmSettingsCategorySelect").value=data.id;
