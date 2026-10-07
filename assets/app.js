@@ -3,15 +3,24 @@ const AL_NOOR_RUNTIME_CONFIG = window.AL_NOOR_CONFIG || {};
 const SUPABASE_URL = AL_NOOR_RUNTIME_CONFIG.SUPABASE_URL || "https://hlzmnbmngsbvnlnaaoau.supabase.co";
 const SUPABASE_KEY = AL_NOOR_RUNTIME_CONFIG.SUPABASE_PUBLISHABLE_KEY || "sb_publishable_U6m9qKom9eie1n9Q1SSQRA_A3k3vImH";
 
+// Keep Customer authentication completely separate from Staff / GM / Admin.
+// Supabase normally stores one session per origin; without a separate storageKey,
+// signing in/out in another tab can replace the Customer session.
+const __page = String(document.body?.dataset?.page || "");
+const __isCustomerPortal = __page.startsWith("customer-") || /\/customer\//i.test(String(location.pathname || ""));
+const __authStorageKey = __isCustomerPortal ? "alnoor_customer_auth" : "alnoor_backoffice_auth";
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storageKey: __authStorageKey
   }
 });
 
 window.sb = sb;
+window.AL_NOOR_PORTAL = __isCustomerPortal ? "customer" : "backoffice";
 
 const KEYS = {
   staffCustomer: "alnoor_staff_customer",
@@ -154,31 +163,21 @@ async function getStaffProfile() {
   return Array.isArray(data) ? data[0] : data;
 }
 
-function loginForRole(role) {
-  const r = String(role || "").toLowerCase();
-  const currentPath = String(location.pathname || "");
-  const inPortalFolder = /\/(customer|staff|gm|admin)\//i.test(currentPath);
-  const folder = inPortalFolder ? currentPath.replace(/\/[^/]*$/, "") : "";
-  const file = r === "customer" ? "customer-login.html" : r === "gm" ? "gm-login.html" : r === "admin" ? "admin-login.html" : "staff-login.html";
-  return folder ? `${folder}/${file}` : file;
-}
-
 async function guardRole(allowedRoles) {
   const session = await getSession();
   if (!session) {
-    location.href = loginForRole(allowedRoles[0]);
+    const role = allowedRoles[0];
+    location.href = role === "customer" ? "customer-login.html" : role === "gm" ? "gm-login.html" : role === "admin" ? "admin-login.html" : "staff-login.html";
     return null;
   }
 
   const profile = await getProfile();
-  const actualRole = String(profile?.role || "").toLowerCase();
-  const isAdmin = actualRole === "admin";
-  const allowed = allowedRoles.map(r => String(r).toLowerCase()).includes(actualRole);
-
-  // Admin is the only role allowed to open every portal.
-  if (!profile || (!allowed && !isAdmin)) {
+  const adminPortalAccess = profile?.role === "admin" &&
+    allowedRoles.some(r => r === "gm" || r === "staff");
+  if (!profile || (!allowedRoles.includes(profile.role) && !adminPortalAccess)) {
     toast("You do not have access to this portal.", false);
-    location.href = portalForRole(actualRole);
+    await sb.auth.signOut();
+    location.href = "../index.html";
     return null;
   }
   return profile;
@@ -192,28 +191,38 @@ function routeForRole(role) {
 }
 
 async function login(role) {
-  const email = $("email")?.value.trim().toLowerCase();
+  const identifier = $(role === "customer" ? "username" : "email")?.value.trim();
   const password = $("password")?.value;
   const msg = $("msg");
 
-  if (!email || !password) {
-    if (msg) msg.textContent = "Enter your email and password.";
+  if (!identifier || !password) {
+    if (msg) msg.textContent = role === "customer"
+      ? "Enter your username and password."
+      : "Enter your email and password.";
     return;
   }
 
   if (msg) msg.textContent = "Signing in…";
 
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  const authIdentifier = role === "customer"
+    ? `${identifier.toLowerCase().replace(/[^a-z0-9._-]/g, "")}@customer.alnoor.local`
+    : identifier.toLowerCase();
+
+  const { data, error } = await sb.auth.signInWithPassword({
+    email: authIdentifier,
+    password
+  });
 
   if (error) {
-    if (msg) msg.textContent = error.message;
+    if (msg) msg.textContent = role === "customer"
+      ? "Username or password is incorrect."
+      : error.message;
     else toast(error.message, false);
     return;
   }
 
   try {
     const profile = await getProfile();
-
     if (!profile) throw new Error("Your profile is not ready yet. Please try again.");
 
     if (profile.role !== role) {
@@ -226,18 +235,23 @@ async function login(role) {
     if (msg) msg.textContent = e.message || "Login failed.";
   }
 }
-
 async function registerCustomer() {
   const name = $("name")?.value.trim();
+  const usernameRaw = $("username")?.value.trim();
+  const username = usernameRaw.toLowerCase();
   const phone = $("phone")?.value.trim();
-  const email = $("email")?.value.trim().toLowerCase();
   const password = $("password")?.value;
   const confirm = $("confirm")?.value;
-  const birthday = $("birthday")?.value;
+  const birthday = $("birthday")?.value || null;
   const msg = $("msg");
 
-  if (!name || !phone || !email || !birthday || !password) {
+  if (!name || !username || !phone || !password) {
     msg.textContent = "Please complete all required fields.";
+    return;
+  }
+
+  if (!/^[a-zA-Z0-9._-]{3,30}$/.test(username)) {
+    msg.textContent = "Username must be 3–30 characters: letters, numbers, dot, underscore or hyphen.";
     return;
   }
 
@@ -253,43 +267,47 @@ async function registerCustomer() {
 
   msg.textContent = "Creating your Al Noor account…";
 
+  const internalEmail = `${username}@customer.alnoor.local`;
   const { data, error } = await sb.auth.signUp({
-    email,
+    email: internalEmail,
     password,
     options: {
       data: {
         full_name: name,
-        phone: phone,
-        birthday: birthday,
+        username,
+        phone,
+        birthday,
         birthday_contact: false
       }
     }
   });
 
   if (error) {
-    msg.textContent = error.message;
+    const duplicate = /already registered|already exists|user already/i.test(error.message || "");
+    msg.textContent = duplicate ? "This username is already in use. Please choose another one." : error.message;
     return;
   }
 
   if (!data.session) {
-    msg.textContent = "Account created. Email confirmation is enabled in the current Supabase project; confirm the email, then sign in.";
+    msg.textContent = "Account created. Please ask the administrator to disable email confirmation for Username login, then sign in.";
     return;
   }
 
   msg.textContent = "Account created. Opening your loyalty card…";
   setTimeout(() => location.href = "customer-home.html", 500);
 }
-
 async function logout() {
-  let role = "";
-  try {
-    const profile = await getProfile();
-    role = String(profile?.role || "").toLowerCase();
-  } catch (_) {}
   await sb.auth.signOut();
   localStorage.removeItem(KEYS.customerToken);
   localStorage.removeItem(KEYS.staffCustomer);
-  location.href = loginForRole(role || (document.body.dataset.page || "").split("-")[0]);
+
+  // Customer logout must stay inside the Customer portal.
+  if (window.AL_NOOR_PORTAL === "customer") {
+    location.href = "customer-login.html";
+    return;
+  }
+
+  location.href = "../index.html";
 }
 
 async function loadCustomerHome() {
@@ -536,7 +554,7 @@ function renderStaffCustomer(customer) {
 }
 
 async function loadStaffCustomer() {
-  const profile = await guardRole(["staff"]);
+  const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
@@ -549,7 +567,7 @@ async function loadStaffCustomer() {
 }
 
 async function loadAddPoints() {
-  const profile = await guardRole(["staff"]);
+  const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
@@ -601,7 +619,7 @@ async function loadAddPoints() {
 }
 
 async function loadStaffRedeem() {
-  const profile = await guardRole(["staff"]);
+  const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
@@ -721,7 +739,7 @@ async function openStaffRedemptionConfirm(rewardId, cost) {
 }
 
 async function loadStaffHistory() {
-  const profile = await guardRole(["staff"]);
+  const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
 
   const customer = getStaffCustomer();
@@ -787,7 +805,7 @@ async function loadStaffHistory() {
 }
 
 async function loadStaffProfile() {
-  const profile = await guardRole(["staff"]);
+  const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
 
   const staff = await getStaffProfile().catch(() => profile);
@@ -837,7 +855,7 @@ async function bindStaffPhoto(profile) {
 }
 
 async function startScanner() {
-  const profile = await guardRole(["staff"]);
+  const profile = await guardRole(["staff","gm"]);
   if (!profile) return;
   await bindStaffPhoto(profile);
 
@@ -900,7 +918,7 @@ function normalizeGmReport(data) {
 
 async function getAdminProfiles() {
   const { data, error } = await sb.from("profiles")
-    .select("id,full_name,email,phone,member_id,role,points,is_active,created_at,avatar_url")
+    .select("*")
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw error;
@@ -1139,6 +1157,63 @@ function renderGmReportChart(r) {
   }).join("");
 }
 
+function startOfLocalDay(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+async function loadDailyRegistrationDashboard() {
+  const jasonEl = $("registrationsJason");
+  const mustafaEl = $("registrationsMustafa");
+  const totalEl = $("registrationsToday");
+  if (!jasonEl && !mustafaEl && !totalEl) return;
+
+  try {
+    const start = startOfLocalDay();
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+
+    const { data, error } = await sb.from("profiles")
+      .select("*")
+      .eq("role", "customer")
+      .gte("created_at", start.toISOString())
+      .lt("created_at", end.toISOString());
+
+    if (error) throw error;
+
+    const customers = Array.isArray(data) ? data : [];
+    const ids = [...new Set(customers
+      .map(c => c.registered_by || c.created_by || c.registrar_id)
+      .filter(v => v && /^[0-9a-f-]{20,}$/i.test(String(v))))];
+
+    let registrarMap = {};
+    if (ids.length) {
+      const { data: rows } = await sb.from("profiles")
+        .select("id,full_name,username,email")
+        .in("id", ids);
+      (rows || []).forEach(r => {
+        registrarMap[r.id] = String(r.full_name || r.username || r.email || "").trim();
+      });
+    }
+
+    const registrarName = customer => {
+      const raw = customer.registered_by || customer.created_by || customer.registrar_id ||
+        customer.registered_by_name || customer.created_by_name || "";
+      return registrarMap[raw] || String(raw || "");
+    };
+
+    const normalize = name => String(name || "").trim().toLowerCase();
+    const jason = customers.filter(c => normalize(registrarName(c)).includes("jason")).length;
+    const mustafa = customers.filter(c => normalize(registrarName(c)).includes("mustafa")).length;
+
+    if (jasonEl) jasonEl.textContent = moneyPoints(jason);
+    if (mustafaEl) mustafaEl.textContent = moneyPoints(mustafa);
+    if (totalEl) totalEl.textContent = moneyPoints(customers.length);
+  } catch (e) {
+    [jasonEl, mustafaEl, totalEl].forEach(el => { if (el) el.textContent = "—"; });
+    toast("Could not load today's registration counts.", false);
+  }
+}
+
 async function loadAdminDashboard() {
   const profile = await guardRole(["admin"]);
   if (!profile) return;
@@ -1258,7 +1333,8 @@ async function init() {
     } else if (page === "admin-staff") {
       await loadAdminRoleList("staff", "adminStaffList");
     } else if (page === "admin-settings") {
-      await guardRole(["admin"]);
+      const adminProfile = await guardRole(["admin"]);
+      if (adminProfile) await loadDailyRegistrationDashboard();
     } else if (page === "customer-login") {
       $("loginBtn").onclick = () => login("customer");
     } else if (page === "customer-register") {
