@@ -95,7 +95,7 @@
     try{
       const profile=await getProfile(); if(!profile||!['gm','admin'].includes(profile.role)) throw new Error("GM access is required.");
       const payload={name,is_active:true,sort_order:categories.length}; if(selectedCategoryImage!==null) payload.image_url=selectedCategoryImage;
-      const {data,error}=await sb.from("menu_categories").insert({...payload,created_by:profile.id}).select("*").single();
+      const {data,error}=await sb.from("menu_categories").insert(payload).select("*").single();
       if(error) throw error;
       $("categoryMsg").textContent="Category added successfully."; await loadCategories(); $("gmMenuCategory").value=data.id; $("gmCategoryName").value=data.name||name; currentCategoryImage=data.image_url||null; selectedCategoryImage=null; $("gmCategoryImageFile").value=""; $("gmCategoryImageName").textContent=currentCategoryImage?"Current image saved.":"Choose an image from your device."; renderPreview("gmCategoryPreview",currentCategoryImage);
     }catch(err){$("categoryMsg").textContent="Could not add category: "+(err?.message||"Unknown error");}
@@ -105,7 +105,7 @@
   $("deleteCategoryBtn").onclick=async()=>{
     const id=$("gmMenuCategory").value; if(!id){$("categoryMsg").textContent="Select a category first.";return;}
     const c=categories.find(x=>x.id===id); if(!c)return;
-    if(!confirm("Delete category ""+c.name+""? This will only be allowed if the category has no menu items."))return;
+    if(!confirm('Delete category "'+c.name+'"? This will only be allowed if the category has no menu items.'))return;
     const btn=$("deleteCategoryBtn"); btn.disabled=true; btn.textContent="DELETING…";
     try{
       const profile=await getProfile(); if(!profile||!['gm','admin'].includes(profile.role)) throw new Error("GM access is required.");
