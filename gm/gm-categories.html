@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#073a2b">
+<link rel="manifest" href="../manifest.webmanifest">
+<title>Category Management</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0"></script>
+</head>
+<body data-page="gm-categories">
+<header class="topbar">
+<a class="brand brand-image" href="gm-dashboard.html"><img class="brand-logo" src="../assets/al-noor-approved-logo.png" alt="AL NOOR BAKERY &amp; CAFE"></a>
+<button class="icon" onclick="logout()" title="Sign out">↪</button>
+</header>
+<main class="container">
+<h1 class="title">Categories</h1>
+<p class="sub">Add, edit, change the image, or delete menu categories.</p>
+
+<div class="card">
+  <h3>Category Management</h3>
+  <p class="sub">Select an existing category to edit it, or enter a new name to create one.</p>
+  <div class="field"><label>Category Name</label><input class="input" id="categoryName" type="text" placeholder="e.g. Coffee"></div>
+  <div class="field"><label>Existing Category</label><select class="input" id="categorySelect"><option value="">Loading categories…</option></select></div>
+  <div class="field"><label>Category Image</label><input class="input" id="categoryImage" type="file" accept="image/*"><small id="categoryImageName" class="note">Choose an image from your device.</small><div id="categoryPreview" style="margin-top:10px"></div></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn primary" id="addCategoryBtn" type="button">ADD CATEGORY</button>
+    <button class="btn" id="saveCategoryBtn" type="button">SAVE CATEGORY</button>
+    <button class="btn danger" id="deleteCategoryBtn" type="button">DELETE CATEGORY</button>
+    <button class="btn" id="clearCategoryBtn" type="button">CLEAR</button>
+  </div>
+  <div id="categoryMsg" class="note" style="margin-top:10px"></div>
+</div>
+
+<div class="card" style="margin-top:16px">
+  <h3>Quick Management</h3>
+  <div class="quick">
+    <a href="gm-menu.html"><b>☰</b>Menu</a>
+    <a href="gm-categories.html" class="active"><b>▦</b>Categories</a>
+    <a href="gm-offers.html"><b>◇</b>Offers</a>
+    <a href="gm-rewards.html"><b>★</b>Rewards</a>
+  </div>
+</div>
+</main>
+<nav class="nav"><div class="navin">
+<a href="gm-dashboard.html"><b>▦</b>Dashboard</a>
+<a href="gm-members.html"><b>♙</b>Customers</a>
+<a href="gm-settings.html"><b>⚙</b>Settings</a>
+</div></nav>
+<script src="../assets/config.js"></script>
+<script src="../assets/app.js?v=20261008-gm-categories"></script>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const esc=v=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+  let categories=[];
+  let selectedImage=null,currentImage=null;
+  function preview(src){const el=$("categoryPreview");el.innerHTML=src?'<img src="'+esc(src)+'" alt="Category preview" style="display:block;width:100%;max-width:360px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid rgba(0,0,0,.12)">':'';}
+  async function fileToDataUrl(file,maxSize=5*1024*1024,maxDim=700,quality=.78){
+    if(!file||!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
+    if(file.size>maxSize) throw new Error("Image must be 5 MB or smaller.");
+    const raw=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(new Error("Could not read image."));r.readAsDataURL(file);});
+    const img=await new Promise((resolve,reject)=>{const i=new Image();i.onload=()=>resolve(i);i.onerror=()=>reject(new Error("Invalid image."));i.src=raw;});
+    const scale=Math.min(1,maxDim/Math.max(img.width,img.height));const c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    return c.toDataURL("image/jpeg",quality);
+  }
+  function fill(){const s=$("categorySelect");s.innerHTML='<option value="">Select category</option>'+categories.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join("");}
+  async function load(){
+    let result=await sb.from("menu_categories").select("*").order("sort_order",{ascending:true});
+    if(result.error) result=await sb.from("menu_categories").select("*");
+    if(result.error){$("categoryMsg").textContent="Could not load categories: "+result.error.message;return false;}
+    categories=(result.data||[]).filter(c=>c&&c.is_active!==false);fill();return true;
+  }
+  function clear(){
+    $("categoryName").value="";$("categorySelect").value="";$("categoryImage").value="";$("categoryImageName").textContent="Choose an image from your device.";selectedImage=null;currentImage=null;preview(null);$("categoryMsg").textContent="";
+  }
+  $("categorySelect").onchange=()=>{const c=categories.find(x=>x.id===$("categorySelect").value);$("categoryName").value=c?.name||"";currentImage=c?.image_url||null;selectedImage=null;$("categoryImage").value="";$("categoryImageName").textContent=currentImage?"Current image kept unless you choose a new one.":"Choose an image from your device.";preview(currentImage);$("categoryMsg").textContent=c?"Editing category: "+c.name:"";};
+  $("categoryImage").onchange=async e=>{try{const f=e.target.files?.[0];selectedImage=await fileToDataUrl(f);$("categoryImageName").textContent=f.name;preview(selectedImage);$("categoryMsg").textContent="Image selected. Press SAVE CATEGORY.";}catch(err){selectedImage=null;e.target.value="";$("categoryMsg").textContent=err.message;}};
+  $("addCategoryBtn").onclick=async()=>{
+    const btn=$("addCategoryBtn"),name=$("categoryName").value.trim();if(!name){$("categoryMsg").textContent="Category name is required.";return;}
+    if(categories.some(c=>String(c.name||"").trim().toLowerCase()===name.toLowerCase())){$("categoryMsg").textContent="This category already exists.";return;}
+    btn.disabled=true;btn.textContent="ADDING…";
+    try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");const payload={name,is_active:true,sort_order:categories.length,image_url:selectedImage||null};const {data,error}=await sb.from("menu_categories").insert(payload).select("*").single();if(error)throw error;$("categoryMsg").textContent="Category added successfully.";await load();$("categorySelect").value=data.id;$("categoryName").value=data.name||name;currentImage=data.image_url||null;selectedImage=null;$("categoryImage").value="";$("categoryImageName").textContent=currentImage?"Current image saved.":"Choose an image from your device.";preview(currentImage);}catch(err){$("categoryMsg").textContent="Could not add category: "+(err?.message||"Unknown error");}finally{btn.disabled=false;btn.textContent="ADD CATEGORY";}
+  };
+  $("saveCategoryBtn").onclick=async()=>{
+    const btn=$("saveCategoryBtn"),id=$("categorySelect").value,name=$("categoryName").value.trim();if(!id){$("categoryMsg").textContent="Select a category first.";return;}if(!name){$("categoryMsg").textContent="Category name is required.";return;}
+    if(categories.some(c=>c.id!==id&&String(c.name||"").trim().toLowerCase()===name.toLowerCase())){$("categoryMsg").textContent="This category already exists.";return;}
+    btn.disabled=true;btn.textContent="SAVING…";
+    try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");const image_url=selectedImage!==null?selectedImage:(currentImage||null);const {error}=await sb.from("menu_categories").update({name,image_url}).eq("id",id);if(error)throw error;$("categoryMsg").textContent="Category updated successfully.";await load();$("categorySelect").value=id;$("categoryName").value=name;currentImage=image_url;selectedImage=null;$("categoryImage").value="";$("categoryImageName").textContent=image_url?"Current image saved.":"Choose an image from your device.";preview(image_url);}catch(err){$("categoryMsg").textContent="Could not update category: "+(err?.message||"Unknown error");}finally{btn.disabled=false;btn.textContent="SAVE CATEGORY";}
+  };
+  $("deleteCategoryBtn").onclick=async()=>{
+    const btn=$("deleteCategoryBtn"),id=$("categorySelect").value;if(!id){$("categoryMsg").textContent="Select a category first.";return;}const c=categories.find(x=>x.id===id);if(!c)return;if(!confirm('Delete category "'+c.name+'"? This is allowed only when it has no menu items.'))return;
+    btn.disabled=true;btn.textContent="DELETING…";
+    try{const profile=await getProfile();if(!profile||!['gm','admin'].includes(profile.role))throw new Error("GM access is required.");const {count,error:ce}=await sb.from("menu_items").select("id",{count:"exact",head:true}).eq("category_id",id);if(ce)throw ce;if((count||0)>0)throw new Error("This category has menu items. Delete or move those items first.");const {error}=await sb.from("menu_categories").delete().eq("id",id);if(error)throw error;$("categoryMsg").textContent="Category deleted successfully.";await load();clear();}catch(err){$("categoryMsg").textContent="Could not delete category: "+(err?.message||"Unknown error");}finally{btn.disabled=false;btn.textContent="DELETE CATEGORY";}
+  };
+  $("clearCategoryBtn").onclick=clear;
+  (async()=>{const profile=await guardRole(["gm"]);if(!profile)return;await load();})();
+})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("../sw.js").catch(()=>{}));}</script>
+</body>
+</html>
