@@ -50,7 +50,7 @@
 
 <style>
 :root{--menu-cream:#f7f1e7;--menu-gold:#c9ae70;--menu-green:#073a2b}
-.menu-page{padding-bottom:110px}
+.menu-page{max-width:1000px;padding-bottom:110px}
 .menu-hero{margin-bottom:18px}
 .eyebrow{margin:0 0 5px;color:var(--gold,#a78a52);font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
 .menu-panel{padding:18px}
@@ -85,6 +85,30 @@
 (function(){
   const categoriesView=document.getElementById('menuCategoriesView');
   const itemsView=document.getElementById('menuItemsView');
+
+  // Keep the customer category artwork identical to the standalone public menu.
+  // Known official categories always use the same canonical image file; custom/new
+  // GM categories continue to use their database image.
+  const CATEGORY_IMAGE_FILES={
+    "Classic Coffee":"01_Classic_Coffee.png",
+    "Craft Pour Over V60":"02_Craft_Pour_Over_V60.png",
+    "Iced Coffee":"03_Iced_Coffee.png",
+    "Matcha":"04_Matcha.png",
+    "Breakfast":"05_Breakfast.png",
+    "Paninis Wraps Toast":"06_Paninis_Wraps_Toast.png",
+    "Fresh Salads":"07_Fresh_Salads.png",
+    "Artisanal Pizzas":"08_Artisanal_Pizzas.png",
+    "Manakish":"09_Manakish.png",
+    "Bakery Croissants":"10_Bakery_Croissants.png",
+    "Cakes Pastries":"11_Cakes_Pastries.png",
+    "Fresh Juices Wellness":"12_Fresh_Juices_Wellness.png",
+    "Acai":"13_Acai.png",
+    "Mojitos Iced Teas":"14_Mojitos_Iced_Teas.png"
+  };
+  const canonicalCategoryImage=name=>{
+    const key=Object.keys(CATEGORY_IMAGE_FILES).find(k=>slug(k)===slug(name));
+    return key ? '../assets/menu-categories/'+CATEGORY_IMAGE_FILES[key] : null;
+  };
 
   const FALLBACK_CATEGORIES=[
     {key:'classic-coffee',name:'Classic Coffee',icon:'☕',order:1},
@@ -138,13 +162,13 @@
         active:r.is_active!==false,
         // Backward compatibility: if an older record stored its image URL in `icon`,
         // use it as the category image instead of displaying the URL as text.
-        image_url:validImageSource(r.image_url) || validImageSource(r.icon) || null
+        image_url:validImageSource(r.image_url) || validImageSource(r.icon) || canonicalCategoryImage(r.name||base?.name) || null
       });
     });
-    if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:null}));
+    if(!result.length) return FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:canonicalCategoryImage(c.name)}));
     const existing=new Set(result.map(c=>slug(c.name)));
     FALLBACK_CATEGORIES.forEach(c=>{
-      if(!existing.has(slug(c.name))) result.push({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:null});
+      if(!existing.has(slug(c.name))) result.push({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:canonicalCategoryImage(c.name)});
     });
     return result.filter(c=>c.active).sort((a,b)=>a.order-b.order);
   }
@@ -305,7 +329,7 @@
   }
 
   loadMenu().catch(err=>{
-    categories=FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:null}));
+    categories=FALLBACK_CATEGORIES.map(c=>({id:null,name:c.name,icon:c.icon,order:c.order,active:true,fallback:true,image_url:canonicalCategoryImage(c.name)}));
     items=[];
     categoriesView.hidden=false;
     itemsView.hidden=true;
