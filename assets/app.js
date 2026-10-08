@@ -1025,6 +1025,57 @@ async function getCustomerPeriodCounts() {
   };
 }
 
+
+async function readGmPointTransactionsDirect() {
+  const status = $("gmChartStatus");
+  if (!status) return [];
+  status.textContent = "Reading point_transactions directly…";
+  const { data, error } = await sb.from("point_transactions")
+    .select("id,customer_id,type,points,note,created_at")
+    .order("created_at", { ascending: true })
+    .limit(10000);
+  if (error) {
+    status.innerHTML = `<strong>Database read failed:</strong> ${esc(error.message || "Unknown database error")}<br><small>The GM account does not currently have permission to read point_transactions directly.</small>`;
+    throw error;
+  }
+  const raw = Array.isArray(data) ? data : [];
+  const rows = raw.filter(t => {
+    const n = Number(t?.points ?? 0);
+    const type = String(t?.type ?? "").toLowerCase();
+    return Number.isFinite(n) && n > 0 && !/(redeem|coupon|reward|deduct|remove)/.test(type) && t?.customer_id && t?.created_at;
+  }).map(t => ({ customerId: t.customer_id, points: Number(t.points), type: t.type, created_at: t.created_at }));
+  return rows;
+}
+
+function renderGmActivityChart(rows, now) {
+  const c = $("gmActivityChart"), status = $("gmChartStatus");
+  if (!c || !status) return;
+  const ctx = c.getContext("2d"), dpr = window.devicePixelRatio || 1, W = 1200, H = 330;
+  c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  const dateKey = d => { const x = new Date(d); return Number.isNaN(x.getTime()) ? "" : `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}-${String(x.getDate()).padStart(2,"0")}`; };
+  const today = dateKey(now), start = new Date(now); start.setHours(0,0,0,0);
+  const end = new Date(now); end.setSeconds(0,0);
+  const mins = Math.floor((end-start)/60000)+1, vals = Array(mins).fill(0);
+  rows.filter(r => dateKey(r.created_at) === today).forEach(r => { const d = new Date(r.created_at); d.setSeconds(0,0); const i = Math.floor((d-start)/60000); if(i>=0&&i<mins) vals[i] += r.points; });
+  const max = Math.max(1, ...vals), p = {l:54,r:22,t:28,b:58}, w = W-p.l-p.r, h = H-p.t-p.b, baseY = p.t+h;
+  ctx.font = "11px Arial"; ctx.textAlign = "right";
+  for(let v=0;v<=max;v++){ const y=baseY-(v/max)*h; ctx.strokeStyle=v===0?"#9aa49f":"#e5dfd2"; ctx.lineWidth=v===0?1.5:1; ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(p.l+w,y);ctx.stroke();ctx.fillStyle="#718078";ctx.fillText(String(v),p.l-9,y+4); }
+  ctx.textAlign="center";ctx.font="10px Arial";
+  const hourCount=Math.ceil(mins/60);
+  for(let hr=0;hr<=hourCount;hr++){ const i=Math.min(mins-1,hr*60),x=p.l+(i/Math.max(1,mins-1))*w;ctx.strokeStyle="#eee9df";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,p.t);ctx.lineTo(x,baseY);ctx.stroke();const dt=new Date(start.getTime()+i*60000);ctx.fillStyle="#718078";ctx.fillText(dt.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),x,H-28); }
+  const active=vals.reduce((n,v)=>n+(v>0?1:0),0),barW=Math.max(5,Math.min(16,w/Math.max(1,Math.min(active,24))*0.55));
+  vals.forEach((v,i)=>{ if(v<=0)return; const x=p.l+(i/Math.max(1,mins-1))*w,bh=Math.max(3,(v/max)*h),y=baseY-bh;ctx.fillStyle="#0b4a36";ctx.fillRect(x-barW/2,y,barW,bh);ctx.fillStyle="#0b4a36";ctx.font="bold 11px Arial";ctx.textAlign="center";ctx.fillText(String(v),x,Math.max(p.t+12,y-6));const dt=new Date(start.getTime()+i*60000);ctx.fillStyle="#56655e";ctx.font="9px Arial";ctx.fillText(dt.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),x,Math.max(p.t+24,y-19)); });
+  ctx.fillStyle="#718078";ctx.font="11px Arial";ctx.textAlign="left";ctx.fillText("Each bar = visit points recorded in that minute",p.l,16);
+  const total=vals.reduce((a,b)=>a+b,0);status.textContent=active?`Today: ${total} visit points across ${active} active minute${active===1?"":"s"}. Direct table read.`:"No visit-point activity recorded today. Direct table read returned successfully.";
+}
+
+async function loadGmActivityChart() {
+  const chart = $("gmActivityChart");
+  if (!chart) return;
+  try { const rows = await readGmPointTransactionsDirect(); renderGmActivityChart(rows, new Date()); }
+  catch (e) { const status=$("gmChartStatus"); if(status) status.textContent = e?.message || "Could not load live activity."; }
+}
+
 async function loadGmDashboard() {
   const profile = await guardRole(["gm"]);
   if (!profile) return;
@@ -1047,11 +1098,7 @@ async function loadGmDashboard() {
     if (weekEl) weekEl.textContent = moneyPoints(periods.week);
     if (monthEl) monthEl.textContent = moneyPoints(periods.month);
 
-    renderGmReportChart({
-      ...r,
-      customers_week: periods.week,
-      customers_month: periods.month
-    });
+    await loadGmActivityChart();
   } catch (e) {
     toast(e.message || "Could not load dashboard data.", false);
   }
@@ -1373,8 +1420,6 @@ async function init() {
       await loadGmDashboard();
     } else if (page === "gm-members") {
       await loadGmMembers();
-    } else if (page === "gm-locations") {
-      await loadGmLocations();
     } else if (page === "gm-settings") {
       await bindGmSettingsProfile();
     } else if (page === "gm-menu") {
