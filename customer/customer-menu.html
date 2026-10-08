@@ -55,10 +55,10 @@
 .eyebrow{margin:0 0 5px;color:var(--gold,#a78a52);font-size:10px;font-weight:900;letter-spacing:1.2px;text-transform:uppercase}
 .menu-panel{padding:18px}
 .menu-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.menu-category{appearance:none;width:100%;height:230px;border:1px solid rgba(7,58,43,.10);background:#efe4d1;border-radius:22px;padding:0;overflow:hidden;position:relative;text-align:center;color:var(--menu-green);cursor:pointer;box-shadow:0 8px 22px rgba(19,48,37,.05);transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
-.menu-category:hover,.menu-category:focus-visible{transform:translateY(-2px);box-shadow:0 12px 28px rgba(19,48,37,.09);border-color:rgba(167,138,82,.55);outline:none}
-.menu-icon{width:100%;height:100%;margin:0;border-radius:inherit;display:grid;place-items:center;background:#efe4d1;font-size:30px;line-height:1}.menu-icon img{width:100%;height:100%;object-fit:contain;border-radius:inherit;display:block}.image-fallback{width:100%;height:100%;display:grid;place-items:center;font-size:30px}.menu-item-image-wrap{width:76px;height:76px;flex:0 0 76px;border-radius:17px;border:1px solid rgba(7,58,43,.10);background:#f4eee3;overflow:hidden;display:grid;place-items:center}.menu-item-image-wrap img{width:100%;height:100%;object-fit:contain;display:block}.menu-item-image-wrap .image-fallback{font-size:29px}
-.menu-name,.menu-count{display:none!important}
+.menu-category{position:relative;display:block;width:100%;height:230px;padding:0;border:1px solid rgba(7,58,43,.12);border-radius:22px;overflow:hidden;background:#efe4d1;cursor:pointer;box-shadow:0 7px 20px rgba(19,48,37,.06)}
+.menu-category::after{content:"";position:absolute;inset:45% 0 0;background:linear-gradient(transparent,rgba(0,0,0,.72));pointer-events:none}
+.menu-icon{position:absolute;inset:0;width:100%;height:100%;margin:0;border-radius:inherit;display:grid;place-items:center;background:#efe4d1;font-size:30px;line-height:1;z-index:0}.menu-icon img{width:100%;height:100%;object-fit:cover;border-radius:inherit;display:block}.image-fallback{width:100%;height:100%;display:grid;place-items:center;font-size:30px}.menu-category .menu-category-name{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:18px 14px 13px;color:#fff;font-size:17px;font-weight:900;text-align:left;text-shadow:0 1px 3px #000;line-height:1.2}
+.menu-item-image-wrap{width:76px;height:76px;flex:0 0 76px;border-radius:17px;border:1px solid rgba(7,58,43,.10);background:#f4eee3;overflow:hidden;display:grid;place-items:center}.menu-item-image-wrap img{width:100%;height:100%;object-fit:contain;display:block}.menu-item-image-wrap .image-fallback{font-size:29px}
 .menu-count{display:block;margin-top:6px;color:var(--muted);font-size:10px;font-weight:800}
 .menu-head{display:flex;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:4px}
 .menu-back{width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);background:#edf2eb;border-radius:13px;color:var(--menu-green);font-size:23px;font-weight:900;cursor:pointer}
@@ -78,7 +78,7 @@
 .menu-empty,.menu-loading{padding:28px 10px;text-align:center;color:var(--muted);font-weight:700}
 .menu-error{padding:22px 14px;border-radius:16px;background:#fff7f5;border:1px solid #ead2cc;color:#8b3a31;font-size:12px;line-height:1.5}
 .menu-small-note{margin:0 0 10px;color:var(--muted);font-size:10px;font-weight:700}
-@media(max-width:420px){.menu-panel{padding:14px}.menu-grid{gap:10px}.menu-category{height:190px;padding:0}.menu-icon{width:100%;height:100%;font-size:27px}.menu-name{font-size:12px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
+@media(max-width:600px){.menu-panel{padding:10px;border-radius:22px}.menu-grid{gap:10px}.menu-category{height:190px;border-radius:20px}.menu-category .menu-category-name{font-size:14px;padding:14px 10px 10px}.menu-item-image,.menu-placeholder{width:64px;height:64px;flex-basis:64px}.menu-item-name{font-size:14px}.menu-item-price{font-size:10px}}
 </style>
 
 <script>
@@ -217,6 +217,10 @@
       btn.setAttribute('aria-label',cat.name);
       const icon=buildSafeImage(validImageSource(cat.image_url),'', 'menu-icon',cat.icon);
       btn.appendChild(icon);
+      const name=document.createElement('span');
+      name.className='menu-category-name';
+      name.textContent=cat.name||'Category';
+      btn.appendChild(name);
       btn.addEventListener('click',()=>renderItems(cat.name));
       grid.appendChild(btn);
     });
